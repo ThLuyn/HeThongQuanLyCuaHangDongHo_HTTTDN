@@ -1,0 +1,37 @@
+import { clearAuthSession, loadAuthSession } from './authStorage'
+
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+
+type ApiRequestOptions = {
+  method?: HttpMethod
+  body?: unknown
+  headers?: Record<string, string>
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  const session = loadAuthSession()
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(options.headers || {}),
+    },
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  })
+
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    const message = payload?.message || 'Yeu cau that bai'
+    if (response.status === 401) {
+      clearAuthSession()
+    }
+    throw new Error(message)
+  }
+
+  return payload as T
+}

@@ -1,0 +1,121 @@
+
+ 	Trường Đại học Sài Gòn 	Cộng Hoà Xã Hội Chủ Nghĩa Việt Nam 
+ 	Khoa Công Nghệ Thông Tin 	Độc lập – Tự do – Hạnh phúc 
+ 	  
+ 	 
+Ngày ……. tháng ………năm 2026 
+ 
+BIÊN BẢN ĐÁNH GIÁ ĐỒ ÁN GIỮA KỲ 
+Học phần: Hệ thống thông tin doanh nghiệp 
+Mã HP: 841065  
+ 
+ 	 
+ĐIỂM SỐ 	ĐIỂM CHỮ 	GV CHẤM  
+ 	 	 
+ 
+Nhóm:  .................................. 
+ 
+Tên đề tài: ................................................................................................................................  ................................................................................................................................................. 
+ 
+Thànhviênnhóm: 
+STT 	MSSV 	Họ tên 	Khối lượng công việc (%) 	Điểm 	Ký tên 
+1 	 	 	 	 	 
+2 	 	 	 	 	 
+3 	 	 	 	 	 
+4 	 	 	 	 	 
+ 
+ 
+Yêucầu: 
+Nhóm tối đa 4 sinh viên, tìm hiểu và xây dựng HTTT cho một doanh nghiệp thương mại. Thiết kế và cài đặt website/ ứng dụng hoặc ứng dụng cho việc quản lý doanh nghiệp bao gồm các chức năng chính theo yêu cầu cụ thể bảng bên dưới. Lưu ý: 
+-	Điểm được chấm theo thang điểm yêu cầu của đồ án (bảng bên dưới). 
+-	Thành viên có tỷ lệ tham gia vào đồ án cao nhất (được xem như 100%) và có trọn số điểm đồ án. 
+-	Các thành viên còn lại dựa trên tỷ lệ % tính điểm cá nhân. 
+ 
+ 
+ 
+BẢNG YÊU CẦU 
+STT 	Yêu cầu 	ĐIỂM 	ĐĐ 
+ 	-	Báo cáo đồ án (in):  
++ Bảng kế hoạch làm việc của các SV trong nhóm (15 tuần), tự đánh giá điểm của từng thành viên. 
++ Có đầy đủ các phần trong yêu cầu của đồ án (giới thiệu, khảo sát, phân tích…) 
++ Văn bản phải được định dạng và trình bày theo tiêu chuẩn
++ Có hướng dẫn cài đặt và sử dụng phần mềm. 
++ Ghi rõ nội dung của từng thành viên đã làm 
+-	File (nộp qua email) 
++ Tập tin readme.txt chứa thông tin của nhóm 
++ Source code  
++ Báo cáo 
++ Script SQL  
+-	Chuẩn bị dữ liệu demo: 
++ Chuẩn bị đầy đủ dữ liệu trong các bảng biểu của CSDL 
++ Đã có tạo ra được các tài khoản để test 
++ Đã tạo ra được 1 vài giao dịch, côngviệc 	 	 
+I 	Phần trình bày báo cáo 	 	 
+1.  	Phần chung: 
+1.	(5đ) Giới thiệu về DN: Giới thiệu chung về doanh nghiệp, các hoạt động và mô hình, nhân sự của doanh nghiệp. 
+2.	Khảo sát HTTT của doanh nghiệp: (5đ) 
+-	Đưa ra bảng câu hỏi điều tra, khảo sát về HTTT của Doanh nghiệp. Bảng khảo sát phải bám sát về HTTT, có ít nhất 15 câu hỏi.  
+-	Lập tổng kết các kết quả và đưa ra kết luận cho HTTT 	Tối đa 
+10đ 	 
+2.  	Phân tích HTTT của DN: 
+	- 	(2đ) Có bài toán mô tả chi tiết và đầy đủ cho các hoạt động của HTTT 
+DN 	Tối đa 
+10đ 	 
+
+		- 	Vẽ đầy đủ các sơ đồ: 
++ (2đ) sơ đồ chức năng,  
++ (2đ) sơ đồ ngữ cảnh,  
++(2đ) luồng DL mức đỉnh 
++(2đ) luồng DL mức dưới đỉnh 		
+3.  	Thiết kế HTTT: trong hệ thống để xây dựng phần mềm. 
+a.	Thiết kế CSDL (5đ): 
++ Lược đồ CSDL được thiết kế dựa vào các kho dữ liệu đã phân tích ở trên 
++ Bảng mô tả các bảng và các thuộc tính của bảng. 
+b.	Thiết kế giao diện: 
++ (5đ) Đưa ra hình ảnh, giới thiệu chi tiết các chức năng và hoạt rẻ động của phần mềm. 	Tối đa 
+10đ 	 
+4. 2 	Cài đặt và bảo trì HTTT, hướng dẫn sử dụng hệ thống 
+-	Phương án cài đặt cho hệ thống vừa được thiết kế xây dựng và phương án chuyển đổi từ hệ thống cũ sang hệ thống mới (nếu có).  
+-	Tài liệu hướng dẫn sử dụng 	5 	 
+5.  	Tổng kết và hướng phát triển hệ thống:  
+-	Đưa ra những gì đã làm được, ưu nhược điểm của HTTT vừa được xây dựng 
+-	Hướng phát triển cho hệ thống trong tương lai 	5 	 
+TỔNG CỘNG I 	40đ 	 
+II 	Xây dựng phần mềm/ website 	60 điểm 	 
+1. 	Cài đặt CSDL  
++ CSDL được thiết kế với đầy đủ các bảng 
++ Phải có phương án để sao lưu và phục hồi CSDL trong báo cáo(5đ) 	Tối đa 
+10đ 
+ 	 
+2. 	Giao diện ADMIN:  
+-	Giao diện của Admin server phải tách biệt với giao diện của quản lý nhân sự, quản lý kho, quản lý bán hàng 
+-	Admin có thể xem, tìm kiếm, tìm kiếm nâng cao, và sắp xếp, lọc các sản phẩm, nhà cung cấp... 	10đ 	 
+	-	Admin quản lý user: (như thế nào??? thêm xóa sửa phân quyền) 
+-	Admin có thể tạo và xem các báo cáo theo thời gian  		
+3. 	Module quản lý nhân sự:  	20 điểm 	 
+3.1 	Nhân viên: 
+-	Xem, sửa thông tin của chính mình. 
+-	Được nộp đơn xin nghỉ phép, nghỉ ốm đau thai sản, nghỉ việc. 
+-	Xem được cách tính lương, lương mỗi tháng của chính mình. 
+-	In được bảng lương theo tháng. 
+-	In được bảng lương theo năm 	10 điểm 	 
+3.2 	Người quản lý: 
+-	Thêm/ xoá nhân sự trong doanh nghiệp. 
+-	Thay đổi chức vụ của nhân sự, lưu ý, khi thay đổi chức vụ phải có thời điểm cụ thể và lương sẽ thay đổi theo. 
+-	Tính lương cho mỗi nhân sự, theo quy định của doanh nghiệp. 
+-	Duyệt nhân sự nghỉ việc, nghỉ phép v.v… 
+Thống kê theo tháng, năm tình hình nhân sự lương, thưởng nhân sự. 	10 điểm 	 
+4. 	Module quản lý hoạt động thương mại của doanh nghiệp: (bao gồm 2 chức năng chính 	20 điểm 	 
+4.1 	Quản lý kho: 
+-	Quản lý thông tin về sản phẩm doanh nghiệp đang kinh doanh, giá cả, chi tiết số lượng tồn của mỗi sản phẩm, giá nhập vào. 
+-	Thêm/ xoá/ sửa thông tin sản phẩm. 
+-	Lập phiếu nhập sản phẩm vào doanh nghiệp. 
+-	Thêm, sửa, xoá, tìm kiếm thông tin nhà cung cấp 
+-	In báo cáo thống kê theo tháng, năm về sản phẩm. 	10 điểm 	 
+4.2 	Quản lý kinh doanh: 
+-	Lập được phiếu xuất sản phẩm cho hoạt động kinh doanh: số lượng bán, giá bán. 
+-	Thống kê số lượng sản phẩm đã xuất theo tháng, quý, năm. 
+-	Thống kê được lợi nhuận của doanh nghiệp theo tháng, quý, năm. 	10 điểm 	 
+TỔNG CỘNG II 	60đ 	 
+ĐIỂM ĐỒ ÁN = (TCI + TCII) 	 
+ 
