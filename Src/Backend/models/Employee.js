@@ -22,6 +22,44 @@ async function listAll() {
   );
 }
 
+async function findById(mnv) {
+  const rows = await query(
+    `
+      SELECT
+        nv.MNV,
+        nv.HOTEN,
+        nv.GIOITINH,
+        nv.NGAYSINH,
+        nv.SDT,
+        nv.EMAIL,
+        nv.TT,
+        nv.QUEQUAN,
+        nv.DIACHI,
+        nv.HINHANH,
+        nv.NGAYVAOLAM,
+        nv.CCCD,
+        nv.BOPHAN,
+        nv.SOTAIKHOAN,
+        nv.TENNGANHANG,
+        cv.TEN AS TENCHUCVU,
+        cv.LUONGCOBAN,
+        cv.TY_LE_HOA_HONG,
+        tk.TDN,
+        tk.TRANGTHAI AS TRANGTHAI_TAIKHOAN,
+        nq.TEN AS TENNHOMQUYEN
+      FROM NHANVIEN nv
+      LEFT JOIN CHUCVU cv ON cv.MCV = nv.MCV
+      LEFT JOIN TAIKHOAN tk ON tk.MNV = nv.MNV
+      LEFT JOIN NHOMQUYEN nq ON nq.MNQ = tk.MNQ
+      WHERE nv.MNV = ?
+      LIMIT 1
+    `,
+    [Number(mnv)],
+  );
+
+  return rows[0] || null;
+}
+
 async function listLeaveRequests(status) {
   const params = [];
   let whereClause = "";
@@ -79,9 +117,9 @@ async function getPayrollByMonth(month, year) {
         bl.DOANH_SO,
         bl.TY_LE_HOA_HONG,
         bl.HOA_HONG,
-        bl.THUONG,
-        bl.PHUCAP,
-        bl.KHAUTRU,
+        0 AS THUONG,
+        bl.HOA_HONG AS PHUCAP,
+        (bl.BHXH + bl.BHYT + bl.BHTN + bl.KHAUTRU_KHAC) AS KHAUTRU,
         bl.LUONGTHUCLANH,
         bl.TT
       FROM BANGLUONG bl
@@ -93,9 +131,33 @@ async function getPayrollByMonth(month, year) {
   );
 }
 
+async function markAsResigned(mnv) {
+  const employeeId = Number(mnv);
+
+  await query(
+    `
+      UPDATE NHANVIEN
+      SET TT = 0
+      WHERE MNV = ?
+    `,
+    [employeeId],
+  );
+
+  await query(
+    `
+      UPDATE TAIKHOAN
+      SET TRANGTHAI = 0
+      WHERE MNV = ?
+    `,
+    [employeeId],
+  );
+}
+
 module.exports = {
   listAll,
+  findById,
   listLeaveRequests,
   approveLeaveRequest,
   getPayrollByMonth,
+  markAsResigned,
 };

@@ -1,10 +1,56 @@
 const Employee = require("../models/Employee");
+const Position = require("../models/Position");
 const { success, fail } = require("../utils/response");
 
 async function getEmployees(req, res, next) {
   try {
     const employees = await Employee.listAll();
     return success(res, employees, "Employee list loaded");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getEmployeeDetail(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, "Invalid employee id", 400);
+    }
+
+    const profile = await Employee.findById(id);
+    if (!profile) {
+      return fail(res, "Employee not found", 404);
+    }
+
+    return success(
+      res,
+      {
+        mnv: profile.MNV,
+        username: profile.TDN || null,
+        fullName: profile.HOTEN,
+        groupName: profile.TENNHOMQUYEN || null,
+        chucVu: profile.TENCHUCVU || null,
+        gioiTinh: profile.GIOITINH,
+        ngaySinh: profile.NGAYSINH,
+        soDienThoai: profile.SDT,
+        email: profile.EMAIL,
+        trangThai: Number(profile.TT),
+        trangThaiTaiKhoan: Number(profile.TRANGTHAI_TAIKHOAN ?? 0),
+        queQuan: profile.QUEQUAN || null,
+        diaChi: profile.DIACHI || null,
+        hinhAnh: profile.HINHANH || null,
+        ngayVaoLam: profile.NGAYVAOLAM || null,
+        cccd: profile.CCCD || null,
+        boPhan: profile.BOPHAN || null,
+        soTaiKhoanNganHang: profile.SOTAIKHOAN || null,
+        tenNganHang: profile.TENNGANHANG || null,
+        luongCoBan: Number(profile.LUONGCOBAN || 0),
+        tyLeHoaHong: Number(profile.TY_LE_HOA_HONG || 0),
+      },
+      "Employee detail loaded",
+    );
   } catch (error) {
     return next(error);
   }
@@ -57,9 +103,222 @@ async function calculateSalary(req, res, next) {
   }
 }
 
+async function resignEmployee(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, "Invalid employee id", 400);
+    }
+
+    await Employee.markAsResigned(id);
+    return success(res, null, "Employee marked as resigned");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getPositions(req, res, next) {
+  try {
+    const rows = await Position.listAll();
+    return success(
+      res,
+      rows.map((row) => ({
+        id: Number(row.MCV),
+        positionName: row.TEN,
+        baseSalary: Number(row.LUONGCOBAN || 0),
+        commissionRate: Number(row.TY_LE_HOA_HONG || 0),
+        status: Number(row.TT || 0),
+      })),
+      "Positions loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getPositionWorkHistory(req, res, next) {
+  try {
+    const rows = await Position.listWorkHistory();
+    return success(
+      res,
+      rows.map((row) => ({
+        id: Number(row.MLS),
+        employeeId: Number(row.MNV),
+        employeeName: row.HOTEN,
+        oldPositionId: row.MCV_CU == null ? null : Number(row.MCV_CU),
+        oldPositionName: row.TENCHUCVU_CU || null,
+        oldBaseSalary: Number(row.LUONGCOBAN_CU || 0),
+        newPositionId: Number(row.MCV_MOI),
+        newPositionName: row.TENCHUCVU_MOI || null,
+        newBaseSalary: Number(row.LUONGCOBAN_MOI || 0),
+        effectiveDate: row.NGAY_HIEULUC,
+        note: row.GHICHU || null,
+        approverId: Number(row.MNV_DUYET),
+        approverName: row.HOTEN_DUYET || null,
+      })),
+      "Work history loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function updatePosition(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, "Invalid position id", 400);
+    }
+
+    const baseSalary = Number(req.body?.baseSalary);
+    const commissionRate = Number(req.body?.commissionRate);
+    const status = Number(req.body?.status);
+
+    if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
+      return fail(res, "baseSalary must be greater than 0", 400);
+    }
+
+    if (
+      !Number.isFinite(commissionRate) ||
+      commissionRate < 0 ||
+      commissionRate > 100
+    ) {
+      return fail(res, "commissionRate must be between 0 and 100", 400);
+    }
+
+    if (![0, 1].includes(status)) {
+      return fail(res, "status must be 0 or 1", 400);
+    }
+
+    const found = await Position.findById(id);
+    if (!found) {
+      return fail(res, "Position not found", 404);
+    }
+
+    await Position.updateById(id, {
+      baseSalary,
+      commissionRate,
+      status,
+    });
+
+    return success(res, null, "Position updated");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function createPosition(req, res, next) {
+  try {
+    const positionName = String(req.body?.positionName || "").trim();
+    const baseSalary = Number(req.body?.baseSalary);
+    const commissionRate = Number(req.body?.commissionRate);
+    const status = Number(req.body?.status);
+
+    if (!positionName) {
+      return fail(res, "positionName is required", 400);
+    }
+
+    if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
+      return fail(res, "baseSalary must be greater than 0", 400);
+    }
+
+    if (
+      !Number.isFinite(commissionRate) ||
+      commissionRate < 0 ||
+      commissionRate > 100
+    ) {
+      return fail(res, "commissionRate must be between 0 and 100", 400);
+    }
+
+    if (![0, 1].includes(status)) {
+      return fail(res, "status must be 0 or 1", 400);
+    }
+
+    const result = await Position.create({
+      positionName,
+      baseSalary,
+      commissionRate,
+      status,
+    });
+
+    return success(
+      res,
+      {
+        id: Number(result.insertId),
+      },
+      "Position created",
+    );
+  } catch (error) {
+    if (error?.code === "ER_DUP_ENTRY") {
+      return fail(res, "Position name already exists", 400);
+    }
+    return next(error);
+  }
+}
+
+async function transferEmployeePosition(req, res, next) {
+  try {
+    const employeeId = Number(req.body?.employeeId);
+    const newPositionId = Number(req.body?.newPositionId);
+    const effectiveDate = String(req.body?.effectiveDate || "").trim();
+    const note = String(req.body?.note || "").trim();
+    const approverId = Number(req.user?.mnv || 0);
+
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return fail(res, "employeeId is invalid", 400);
+    }
+
+    if (!Number.isInteger(newPositionId) || newPositionId <= 0) {
+      return fail(res, "newPositionId is invalid", 400);
+    }
+
+    if (!effectiveDate || Number.isNaN(new Date(effectiveDate).getTime())) {
+      return fail(
+        res,
+        "effectiveDate is required and must be a valid date",
+        400,
+      );
+    }
+
+    if (!approverId) {
+      return fail(res, "Approver is invalid", 401);
+    }
+
+    const result = await Position.transferEmployeePosition({
+      employeeId,
+      newPositionId,
+      effectiveDate,
+      note,
+      approverId,
+    });
+
+    return success(
+      res,
+      {
+        historyId: Number(result.historyId),
+        previousPositionId: Number(result.previousPositionId),
+      },
+      "Employee transferred successfully",
+    );
+  } catch (error) {
+    if (error?.statusCode === 404) {
+      return fail(res, error.message, 404);
+    }
+    return next(error);
+  }
+}
+
 module.exports = {
   getEmployees,
+  getEmployeeDetail,
   getLeaveRequests,
   approveLeave,
   calculateSalary,
+  resignEmployee,
+  getPositions,
+  getPositionWorkHistory,
+  updatePosition,
+  createPosition,
+  transferEmployeePosition,
 };

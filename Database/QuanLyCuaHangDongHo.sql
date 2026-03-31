@@ -48,17 +48,33 @@ CREATE TABLE `CHUCVU` (
     PRIMARY KEY (MCV)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
  
+-- Tắt kiểm tra để tránh lỗi khi Drop/Create bảng có liên kết
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS `NHANVIEN`;
 CREATE TABLE `NHANVIEN` (
-    `MNV`       INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Mã nhân viên',
-    `HOTEN`     VARCHAR(255) NOT NULL COMMENT 'Họ và tên',
-    `GIOITINH`  INT(11)      NOT NULL COMMENT 'Giới tính (0: Nữ, 1: Nam)',
-    `NGAYSINH`  DATE         NOT NULL COMMENT 'Ngày sinh',
-    `SDT`       VARCHAR(11)  NOT NULL COMMENT 'Số điện thoại',
-    `EMAIL`     VARCHAR(50)  NOT NULL UNIQUE COMMENT 'Email',
-    `MCV`       INT(11)      NOT NULL COMMENT 'Mã chức vụ hiện tại',
-    `TT`        INT(11)      NOT NULL DEFAULT 1 COMMENT 'Trạng thái (1: đang làm, 0: nghỉ việc)',
-    PRIMARY KEY (MNV)
+    `MNV`           INT(11)      NOT NULL AUTO_INCREMENT,
+    `HOTEN`         VARCHAR(255) NOT NULL,
+    `GIOITINH`      INT(11)      NOT NULL COMMENT '0: Nữ, 1: Nam',
+    `NGAYSINH`      DATE         NOT NULL,
+    `SDT`           VARCHAR(11)  NOT NULL UNIQUE,
+    `EMAIL`         VARCHAR(50)  NOT NULL UNIQUE,
+    `MCV`           INT(11)      NOT NULL COMMENT 'Mã chức vụ',
+    `TT`            INT(11)      NOT NULL DEFAULT 1 COMMENT '1: Đang làm, 0: Nghỉ việc',
+    `QUEQUAN`       VARCHAR(255) NOT NULL,
+    `DIACHI`        VARCHAR(255) NULL,
+    `HINHANH`       LONGTEXT     NULL,
+    `NGAYVAOLAM`    DATE         NOT NULL,
+    `CCCD`          VARCHAR(12)  NOT NULL UNIQUE COMMENT 'Số CCCD kiêm Mã số thuế',
+    `BOPHAN`        VARCHAR(255) NULL,
+    `SOTAIKHOAN`    VARCHAR(50)  NULL,
+    `TENNGANHANG`   VARCHAR(255) NULL,
+    PRIMARY KEY (MNV),
+    -- Định nghĩa khóa ngoại ngay tại đây, đặt tên rõ ràng để tránh trùng
+    CONSTRAINT FK_NHANVIEN_CHUCVU FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
  
 CREATE TABLE `TAIKHOAN` (
     `MNV`       INT(11)      NOT NULL COMMENT 'Mã nhân viên',
@@ -161,18 +177,17 @@ CREATE TABLE `BANGLUONG` (
     `MNV`               INT(11)         NOT NULL COMMENT 'Mã nhân viên',
     `THANG`             INT(11)         NOT NULL COMMENT 'Tháng',
     `NAM`               INT(11)         NOT NULL COMMENT 'Năm',
-    `LUONGCOBAN`        DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Lương cơ bản theo chức vụ',
-    `NGAYCONG`          DECIMAL(5,1)    NOT NULL DEFAULT 0 COMMENT 'Số ngày công (sao chép từ chấm công)',
-    `DOANH_SO`          DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Tổng doanh số phụ trách trong tháng',
-    `TY_LE_HOA_HONG`    DECIMAL(5,2)    NOT NULL DEFAULT 0 COMMENT 'Tỷ lệ hoa hồng (%)',
-    `HOA_HONG`          DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Tiền hoa hồng = DOANH_SO * TY_LE_HOA_HONG / 100',
-    `THUONG`            DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Thưởng (do quản lý nhập)',
-    `PHUCAP`            DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Phụ cấp',
-    `KHAUTRU`           DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Khấu trừ (nghỉ KP, vi phạm...)',
-    `LUONGTHUCLANH`     DECIMAL(15,2)   NOT NULL DEFAULT 0
-                        COMMENT 'Lương thực lãnh = LUONGCOBAN * (NGAYCONG/NGAY_LVCHUANTRE) + HOA_HONG + THUONG + PHUCAP - KHAUTRU',
-    `TT`                INT(11)         NOT NULL DEFAULT 1
-                        COMMENT 'Trạng thái (1: tạm tính, 2: đã thanh toán)',
+    `LUONGCOBAN`        DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Lương cơ bản cố định',
+    `NGAYCONG`          DECIMAL(5,1)    NOT NULL DEFAULT 0 COMMENT 'Số ngày công đã quy đổi hệ số',
+    `DOANH_SO`          DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Doanh số cá nhân/cửa hàng',
+    `TY_LE_HOA_HONG`    DECIMAL(5,2)    NOT NULL DEFAULT 0 COMMENT 'Tỷ lệ hưởng (%)',
+    `HOA_HONG`          DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Tiền hoa hồng nhận được',
+    `BHXH`              DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Bảo hiểm xã hội (8%)',
+    `BHYT`              DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Bảo hiểm y tế (1.5%)',
+    `BHTN`              DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Bảo hiểm thất nghiệp (1%)',
+    `KHAUTRU_KHAC`      DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Phạt vi phạm, trừ nghỉ không phép...',
+    `LUONGTHUCLANH`     DECIMAL(15,2)   NOT NULL DEFAULT 0 COMMENT 'Thực nhận sau thuế/phí',
+    `TT`                INT(11)         NOT NULL DEFAULT 1 COMMENT '1: Tạm tính, 2: Đã thanh toán',
     PRIMARY KEY (MBL),
     UNIQUE KEY uq_nv_thang_nam (MNV, THANG, NAM)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
@@ -271,6 +286,8 @@ CREATE TABLE `CTPHIEUNHAP` (
     `HINHTHUC`  INT(11)         NOT NULL DEFAULT 0 COMMENT 'Hình thức thanh toán (0: tiền mặt, 1: chuyển khoản)',
     PRIMARY KEY (MPN, MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+
  
 -- ------------------------------------------------------------
 --  1.12 PHIẾU XUẤT (BÁN HÀNG)
@@ -325,7 +342,23 @@ CREATE TABLE `PHIEUSUACHUA` (
     `GHICHU`        TEXT            COMMENT 'Ghi chú thêm',
     PRIMARY KEY (MSC)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
- 
+
+
+--  CREATE TABLE `NGAYLE` (
+--     `MNL`    INT(11)      NOT NULL AUTO_INCREMENT,
+--     `TEN`    VARCHAR(255) NOT NULL COMMENT 'Tên ngày lễ',
+--     `NGAY`   DATE         NOT NULL COMMENT 'Ngày cụ thể',
+--     `TT`     INT(11)      NOT NULL DEFAULT 1,
+--     PRIMARY KEY (MNL)
+-- ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+CREATE TABLE `NGAYLE` (
+    `ID`          INT(11)      NOT NULL AUTO_INCREMENT,
+    `TENLE`       VARCHAR(255) NOT NULL COMMENT 'Tên ngày lễ',
+    `NGAY`        DATE         NOT NULL UNIQUE COMMENT 'Ngày dương lịch',
+    `HESO_LUONG`  DECIMAL(3,1) DEFAULT 3.0 COMMENT 'Hệ số lương (Admin nhập từ Web)',
+    `GHICHU`      VARCHAR(255) NULL COMMENT 'Ghi chú thêm',
+    PRIMARY KEY (ID)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
  
 -- ============================================================
 --  PHẦN 2: TẠO QUAN HỆ (FOREIGN KEY)
@@ -337,8 +370,8 @@ ALTER TABLE `CTQUYEN`
     ADD CONSTRAINT FK_MCN_CTQUYEN FOREIGN KEY (MCN) REFERENCES `DANHMUCCHUCNANG`(MCN) ON DELETE NO ACTION ON UPDATE CASCADE;
  
 -- Nhân viên
-ALTER TABLE `NHANVIEN`
-    ADD CONSTRAINT FK_MCV_NHANVIEN FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION;
+-- ALTER TABLE `NHANVIEN`
+--     ADD CONSTRAINT FK_MCV_NHANVIEN FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION;
  
 ALTER TABLE `TAIKHOAN`
     ADD CONSTRAINT FK_MNV_TAIKHOAN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -406,3 +439,489 @@ ALTER TABLE `PHIEUBAOHANH`
 ALTER TABLE `PHIEUSUACHUA`
     ADD CONSTRAINT FK_MPB_PSC FOREIGN KEY (MPB) REFERENCES `PHIEUBAOHANH`(MPB) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MNV_PSC FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV)     ON DELETE NO ACTION ON UPDATE NO ACTION;
+    
+    
+--  PHẦN 3: DỮ LIỆU MẪU
+-- ============================================================
+ 
+-- ------------------------------------------------------------
+--  3.1 Danh mục chức năng (bổ sung chức năng nhân sự mới)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `DANHMUCCHUCNANG` (`MCN`, `TEN`, `TT`) VALUES
+    ('sanpham',         'Quản lý sản phẩm',             1),
+    ('khachhang',       'Quản lý khách hàng',            1),
+    ('nhacungcap',      'Quản lý nhà cung cấp',          1),
+    ('nhanvien',        'Quản lý nhân viên',             1),
+    ('chucvu',          'Quản lý chức vụ',               1),
+    ('calam',           'Quản lý ca làm',                1),
+    ('phancalam',       'Phân ca làm việc',              1),
+    ('donxinngh',       'Duyệt đơn xin nghỉ',            1),
+    ('chamcong',        'Quản lý chấm công',             1),
+    ('bangluong',       'Quản lý bảng lương',            1),
+    ('phieunhap',       'Quản lý nhập hàng',             1),
+    ('phieuxuat',       'Quản lý phiếu xuất / bán hàng', 1),
+    ('baohanh',         'Quản lý phiếu bảo hành',        1),
+    ('suachua',         'Quản lý phiếu sửa chữa',        1),
+    ('vitritrungbay',   'Quản lý vị trí trưng bày',      1),
+    ('nhomquyen',       'Quản lý nhóm quyền',            1),
+    ('taikhoan',        'Quản lý tài khoản',             1),
+    ('makhuyenmai',     'Quản lý mã khuyến mãi',         1),
+    ('thongke',         'Thống kê & báo cáo',            1);
+ 
+-- ------------------------------------------------------------
+--  3.2 Nhóm quyền
+-- ------------------------------------------------------------
+ 
+INSERT INTO `NHOMQUYEN` (`TEN`, `TT`) VALUES
+    ('Quản lý cửa hàng', 1),
+    ('Nhân viên bán hàng', 1),
+    ('Nhân viên kho', 1),
+    ('Nhân viên kỹ thuật', 1);
+ 
+-- ------------------------------------------------------------
+--  3.3 Chi tiết quyền
+-- ------------------------------------------------------------
+ 
+-- Quản lý cửa hàng (MNQ = 1): toàn quyền
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
+    (1,'sanpham','create'),(1,'sanpham','view'),(1,'sanpham','update'),(1,'sanpham','delete'),
+    (1,'khachhang','create'),(1,'khachhang','view'),(1,'khachhang','update'),(1,'khachhang','delete'),
+    (1,'nhacungcap','create'),(1,'nhacungcap','view'),(1,'nhacungcap','update'),(1,'nhacungcap','delete'),
+    (1,'nhanvien','create'),(1,'nhanvien','view'),(1,'nhanvien','update'),(1,'nhanvien','delete'),
+    (1,'chucvu','create'),(1,'chucvu','view'),(1,'chucvu','update'),(1,'chucvu','delete'),
+    (1,'calam','create'),(1,'calam','view'),(1,'calam','update'),(1,'calam','delete'),
+    (1,'phancalam','create'),(1,'phancalam','view'),(1,'phancalam','update'),(1,'phancalam','delete'),
+    (1,'donxinngh','view'),(1,'donxinngh','approve'),
+    (1,'chamcong','create'),(1,'chamcong','view'),(1,'chamcong','update'),(1,'chamcong','export'),
+    (1,'bangluong','create'),(1,'bangluong','view'),(1,'bangluong','update'),(1,'bangluong','export'),
+    (1,'phieunhap','create'),(1,'phieunhap','view'),(1,'phieunhap','cancel'),(1,'phieunhap','export'),
+    (1,'phieuxuat','create'),(1,'phieuxuat','view'),(1,'phieuxuat','cancel'),(1,'phieuxuat','export'),
+    (1,'baohanh','view'),(1,'baohanh','update'),(1,'baohanh','export'),
+    (1,'suachua','create'),(1,'suachua','view'),(1,'suachua','update'),(1,'suachua','delete'),(1,'suachua','export'),
+    (1,'vitritrungbay','create'),(1,'vitritrungbay','view'),(1,'vitritrungbay','update'),(1,'vitritrungbay','delete'),
+    (1,'nhomquyen','create'),(1,'nhomquyen','view'),(1,'nhomquyen','update'),(1,'nhomquyen','delete'),
+    (1,'taikhoan','create'),(1,'taikhoan','view'),(1,'taikhoan','update'),(1,'taikhoan','delete'),
+    (1,'makhuyenmai','create'),(1,'makhuyenmai','view'),(1,'makhuyenmai','update'),(1,'makhuyenmai','delete'),
+    (1,'thongke','view'),(1,'thongke','export');
+ 
+-- Nhân viên bán hàng (MNQ = 2): hạn chế
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
+    (2,'sanpham','view'),
+    (2,'khachhang','create'),(2,'khachhang','view'),(2,'khachhang','update'),
+    (2,'phieuxuat','create'),(2,'phieuxuat','view'),(2,'phieuxuat','cancel'),(2,'phieuxuat','export'),
+    (2,'baohanh','view'),(2,'baohanh','export'),
+    (2,'suachua','create'),(2,'suachua','view'),(2,'suachua','update'),
+    (2,'vitritrungbay','view'),
+    (2,'makhuyenmai','view'),
+    (2,'donxinngh','create'),(2,'donxinngh','view'),
+    (2,'phancalam','view'),
+    (2,'bangluong','view'),
+    (2,'chamcong','view');
+ 
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
+(3, 'sanpham', 'view'), (3, 'sanpham', 'create'), (3, 'sanpham', 'update'),
+(3, 'nhacungcap', 'view'), (3, 'nhacungcap', 'create'), (3, 'nhacungcap', 'update'),
+(3, 'phieunhap', 'view'), (3, 'phieunhap', 'create'),
+(3, 'vitritrungbay', 'view'), (3, 'thongke', 'view');
+
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
+(4, 'baohanh', 'view'),
+(4, 'suachua', 'view'), (4, 'suachua', 'create'), (4, 'suachua', 'update'),
+(4, 'sanpham', 'view');
+-- Cho Kho (MNQ=3) và Kỹ thuật (MNQ=4)
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
+(3, 'nhanvien', 'view'), (3, 'donxinngh', 'create'), (3, 'bangluong', 'view'),
+(4, 'nhanvien', 'view'), (4, 'donxinngh', 'create'), (4, 'bangluong', 'view');
+-- ------------------------------------------------------------
+--  3.4 Chức vụ (bổ sung LUONGCOBAN & TY_LE_HOA_HONG)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `CHUCVU` (`TEN`, `LUONGCOBAN`, `TY_LE_HOA_HONG`, `TT`) VALUES 
+('Quản lý cửa hàng', 15000000.00, 1.00, 1),  -- Lương 15tr, hoa hồng 1% (tổng doanh thu)
+('Nhân viên bán hàng', 7000000.00, 2.00, 1), -- Lương 7tr, hoa hồng 3% (doanh số cá nhân)
+('Nhân viên kho', 8000000.00, 0.00, 1),
+('Nhân viên kỹ thuật', 10000000.00, 0.00, 1);
+ 
+ -- ------------------------------------------------------------
+--  3.8 Ca làm
+-- ------------------------------------------------------------
+  
+INSERT INTO `CALAM` (`TENCA`, `GIO_BATDAU`, `GIO_KETTHUC`, `TT`) VALUES
+    ('Ca 1',   '08:00:00', '16:00:00', 1),
+    ('Ca 2',  '14:00:00', '22:00:00', 1);
+-- ------------------------------------------------------------
+--  3.5 Nhân viên (giữ nguyên từ file cũ)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `NHANVIEN` 
+    (`HOTEN`, `GIOITINH`, `NGAYSINH`, `SDT`, `EMAIL`, `MCV`, `TT`, `QUEQUAN`, `NGAYVAOLAM`, `CCCD`, `BOPHAN`) 
+VALUES
+    ('Võ Thị Thu Luyện',    0, '2005-05-01', '0865172517', 'thuluyen234@gmail.com', 1, 1, 'Quảng Ngãi', '2023-01-10', '079205001234', 'Quản lý'),
+    ('Nguyễn Thị Ngọc Tú',  0, '2005-01-28', '0396532145', 'ngoctu@gmail.com',      2, 1, 'Thái Bình', '2023-02-15', '080205005678', 'Bán hàng'),
+    ('Trần Thị Xuân Thanh', 0, '2005-01-22', '0387913347', 'xuanthanh@gmail.com',   3, 1, 'Gia Lai', '2023-02-15', '082205009101', 'Kho'),
+    ('Đỗ Hữu Lộc',          1, '2005-01-26', '0355374322', 'huuloc@gmail.com',      4, 2, 'Gia Lai', '2023-03-01', '075205001122', 'Kỹ thuật'),
+    ('Đỗ Nam Anh',          1, '2003-04-11', '0123456781', 'chinchin@gmail.com',    2, 1, 'Bình Dương', '2023-03-01', '074203003344', 'Bán hàng'),
+    ('Đinh Ngọc Ánh',       1, '2003-04-03', '0123456782', 'ngocan@gmail.com',      2, 0, 'Cần Thơ', '2023-04-10', '092203005566', 'Bán hàng'),
+    ('Phạm Minh Khang',     1, '2004-12-10', '0912345678', 'minhkhang@gmail.com',   3, 1, 'Vũng Tàu', '2023-04-10', '077204007788', 'Kho'),
+    ('Lê Thảo Nhi',         0, '2005-03-15', '0945123789', 'thaonhi@gmail.com',     2, 1, 'Tây Ninh', '2023-05-20', '070205009900', 'Bán hàng'),
+    ('Nguyễn Hoàng Phúc',   1, '2003-09-21', '0987654321', 'hoangphuc@gmail.com',   4, 0, 'An Giang', '2023-05-20', '089203001133', 'Kỹ thuật'),
+    ('Trần Mỹ Hạnh',        0, '2004-07-19', '0938475621', 'myhanh@gmail.com',      2, 1, 'Kiên Giang', '2023-06-05', '091204002244', 'Bán hàng'); 
+-- ------------------------------------------------------------
+--  3.6 Lịch sử chức vụ (bản ghi khởi tạo cho từng NV)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `LICHSUCHUCVU` (`MNV`, `MCV_CU`, `MCV_MOI`, `NGAY_HIEULUC`, `GHICHU`, `MNV_DUYET`) VALUES
+    (1,  NULL, 1, '2024-01-01', 'Ký hợp đồng quản lý', 1),
+    (2,  NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
+    (3,  NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
+    (4,  NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
+    (5,  NULL, 2, '2024-02-01', 'Ký hợp đồng nhân viên', 1),
+    (6,  NULL, 2, '2024-02-01', 'Ký hợp đồng nhân viên', 1),
+    (7,  NULL, 2, '2024-03-01', 'Ký hợp đồng nhân viên', 1),
+    (8,  NULL, 2, '2024-03-01', 'Ký hợp đồng nhân viên', 1),
+    (9,  NULL, 2, '2024-04-01', 'Ký hợp đồng nhân viên', 1),
+    (10, NULL, 2, '2024-04-01', 'Ký hợp đồng nhân viên', 1);
+ 
+-- ------------------------------------------------------------
+--  3.7 Tài khoản
+-- ------------------------------------------------------------
+ 
+INSERT INTO `TAIKHOAN` (`MNV`, `TDN`, `MK`, `MNQ`, `TRANGTHAI`, `OTP`) VALUES
+    (1, 'admin',      '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 1, 1, NULL),
+    (2, 'nhanvien02', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 2, 1, NULL),
+    (3, 'nhanvien03', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 2, 1, NULL),
+    (4, 'nhanvien04', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 2, 1, NULL);
+ 
+-- ------------------------------------------------------------
+--  3.9 Phân ca mẫu (tháng 3/2025)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `PHANCALAM` (`MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
+    (2, 1, '2025-03-03', '2025-03-03 08:02:00', '2025-03-03 12:05:00', 2),
+    (2, 2, '2025-03-03', '2025-03-03 13:01:00', '2025-03-03 17:00:00', 2),
+    (3, 1, '2025-03-03', '2025-03-03 08:10:00', '2025-03-03 12:00:00', 2),
+    (4, 2, '2025-03-03', '2025-03-03 13:05:00', '2025-03-03 17:10:00', 2),
+    (2, 1, '2025-03-04', '2025-03-04 08:00:00', '2025-03-04 12:00:00', 2),
+    (3, 2, '2025-03-04', '2025-03-04 17:00:00', '2025-03-04 21:00:00', 2),
+    (5, 1, '2025-03-04', '2025-03-04 08:05:00', '2025-03-04 17:05:00', 2);
+ 
+-- ------------------------------------------------------------
+--  3.10 Đơn xin nghỉ mẫu
+-- ------------------------------------------------------------
+ 
+INSERT INTO `DONXINNGH` (`MNV`, `LOAI`, `NGAYNGHI`, `SONGAY`, `LYDO`, `TRANGTHAI`, `NGUOIDUYET`, `NGAYTAO`) VALUES
+    (2, 1, '2025-03-10', 1, 'Việc gia đình đột xuất',       1, 1, '2025-03-08'),
+    (3, 2, '2025-03-12', 2, 'Ốm, có giấy xác nhận bác sĩ', 1, 1, '2025-03-11'),
+    (4, 1, '2025-03-20', 1, 'Tham dự đám cưới',             0, NULL, '2025-03-18'),
+    (5, 3, '2025-04-01', 0, 'Xin nghỉ việc do chuyển vùng', 0, NULL, '2025-03-25');
+ 
+-- ------------------------------------------------------------
+--  3.11 Bảng chấm công mẫu (tháng 3/2025)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `BANGCHAMCONG` (`MNV`, `THANG`, `NAM`, `NGAYCONG`, `NGAYNGHI_PHEP`, `NGAYNGHI_KP`, `TT`) VALUES
+    (2,  3, 2025, 24.0, 1, 0, 2),
+    (3,  3, 2025, 22.5, 2, 0, 2),
+    (4,  3, 2025, 23.0, 1, 1, 2),
+    (5,  3, 2025, 25.0, 0, 0, 2),
+    (6,  3, 2025, 20.0, 0, 2, 2),
+    (7,  3, 2025, 24.5, 1, 0, 2),
+    (8,  3, 2025, 23.0, 0, 0, 2),
+    (9,  3, 2025, 22.0, 1, 0, 2),
+    (10, 3, 2025, 24.0, 0, 1, 2);
+ 
+-- ------------------------------------------------------------
+--  3.12 Bảng lương mẫu (tháng 3/2025 – 26 ngày làm việc chuẩn)
+--  Công thức: LUONG_THUCLANH = LUONGCOBAN*(NGAYCONG/26) + HOA_HONG + THUONG + PHUCAP - KHAUTRU
+-- ------------------------------------------------------------
+ 
+-- Lưu ý: Phải chạy lệnh CREATE TABLE BANGLUONG mới trước khi chạy lệnh này
+INSERT INTO `BANGLUONG` 
+    (`MNV`, `THANG`, `NAM`, `LUONGCOBAN`, `NGAYCONG`, `DOANH_SO`, `TY_LE_HOA_HONG`, 
+     `HOA_HONG`, `BHXH`, `BHYT`, `BHTN`, `KHAUTRU_KHAC`, `LUONGTHUCLANH`, `TT`)
+VALUES 
+    -- Công thức: Thực lãnh = (Lương CB * Công/26) + Hoa hồng - (Bảo hiểm)
+    -- Bảo hiểm = 10.5% * Lương CB = 735,000
+    (2, 3, 2026, 7000000, 24.0, 85000000, 3.0, 2550000, 560000, 105000, 70000, 0, 8276538, 2),
+    (3, 3, 2026, 7000000, 22.5, 62000000, 3.0, 1860000, 560000, 105000, 70000, 0, 7183077, 2),
+    (4, 3, 2026, 7000000, 23.0, 71000000, 3.0, 2130000, 560000, 105000, 70000, 150000, 7436538, 2),
+    (5, 3, 2026, 7000000, 25.0, 95000000, 3.0, 2850000, 560000, 105000, 70000, 0, 8846538, 2),
+    (6, 3, 2026, 7000000, 20.0, 54000000, 3.0, 1620000, 560000, 105000, 70000, 300000, 5969615, 2),
+    (7, 3, 2026, 7000000, 24.5, 78000000, 3.0, 2340000, 560000, 105000, 70000, 0, 8201538, 2),
+    (8, 3, 2026, 7000000, 23.0, 67000000, 3.0, 2010000, 560000, 105000, 70000, 0, 7466538, 2),
+    (9, 3, 2026, 7000000, 22.0, 59000000, 3.0, 1770000, 560000, 105000, 70000, 0, 6958846, 2),
+    (10,3, 2026, 7000000, 24.0, 72000000, 3.0, 2160000, 560000, 105000, 70000, 100000, 7786538, 2);
+ 
+-- ------------------------------------------------------------
+--  3.13 Khách hàng (giữ nguyên từ file cũ)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `KHACHHANG` (`HOTEN`, `DIACHI`, `SDT`, `TT`, `NGAYTHAMGIA`) VALUES
+    ('Mặc định',                '',                                                                     '',           1, '2025-04-15'),
+    ('Nguyễn Văn Anh',          '45 An Dương Vương, P. Chợ Quán, TP. Hồ Chí Minh',                  '0387913347', 1, '2025-04-15'),
+    ('Trần Nhất Nhất',          '270 Hưng Phú, P. Chánh Hưng, TP. Hồ Chí Minh',                     '0123456789', 1, '2025-04-15'),
+    ('Hoàng Gia Bảo',           '45 Trương Đình Hội, P. Phú Định, TP. Hồ Chí Minh',                  '0987654321', 1, '2025-04-15'),
+    ('Hồ Minh Hưng',            '5 Võ Thị Sáu, P. Xuân Hòa, TP. Hồ Chí Minh',                       '0867987456', 1, '2025-04-15'),
+    ('Nguyễn Thị Minh Anh',     '50 Phạm Văn Chí, P. Bình Tiên, TP. Hồ Chí Minh',                   '0935123456', 1, '2025-04-16'),
+    ('Trần Đức Minh',           '789 Lê Hồng Phong, TP. Đà Nẵng',                                    '0983456789', 1, '2025-04-16'),
+    ('Lê Hải Yến',              '180 Hoàng Ngân, X. Trung Hòa, Hà Nội',                              '0977234567', 1, '2025-04-16'),
+    ('Phạm Thanh Hằng',         '325 Nguyễn Văn Tăng, P. Long Bình, TP. Hồ Chí Minh',               '0965876543', 1, '2025-04-16'),
+    ('Hoàng Đức Anh',           '321 Lý Thường Kiệt, TP. Cần Thơ',                                   '0946789012', 1, '2025-04-16'),
+    ('Ngô Thanh Tùng',          '393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',                    '0912345678', 1, '2025-04-16'),
+    ('Võ Thị Kim Ngân',         '123 Đường Lê Lợi, P. Hồng Bàng, TP. Hải Phòng',                    '0916789123', 1, '2025-04-16'),
+    ('Đỗ Văn Tú',               '777 Hùng Vương, TP. Huế',                                            '0982345678', 1, '2025-04-30'),
+    ('Lý Thanh Trúc',           '81 Hoàng Cầm, P. Linh Xuân, TP. Hồ Chí Minh',                      '0982123456', 1, '2025-04-16'),
+    ('Bùi Văn Hoàng',           '222 Đường 2/4, TP. Nha Trang',                                       '0933789012', 1, '2025-04-16'),
+    ('Lê Văn Thành',            '23 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',                 '0933456789', 1, '2025-04-16'),
+    ('Nguyễn Thị Lan Anh',      '45 Hàng Bạc, P. Hoàn Kiếm, Hà Nội',                                '0965123456', 1, '2025-04-16'),
+    ('Phạm Thị Mai',            '234 Nguyễn Trãi, P. Chợ Quán, TP. Hồ Chí Minh',                    '0946789013', 1, '2025-04-17'),
+    ('Hoàng Văn Nam',           '567 Phố Huế, P. Hai Bà Trưng, Hà Nội',                              '0912345679', 1, '2025-04-17');
+ 
+-- ------------------------------------------------------------
+--  3.14 Nhà cung cấp (giữ nguyên)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `NHACUNGCAP` (`TEN`, `DIACHI`, `SDT`, `EMAIL`, `TT`) VALUES
+    ('Công Ty CP Anh Khuê Watch',               'Số 20 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',    '1900866858', 'online@anhkhuewatch.com.vn',           1),
+    ('Công Ty TNHH Citizen Việt Nam',           '160 đường số 30, P. An Lạc, TP. Hồ Chí Minh',             '0903996733', 'contact@citizen.com.vn',              1),
+    ('Công Ty CP Orient Việt Nam',              '157 Cách Mạng Tháng Tám, P. Bàn Cờ, TP. Hồ Chí Minh',    '02822539787','info@lpd.com.vn',                     1),
+    ('Công Ty TNHH Seiko Việt Nam',             'KCN Đại An, P. Việt Hòa, Hải Dương',                       '02438621520','support@seiko.com.vn',                1),
+    ('Công Ty TNHH Rolex Việt Nam',             'Tầng Trệt, 88 Đồng Khởi, P. Sài Gòn, TP. Hồ Chí Minh',   '02462821922','service@rolex.com',                  1),
+    ('Công Ty TNHH Frederique Constant VN',     '393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',          '18006785',   'info@frederiqueconstant.com.vn',      1),
+    ('Công Ty TNHH Fossil Việt Nam',            'Tầng 7, 215 Nguyễn Văn Thủ, P. Tân Định, TP. Hồ Chí Minh','0932523679', 'ecom@dragonflyapac.vn',              1),
+    ('Công Ty TNHH Dragonfly Select Brands VN', '222 Điện Biên Phủ, P. Xuân Hòa, TP. Hồ Chí Minh',        '0932029606', 'danielwellingtonvn@dragonflyapac.com',1),
+    ('SKMEI Official',                          '41 Dawang Road, Zhaoqing, Guangdong, China',                '07583988367','alex@skmei.com',                     1),
+    ('Timex Vietnam Distributor',               'Sarimi, Sala, P. An Lợi Đông, TP. Thủ Đức',               '0839555959', 'kdonline@nvl.com.vn',                 1);
+ 
+-- ------------------------------------------------------------
+--  3.15 Vị trí trưng bày (giữ nguyên)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `VITRITRUNGBAY` (`TEN`, `GHICHU`) VALUES
+    ('Khu A1 - Đồng hồ cơ',      'Automatic, Hand-wound'),
+    ('Khu A2 - Đồng hồ Quartz',   'Nhiều mẫu phổ thông'),
+    ('Khu A3 - Đồng hồ điện tử',  'Casio G-Shock, Baby-G'),
+    ('Khu A4 - Smartwatch',        'Đồng hồ thông minh'),
+    ('Khu B1 - Casio Corner',      'Kệ riêng thương hiệu Casio'),
+    ('Khu B2 - Seiko Corner',      'Vị trí thương hiệu Seiko'),
+    ('Khu B3 - Orient Corner',     'Kệ dành cho Orient');
+ 
+-- ------------------------------------------------------------
+--  3.16 Sản phẩm (giữ nguyên từ file cũ)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `SANPHAM` (`TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NAMSANXUAT`, `GIANHAP`, `GIABAN`, `SOLUONG`, `THOIGIANBAOHANH`, `TT`) VALUES
+    ('Citizen Eco-Drive BM7108-14E',            'citizen_bm7108.jpg',   2, 2, 'Citizen',            2024, 3500000,   4500000,   15, 24, 1),
+    ('Citizen Promaster NY0040-09E',             'citizen_ny0040.jpg',   2, 1, 'Citizen',            2024, 8500000,  11500000,    8, 24, 1),
+    ('Citizen NH8390-20E',                       'citizen_nh8390.png',   2, 1, 'Citizen',            2023, 4200000,   5800000,   12, 24, 1),
+    ('Orient Bambino RA-AC0E03S',                'orient_bambino.jpg',   3, 7, 'Orient',             2024, 3800000,   5200000,   10, 12, 1),
+    ('Orient Mako III RA-AA0008B',               'orient_mako3.jpg',     3, 7, 'Orient',             2024, 5500000,   7500000,    7, 12, 1),
+    ('Orient Sun and Moon RA-AS0103S',           'orient_sunmoon.jpg',   3, 7, 'Orient',             2023, 7200000,   9800000,    5, 12, 1),
+    ('Seiko 5 Sports SRPD55K1',                  'seiko_srpd55.jpg',     4, 6, 'Seiko',              2024, 4800000,   6500000,   20, 12, 1),
+    ('Seiko Presage SPB041J1',                   'seiko_spb041.jpg',     4, 6, 'Seiko',              2024,12000000,  16500000,    6, 24, 1),
+    ('Seiko Prospex SRPE99K1',                   'seiko_srpe99.jpg',     4, 6, 'Seiko',              2023, 8500000,  11200000,    9, 12, 1),
+    ('Seiko 5 SNK809K2',                         'seiko_snk809.jpg',     4, 6, 'Seiko',              2024, 2200000,   3200000,   25, 12, 1),
+    ('Rolex Submariner Date 126610LN',            'rolex_sub.jpg',        5, 1, 'Rolex',              2024,185000000, 245000000,   2, 48, 1),
+    ('Rolex Datejust 41 126300',                 'rolex_dj41.jpg',       5, 1, 'Rolex',              2024,165000000, 215000000,   1, 48, 1),
+    ('Rolex Air-King 126900',                    'rolex_airking.jpg',    5, 1, 'Rolex',              2023,145000000, 195000000,   1, 48, 1),
+    ('Frederique Constant Classic FC-303',        'fc_classic.png',       6, 1, 'Frederique Constant',2024, 8500000,  12500000,   6, 24, 1),
+    ('Frederique Constant Slimline FC-200',       'fc_slimline.png',      6, 2, 'Frederique Constant',2024, 9200000,  13800000,   4, 24, 1),
+    ('Fossil Grant FS4736IE',                    'fossil_grant.jpg',     7, 2, 'Fossil',             2024, 2500000,   3800000,   18, 12, 1),
+    ('Fossil Neutra FS5380',                     'fossil_neutra.jpg',    7, 2, 'Fossil',             2024, 2200000,   3200000,   22, 12, 1),
+    ('Fossil Hybrid Smartwatch FTW1163',          'fossil_hybrid.jpg',    7, 4, 'Fossil',             2024, 3800000,   5500000,   12, 12, 1),
+    ('Daniel Wellington Classic Sheffield',       'dw_sheffield.jpg',     8, 2, 'Daniel Wellington',  2024, 2800000,   4200000,   16, 24, 1),
+    ('Daniel Wellington Petite Sterling',         'dw_petite.jpg',        8, 2, 'Daniel Wellington',  2024, 3200000,   4800000,   14, 24, 1),
+    ('Daniel Wellington Classic Black',           'dw_black.jpg',         8, 2, 'Daniel Wellington',  2024, 2500000,   3800000,   20, 24, 1),
+    ('Casio G-Shock GA-2100-1A1',                'gshock_ga2100.jpg',    1, 5, 'Casio',              2024, 2800000,   3900000,   25, 12, 1),
+    ('Casio Edifice EFR-556DB-2AV',              'edifice_efr556.jpg',   1, 5, 'Casio',              2024, 3200000,   4500000,   15, 12, 1),
+    ('Tissot PRX T137.410.11.041.00',            'tissot_prx.jpg',       1, 2, 'Tissot',             2024, 9500000,  13500000,    8, 24, 1),
+    ('Hamilton Khaki Field H70455533',           'hamilton_khaki.jpg',   1, 1, 'Hamilton',           2023,11500000,  16500000,    5, 24, 1),
+    ('Casio G-Shock DW-5600E-1V',               'gshock_dw5600.jpg',    1, 3, 'Casio',              2024, 1800000,   2600000,   20, 12, 1),
+    ('Casio G-Shock AE-1200WH-1A',              'gshock_ae1200.png',    1, 3, 'Casio',              2024,  550000,    890000,   30, 12, 1),
+    ('Casio F-91W',                              'casio_f91w.png',       1, 3, 'Casio',              2023,  200000,    350000,   40, 12, 1),
+    ('Casio A168WG-9WDF',                        'casio_a168w.png',      1, 3, 'Casio',              2024,  650000,    950000,   18, 12, 1),
+    ('Casio Baby-G BGD-565-7DR',                 'babyg_bgd565.jpg',     1, 3, 'Casio',              2024, 1600000,   2100000,   12, 12, 1),
+    ('Casio Baby-G BA-110-1ADR',                 'babyg_ba110.png',      1, 3, 'Casio',              2024, 2150000,   2900000,   10, 12, 1),
+    ('Casio ProTrek PRG-270-1A',                 'protrek_prg270.png',   1, 3, 'Casio',              2024, 3800000,   5200000,    5, 12, 1),
+    ('SKMEI 1251 Digital',                       'skmei_1251.jpg',       9, 3, 'SKMEI',              2024,  150000,    250000,   25,  6, 1),
+    ('SKMEI 1456 Digital Military',              'skmei_1456.jpg',       9, 3, 'SKMEI',              2024,  180000,    300000,   22,  6, 1),
+    ('Timex Ironman Classic 30',                 'timex_ironman30.jpg', 10, 3, 'Timex',              2024,  850000,   1350000,   14, 12, 1);
+ 
+-- ------------------------------------------------------------
+--  3.17 Phiếu nhập (giữ nguyên)
+-- ------------------------------------------------------------
+ 
+INSERT INTO `PHIEUNHAP` (`MNV`, `MNCC`, `TIEN`) VALUES
+    (1, 1, 383400000), (1, 2, 170900000), (1, 3, 112500000),
+    (1, 4, 299500000), (1, 5, 680000000), (1, 6,  87800000),
+    (1, 7, 139000000), (1, 8, 139600000), (1, 9,   7710000),
+    (1,10,  11900000);
+ 
+INSERT INTO `CTPHIEUNHAP` (`MPN`, `MSP`, `SL`, `TIENNHAP`) VALUES
+    (2,  1, 15, 52500000), (2,  2,  8, 68000000), (2,  3, 12, 50400000),
+    (3,  4, 10, 38000000), (3,  5,  7, 38500000), (3,  6,  5, 36000000),
+    (4,  7, 20, 96000000), (4,  8,  6, 72000000), (4,  9,  9, 76500000),
+    (4, 10, 25, 55000000),
+    (5, 11,  2,370000000), (5, 12,  1,165000000), (5, 13,  1,145000000),
+    (6, 14,  6, 51000000), (6, 15,  4, 36800000),
+    (7, 16, 18, 45000000), (7, 17, 22, 48400000), (7, 18, 12, 45600000),
+    (8, 19, 16, 44800000), (8, 20, 14, 44800000), (8, 21, 20, 50000000),
+    (1, 22, 25, 70000000), (1, 23, 15, 48000000), (1, 24,  8, 76000000),
+    (1, 25,  5, 57500000), (1, 26, 20, 36000000), (1, 27, 30, 16500000),
+    (1, 28, 40,  8000000), (1, 29, 18, 11700000), (1, 30, 12, 19200000),
+    (1, 31, 10, 21500000), (1, 32,  5, 19000000),
+    (9, 33, 25,  3750000), (9, 34, 22,  3960000),
+    (10,35, 14, 11900000);
+ 
+-- ------------------------------------------------------------
+--  3.18 Mã khuyến mãi mẫu
+-- ------------------------------------------------------------
+ 
+INSERT INTO `MAKHUYENMAI` (`MKM`, `TGBD`, `TGKT`, `TT`) VALUES
+    ('SUMMER2025', '2025-06-01', '2025-06-30', 1),
+    ('CASIO10',    '2025-05-01', '2025-05-31', 0),
+    ('SALE8_3',    '2025-03-08', '2025-03-08', 0);
+ 
+INSERT INTO `CTMAKHUYENMAI` (`MKM`, `MSP`, `PTG`) VALUES
+    ('SUMMER2025', 7,  10), ('SUMMER2025', 10, 10), ('SUMMER2025', 22, 15),
+    ('CASIO10',   26,  10), ('CASIO10',   27,  10), ('CASIO10',   28,  10),
+    ('SALE8_3',   19,   8), ('SALE8_3',   20,   8), ('SALE8_3',   21,   8);
+
+-- Dữ liệu mẫu cho năm 2026
+INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`) VALUES 
+('Tết Dương Lịch', '2026-01-01', 3.0),
+('Giỗ tổ Hùng Vương', '2026-04-25', 2.0),
+('Giải phóng miền Nam', '2026-04-30', 3.0),
+('Quốc tế lao động', '2026-05-01', 3.0); 
+
+
+INSERT INTO `PHIEUXUAT` (`MPX`, `MNV`, `MKH`, `TIEN`, `TG`, `TT`) VALUES
+-- Năm 2020 (Giai đoạn mới mở)
+(1, 2, 2, 4500000,   '2020-05-15 10:30:00', 1),
+(2, 3, 3, 11500000,  '2020-11-20 15:45:00', 1),
+
+-- Năm 2021
+(3, 4, 4, 5200000,   '2021-03-10 09:15:00', 1),
+(4, 5, 5, 7500000,   '2021-08-25 19:20:00', 1),
+
+-- Năm 2022
+(5, 6, 6, 16500000,  '2022-01-05 11:00:00', 1),
+(6, 7, 7, 3200000,   '2022-07-14 14:30:00', 1),
+
+-- Năm 2023
+(7, 8, 8, 245000000, '2023-04-12 10:00:00', 1), -- Bán 1 chiếc Rolex
+(8, 9, 9, 12500000,  '2023-12-24 20:00:00', 1),
+
+-- Năm 2024
+(9, 10, 10, 4200000,  '2024-02-14 08:30:00', 1),
+(10, 2, 11, 8500000,  '2024-06-20 16:00:00', 1),
+
+-- Năm 2025
+(11, 3, 12, 13500000, '2025-01-01 09:00:00', 1),
+(12, 4, 13, 16500000, '2025-03-08 15:30:00', 1),
+
+-- Năm 2026 (Năm hiện tại của đồ án)
+(13, 5, 14, 3900000,  '2026-01-15 10:00:00', 1),
+(14, 6, 15, 4500000,  '2026-03-25 14:00:00', 1);
+
+INSERT INTO `CTPHIEUXUAT` (`MPX`, `MSP`, `SL`, `TIENXUAT`) VALUES
+(1, 1, 1, 4500000),   -- Citizen Eco-Drive
+(2, 2, 1, 11500000),  -- Citizen Promaster
+(3, 4, 1, 5200000),   -- Orient Bambino
+(4, 5, 1, 7500000),   -- Orient Mako III
+(5, 8, 1, 16500000),  -- Seiko Presage
+(6, 10, 1, 3200000),  -- Seiko 5
+(7, 11, 1, 245000000),-- Rolex Submariner (Đơn hàng lớn)
+(8, 14, 1, 12500000), -- Frederique Constant
+(9, 19, 1, 4200000),  -- Daniel Wellington
+(10, 23, 1, 4500000), -- Casio Edifice
+(11, 24, 1, 13500000),-- Tissot PRX
+(12, 25, 1, 16500000),-- Hamilton Khaki
+(13, 22, 1, 3900000), -- G-Shock GA-2100
+(14, 23, 1, 4500000); -- Casio Edifice
+ 
+COMMIT;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_ChotLuongHangThang$$
+
+CREATE PROCEDURE sp_ChotLuongHangThang(
+    IN p_Thang INT,
+    IN p_Nam INT
+)
+BEGIN
+    DECLARE v_NgayCongChuan INT DEFAULT 26;
+
+    -- 1. Xóa dữ liệu cũ để tránh trùng lặp UNIQUE KEY (MNV, THANG, NAM)
+    DELETE FROM BANGLUONG WHERE THANG = p_Thang AND NAM = p_Nam;
+
+    -- 2. Tính toán và chèn dữ liệu
+    INSERT INTO BANGLUONG (
+        MNV, THANG, NAM, LUONGCOBAN, 
+        NGAYCONG, DOANH_SO, TY_LE_HOA_HONG, 
+        HOA_HONG, BHXH, BHYT, BHTN, 
+        LUONGTHUCLANH, TT
+    )
+    SELECT 
+        nv.MNV,
+        p_Thang,
+        p_Nam,
+        cv.LUONGCOBAN,
+        -- Tính tổng công quy đổi (Dùng IFNULL để tránh lỗi NULL)
+        IFNULL(SUM(CASE 
+                WHEN nl.NGAY IS NOT NULL THEN nl.HESO_LUONG
+                WHEN DAYOFWEEK(pcl.NGAY) BETWEEN 2 AND 7 THEN 1
+                ELSE 0 
+            END), 0) AS TongCong,
+        -- Doanh số
+        IFNULL(DS.TongTien, 0),
+        cv.TY_LE_HOA_HONG,
+        -- Hoa hồng
+        (IFNULL(DS.TongTien, 0) * cv.TY_LE_HOA_HONG / 100),
+        -- Bảo hiểm
+        (cv.LUONGCOBAN * 0.080),
+        (cv.LUONGCOBAN * 0.015),
+        (cv.LUONGCOBAN * 0.010),
+        -- Công thức thực lãnh (Đã sửa lỗi đóng ngoặc)
+        (
+            ((cv.LUONGCOBAN / v_NgayCongChuan) * IFNULL(SUM(CASE 
+                WHEN nl.NGAY IS NOT NULL THEN nl.HESO_LUONG 
+                WHEN DAYOFWEEK(pcl.NGAY) BETWEEN 2 AND 7 THEN 1 
+                ELSE 0 END), 0)) 
+            + (IFNULL(DS.TongTien, 0) * cv.TY_LE_HOA_HONG / 100)
+            - (cv.LUONGCOBAN * 0.105)
+        ) AS v_ThucLanh,
+        1
+    FROM NHANVIEN nv
+    JOIN CHUCVU cv ON nv.MCV = cv.MCV
+    LEFT JOIN PHANCALAM pcl ON nv.MNV = pcl.MNV 
+        AND MONTH(pcl.NGAY) = p_Thang AND YEAR(pcl.NGAY) = p_Nam AND pcl.TT = 2
+    LEFT JOIN NGAYLE nl ON pcl.NGAY = nl.NGAY
+    LEFT JOIN (
+        SELECT MNV, SUM(TIEN) AS TongTien 
+        FROM PHIEUXUAT 
+        WHERE MONTH(TG) = p_Thang AND YEAR(TG) = p_Nam AND TT = 1
+        GROUP BY MNV
+    ) AS DS ON nv.MNV = DS.MNV
+    GROUP BY nv.MNV, cv.LUONGCOBAN, cv.TY_LE_HOA_HONG, DS.TongTien;
+
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER tg_KiemTraPhanCa
+BEFORE INSERT ON PHANCALAM
+FOR EACH ROW
+BEGIN
+    -- Nếu ngày phân ca là Chủ Nhật (DAYOFWEEK = 1)
+    IF DAYOFWEEK(NEW.NGAY) = 1 THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Cửa hàng nghỉ Chủ Nhật, không thể phân ca!';
+    END IF;
+END$$
+
+DELIMITER ;

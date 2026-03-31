@@ -2,6 +2,7 @@ export type AuthSession = {
   accessToken: string
   username: string
   fullName: string
+  avatar?: string
   role: string
   mnv: number
 }

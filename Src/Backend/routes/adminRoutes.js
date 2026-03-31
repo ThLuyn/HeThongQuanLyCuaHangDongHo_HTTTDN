@@ -1,5 +1,6 @@
 const express = require("express");
 const authController = require("../controllers/authController");
+const dashboardController = require("../controllers/dashboardController");
 const inventoryController = require("../controllers/inventoryController");
 const {
   authenticateToken,
@@ -10,6 +11,19 @@ const router = express.Router();
 
 router.post("/auth/login", authController.login);
 router.get("/auth/me", authenticateToken, authController.me);
+router.patch("/auth/me", authenticateToken, authController.updateMe);
+router.patch(
+  "/auth/change-password",
+  authenticateToken,
+  authController.changePassword,
+);
+
+router.get(
+  "/dashboard/overview",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  dashboardController.getOverview,
+);
 
 router.get(
   "/inventory/products",

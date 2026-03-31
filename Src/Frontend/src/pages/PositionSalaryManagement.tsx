@@ -1,0 +1,516 @@
+// @ts-nocheck
+import { useEffect, useMemo, useState } from 'react';
+import { DataTable } from '../components/DataTable';
+import { Modal } from '../components/Modal';
+import { createPositionSalaryApi, getEmployeesApi, getPositionSalaryApi, getPositionWorkHistoryApi, transferEmployeePositionApi, updatePositionSalaryApi } from '../utils/backendApi';
+
+function formatMoney(value) {
+  return `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} đ`;
+}
+
+export function PositionSalaryManagement() {
+  const [rows, setRows] = useState([]);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [form, setForm] = useState({
+    positionName: '',
+    baseSalary: 0,
+    commissionRate: 0,
+    status: 1,
+  });
+  const [transferForm, setTransferForm] = useState({
+    employeeId: '',
+    newPositionId: '',
+    effectiveDate: '',
+    note: '',
+  });
+
+  useEffect(() => {
+    const loadRows = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await getPositionSalaryApi();
+        setRows(data);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Không thể tải danh sách chức vụ';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRows();
+  }, []);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const data = await getPositionWorkHistoryApi();
+        setHistoryRows(data);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Không thể tải lịch sử công tác';
+        setError(message);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    loadHistory();
+  }, []);
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const data = await getEmployeesApi();
+        setEmployees((data || []).filter((emp) => Number(emp.TT) === 1));
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Không thể tải danh sách nhân viên';
+        setError(message);
+      }
+    };
+
+    loadEmployees();
+  }, []);
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'positionName',
+        label: 'Chức vụ',
+      },
+      {
+        key: 'baseSalary',
+        label: 'Lương cơ bản',
+        render: (val) => <span className="font-semibold text-gray-800">{formatMoney(val)}</span>,
+      },
+      {
+        key: 'commissionRate',
+        label: 'Tỷ lệ hoa hồng',
+        render: (val) => `${Number(val || 0)}%`,
+      },
+      {
+        key: 'status',
+        label: 'Trạng thái',
+        render: (val) => (
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              Number(val) === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {Number(val) === 1 ? 'Đang áp dụng' : 'Ngưng áp dụng'}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const historyColumns = useMemo(
+    () => [
+      {
+        key: 'employeeName',
+        label: 'Nhân viên',
+        render: (_val, row) => `NV${String(row.employeeId).padStart(3, '0')} - ${row.employeeName || ''}`,
+      },
+      {
+        key: 'oldPositionName',
+        label: 'Chức vụ cũ',
+        render: (val, row) => `${val || 'Khởi tạo'} (${formatMoney(row.oldBaseSalary || 0)})`,
+      },
+      {
+        key: 'newPositionName',
+        label: 'Chức vụ mới',
+        render: (val, row) => `${val || 'Chưa cập nhật'} (${formatMoney(row.newBaseSalary || 0)})`,
+      },
+      {
+        key: 'effectiveDate',
+        label: 'Ngày hiệu lực',
+        render: (val) => {
+          if (!val) {
+            return '-';
+          }
+          return new Date(val).toLocaleDateString('vi-VN');
+        },
+      },
+      {
+        key: 'approverName',
+        label: 'Người duyệt',
+        render: (_val, row) => {
+          const approverIdText = row.approverId ? `NV${String(row.approverId).padStart(3, '0')}` : '---';
+          return `${approverIdText} - ${row.approverName || 'Chưa cập nhật'}`;
+        },
+      },
+      {
+        key: 'note',
+        label: 'Ghi chú',
+        render: (val) => val || '-',
+      },
+    ],
+    [],
+  );
+
+  const openEdit = (row) => {
+    setIsCreating(false);
+    setEditingRow(row);
+    setError('');
+    setForm({
+      positionName: row.positionName,
+      baseSalary: Number(row.baseSalary || 0),
+      commissionRate: Number(row.commissionRate || 0),
+      status: Number(row.status) === 1 ? 1 : 0,
+    });
+    setModalOpen(true);
+  };
+
+  const openAdd = () => {
+    setIsCreating(true);
+    setEditingRow(null);
+    setError('');
+    setForm({
+      positionName: '',
+      baseSalary: 0,
+      commissionRate: 0,
+      status: 1,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSoftDelete = async (row) => {
+    if (!confirm(`Ngưng áp dụng chức vụ?`)) {
+      return;
+    }
+
+    try {
+      await updatePositionSalaryApi(row.id, {
+        baseSalary: Number(row.baseSalary || 0),
+        commissionRate: Number(row.commissionRate || 0),
+        status: 0,
+      });
+
+      setRows((prev) =>
+        prev.map((item) =>
+          item.id === row.id
+            ? {
+                ...item,
+                status: 0,
+              }
+            : item,
+        ),
+      );
+      setError('');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Không thể ngưng áp dụng chức vụ';
+      setError(message);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!String(form.positionName || '').trim()) {
+      setError('Tên chức vụ là bắt buộc.');
+      return;
+    }
+
+    if (Number(form.baseSalary) <= 0) {
+      setError('Lương cơ bản phải lớn hơn 0.');
+      return;
+    }
+    if (Number(form.commissionRate) < 0 || Number(form.commissionRate) > 100) {
+      setError('Tỷ lệ hoa hồng phải nằm trong khoảng từ 0 đến 100%.');
+      return;
+    }
+
+    const normalizedStatus = Number(form.status) === 1 ? 1 : 0;
+
+    try {
+      if (isCreating) {
+        const created = await createPositionSalaryApi({
+          positionName: String(form.positionName).trim(),
+          baseSalary: Number(form.baseSalary),
+          commissionRate: Number(form.commissionRate),
+          status: normalizedStatus,
+        });
+
+        setRows((prev) => [
+          ...prev,
+          {
+            id: Number(created.id),
+            positionName: String(form.positionName).trim(),
+            baseSalary: Number(form.baseSalary),
+            commissionRate: Number(form.commissionRate),
+            status: normalizedStatus,
+          },
+        ]);
+      } else {
+        await updatePositionSalaryApi(editingRow.id, {
+          baseSalary: Number(form.baseSalary),
+          commissionRate: Number(form.commissionRate),
+          status: normalizedStatus,
+        });
+
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === editingRow.id
+              ? {
+                  ...row,
+                  baseSalary: Number(form.baseSalary),
+                  commissionRate: Number(form.commissionRate),
+                  status: normalizedStatus,
+                }
+              : row,
+          ),
+        );
+      }
+
+      setModalOpen(false);
+      setError('');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : isCreating ? 'Không thể thêm chức vụ' : 'Không thể cập nhật chức vụ';
+      setError(message);
+    }
+  };
+
+  const openTransferModal = () => {
+    const now = new Date();
+    const dateText = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    setError('');
+    setTransferForm({
+      employeeId: '',
+      newPositionId: '',
+      effectiveDate: dateText,
+      note: '',
+    });
+    setTransferModalOpen(true);
+  };
+
+  const handleTransfer = async () => {
+    const employeeId = Number(transferForm.employeeId);
+    const newPositionId = Number(transferForm.newPositionId);
+    const effectiveDate = String(transferForm.effectiveDate || '').trim();
+    const note = String(transferForm.note || '').trim();
+
+    if (!employeeId) {
+      setError('Vui lòng chọn nhân viên cần chuyển công tác.');
+      return;
+    }
+
+    if (!newPositionId) {
+      setError('Vui lòng chọn chức vụ mới.');
+      return;
+    }
+
+    if (!effectiveDate) {
+      setError('Vui lòng nhập ngày bắt đầu.');
+      return;
+    }
+
+    try {
+      await transferEmployeePositionApi({
+        employeeId,
+        newPositionId,
+        effectiveDate,
+        note,
+      });
+
+      const [historyData, employeeData] = await Promise.all([getPositionWorkHistoryApi(), getEmployeesApi()]);
+      setHistoryRows(historyData || []);
+      setEmployees((employeeData || []).filter((emp) => Number(emp.TT) === 1));
+      setTransferModalOpen(false);
+      setError('');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Không thể chuyển công tác';
+      setError(message);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {error && !modalOpen && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
+
+      <DataTable
+        title="Danh sách chức vụ"
+        columns={columns}
+        data={rows}
+        onAdd={openAdd}
+        addLabel="Thêm chức vụ"
+        searchPlaceholder="Tìm theo chức vụ..."
+        noHorizontalScroll
+        pageSize={10}
+        emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
+        rowActions={[
+          {
+            key: 'edit',
+            label: 'Sửa',
+            onClick: openEdit,
+            className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
+          },
+          {
+            key: 'delete',
+            label: 'Ngưng áp dụng',
+            onClick: handleSoftDelete,
+            className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
+          },
+        ]}
+      />
+
+      <DataTable
+        title="Lịch sử công tác"
+        columns={historyColumns}
+        data={historyRows}
+        defaultSortBy="effectiveDate"
+        defaultSortDirection="desc"
+        onAdd={openTransferModal}
+        addLabel="Chuyển công tác"
+        searchPlaceholder="Tìm theo nhân viên/chức vụ/người duyệt..."
+        noHorizontalScroll
+        pageSize={10}
+        emptyState={historyLoading ? 'Đang tải lịch sử công tác...' : 'Chưa có dữ liệu lịch sử công tác'}
+      />
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={isCreating ? 'Thêm chức vụ mới' : 'Cập nhật chức vụ & lương'}>
+        <div className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Chức vụ</label>
+            <input
+              value={form.positionName}
+              disabled={!isCreating}
+              onChange={(e) => setForm((prev) => ({ ...prev, positionName: e.target.value }))}
+              className={`w-full rounded-lg border px-3 py-2 text-sm ${isCreating ? 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-gold-400/50' : 'border-gray-200 bg-gray-50 text-gray-600'}`}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Lương cơ bản</label>
+              <input
+                type="number"
+                min={0}
+                step={100000}
+                value={form.baseSalary}
+                onChange={(e) => setForm((prev) => ({ ...prev, baseSalary: Number(e.target.value) || 0 }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Tỷ lệ hoa hồng (%)</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={form.commissionRate}
+                onChange={(e) => setForm((prev) => ({ ...prev, commissionRate: Number(e.target.value) || 0 }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Trạng thái</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+            >
+              <option value={1}>Đang áp dụng</option>
+              <option value={0}>Ngưng áp dụng</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setModalOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
+              Hủy
+            </button>
+            <button onClick={handleSave} className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 transition-colors">
+              Lưu thay đổi
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={transferModalOpen} onClose={() => setTransferModalOpen(false)} title="Chuyển công tác">
+        <div className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Nhân viên</label>
+            <select
+              value={transferForm.employeeId}
+              onChange={(e) => setTransferForm((prev) => ({ ...prev, employeeId: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+            >
+              <option value="">Chọn nhân viên</option>
+              {employees.filter((emp) => Number(emp.TT) === 1).map((emp) => (
+                <option key={emp.MNV} value={emp.MNV}>
+                  {`NV${String(emp.MNV).padStart(3, '0')} - ${emp.HOTEN} (${emp.TENCHUCVU || 'Chưa có chức vụ'})`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Chức vụ mới</label>
+            <select
+              value={transferForm.newPositionId}
+              onChange={(e) => setTransferForm((prev) => ({ ...prev, newPositionId: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+            >
+              <option value="">Chọn chức vụ mới</option>
+              {rows.map((position) => (
+                <option key={position.id} value={position.id}>
+                  {`${position.positionName} (${formatMoney(position.baseSalary)}${Number(position.status) === 0 ? ' - Ngưng áp dụng' : ''})`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
+            <input
+              type="date"
+              value={transferForm.effectiveDate}
+              onChange={(e) => setTransferForm((prev) => ({ ...prev, effectiveDate: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Lý do chuyển</label>
+            <textarea
+              rows={3}
+              value={transferForm.note}
+              onChange={(e) => setTransferForm((prev) => ({ ...prev, note: e.target.value }))}
+              placeholder="Nhập ghi chú chuyển công tác..."
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setTransferModalOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
+              Hủy
+            </button>
+            <button onClick={handleTransfer} className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 transition-colors">
+              Xác nhận chuyển công tác
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
