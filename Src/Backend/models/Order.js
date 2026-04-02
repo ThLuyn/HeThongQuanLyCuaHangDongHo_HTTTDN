@@ -5,10 +5,34 @@ async function createImportReceipt(connection, payload) {
   const headerMncc = Number(payload.mncc);
   const headerTotal = Number(payload.total);
 
+  // Pending receipts (TT=2) must not change stock.
+  // Snapshot current stock for all involved products and restore right after detail insert.
+  const productIds = Array.from(
+    new Set(
+      payload.items
+        .map((item) => Number(item.msp))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  );
+  const stockBeforeMap = new Map();
+  for (const msp of productIds) {
+    const [stockRows] = await connection.execute(
+      `
+        SELECT SOLUONG
+        FROM SANPHAM
+        WHERE MSP = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [msp],
+    );
+    stockBeforeMap.set(msp, Number(stockRows?.[0]?.SOLUONG || 0));
+  }
+
   const [headerResult] = await connection.execute(
     `
       INSERT INTO PHIEUNHAP (MNV, MNCC, TIEN, TT)
-      VALUES (?, ?, ?, 1)
+      VALUES (?, ?, ?, 2)
     `,
     [headerMnv, headerMncc, headerTotal],
   );
@@ -28,18 +52,158 @@ async function createImportReceipt(connection, payload) {
       `,
       [receiptId, msp, sl, tienNhap, hinhThuc],
     );
+  }
 
+  for (const [msp, originalStock] of stockBeforeMap.entries()) {
     await connection.execute(
       `
         UPDATE SANPHAM
-        SET SOLUONG = SOLUONG + ?
+        SET SOLUONG = ?
         WHERE MSP = ?
       `,
-      [sl, msp],
+      [originalStock, msp],
     );
   }
 
   return receiptId;
+}
+
+async function getImportReceiptDetail(receiptId) {
+  const parsedId = Number(receiptId);
+
+  const headers = await query(
+    `
+      SELECT
+        pn.MPN,
+        pn.MNV,
+        nv.HOTEN AS TENNHANVIEN,
+        pn.MNCC,
+        ncc.TEN AS TENNHACUNGCAP,
+        pn.TIEN,
+        pn.TG,
+        pn.TT,
+        pn.LYDOHUY,
+        COUNT(ct.MSP) AS SO_DONG_SANPHAM,
+        COALESCE(SUM(ct.SL), 0) AS TONG_SO_LUONG
+      FROM PHIEUNHAP pn
+      INNER JOIN NHACUNGCAP ncc ON ncc.MNCC = pn.MNCC
+      INNER JOIN NHANVIEN nv ON nv.MNV = pn.MNV
+      LEFT JOIN CTPHIEUNHAP ct ON ct.MPN = pn.MPN
+      WHERE pn.MPN = ?
+      GROUP BY pn.MPN, pn.MNV, nv.HOTEN, pn.MNCC, ncc.TEN, pn.TIEN, pn.TG, pn.TT, pn.LYDOHUY
+      LIMIT 1
+    `,
+    [parsedId],
+  );
+
+  if (!headers[0]) {
+    return null;
+  }
+
+  const items = await query(
+    `
+      SELECT
+        ct.MSP,
+        sp.TEN AS TENSP,
+        ct.SL,
+        ct.TIENNHAP,
+        ct.HINHTHUC,
+        (ct.SL * ct.TIENNHAP) AS THANHTIEN
+      FROM CTPHIEUNHAP ct
+      INNER JOIN SANPHAM sp ON sp.MSP = ct.MSP
+      WHERE ct.MPN = ?
+      ORDER BY ct.MSP ASC
+    `,
+    [parsedId],
+  );
+
+  return {
+    ...headers[0],
+    ITEMS: items,
+  };
+}
+
+async function decideImportReceipt(connection, receiptId, action, reason) {
+  const parsedId = Number(receiptId);
+  const normalizedAction = String(action || "")
+    .trim()
+    .toLowerCase();
+
+  const [rows] = await connection.execute(
+    `
+      SELECT MPN, TT
+      FROM PHIEUNHAP
+      WHERE MPN = ?
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [parsedId],
+  );
+
+  const receipt = rows[0];
+  if (!receipt) {
+    const error = new Error("Import receipt not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (Number(receipt.TT) !== 2) {
+    const error = new Error(
+      "Only pending receipts can be approved or rejected",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (normalizedAction === "approve") {
+    const [items] = await connection.execute(
+      `
+        SELECT MSP, SL, TIENNHAP
+        FROM CTPHIEUNHAP
+        WHERE MPN = ?
+      `,
+      [parsedId],
+    );
+
+    for (const item of items) {
+      await connection.execute(
+        `
+          UPDATE SANPHAM
+          SET SOLUONG = SOLUONG + ?,
+              GIANHAP = ?
+          WHERE MSP = ?
+        `,
+        [Number(item.SL), Number(item.TIENNHAP || 0), Number(item.MSP)],
+      );
+    }
+
+    await connection.execute(
+      `
+        UPDATE PHIEUNHAP
+        SET TT = 1, LYDOHUY = NULL
+        WHERE MPN = ?
+      `,
+      [parsedId],
+    );
+
+    return;
+  }
+
+  if (normalizedAction === "reject") {
+    await connection.execute(
+      `
+        UPDATE PHIEUNHAP
+        SET TT = 0, LYDOHUY = ?
+        WHERE MPN = ?
+      `,
+      [reason || null, parsedId],
+    );
+    return;
+  }
+
+  const error = new Error("action must be approve or reject");
+  error.statusCode = 400;
+  throw error;
 }
 
 async function createExportReceipt(connection, payload) {
@@ -104,10 +268,14 @@ async function listImportReceipts(limit = 20) {
         pn.TIEN,
         pn.TG,
         pn.TT,
-        pn.LYDOHUY
+        pn.LYDOHUY,
+        COUNT(ct.MSP) AS SO_DONG_SANPHAM,
+        COALESCE(SUM(ct.SL), 0) AS TONG_SO_LUONG
       FROM PHIEUNHAP pn
       INNER JOIN NHACUNGCAP ncc ON ncc.MNCC = pn.MNCC
       INNER JOIN NHANVIEN nv ON nv.MNV = pn.MNV
+      LEFT JOIN CTPHIEUNHAP ct ON ct.MPN = pn.MPN
+      GROUP BY pn.MPN, pn.MNV, nv.HOTEN, pn.MNCC, ncc.TEN, pn.TIEN, pn.TG, pn.TT, pn.LYDOHUY
       ORDER BY MPN DESC
       LIMIT ${safeLimit}
     `,
@@ -140,6 +308,8 @@ async function getProfitByDateRange(startDate, endDate) {
 
 module.exports = {
   createImportReceipt,
+  getImportReceiptDetail,
+  decideImportReceipt,
   createExportReceipt,
   listImportReceipts,
   getProfitByDateRange,

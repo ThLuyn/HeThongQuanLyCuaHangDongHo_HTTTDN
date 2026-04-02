@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ArrowUpDownIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, FilterIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon, } from 'lucide-react';
+import { ArrowUpDownIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, FilterIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon, } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 function normalizeString(value) {
     if (value == null)
@@ -30,10 +30,11 @@ function parseComparableValue(value) {
     }
     return raw.toLowerCase();
 }
-export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm kiếm...', onAdd, onEdit, onDelete, addLabel = 'Thêm mới', rowActions, advancedFilterKeys, emptyState, noHorizontalScroll = false, pageSize = 0, defaultSortBy, defaultSortDirection = 'asc', }) {
+export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm kiếm...', onAdd, onEdit, onDelete, addLabel = 'Thêm mới', rowActions, advancedFilterKeys, rangeFilterKeys, forceSelectFilterKeys = [], emptyState, noHorizontalScroll = false, pageSize = 10, defaultSortBy, defaultSortDirection = 'asc', }) {
     const [search, setSearch] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [columnFilters, setColumnFilters] = useState({});
+    const [rangeFilters, setRangeFilters] = useState({});
     const [sortBy, setSortBy] = useState(defaultSortBy || columns[0]?.key || '');
     const [sortDirection, setSortDirection] = useState(defaultSortDirection);
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,6 +71,10 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
             return values.size > 0;
         });
     }, [advancedFilterKeys, columns, data]);
+    const rangeFilterMap = useMemo(() => {
+        const entries = (rangeFilterKeys || []).map((item) => [item.key, item]);
+        return Object.fromEntries(entries);
+    }, [rangeFilterKeys]);
     const filterOptions = useMemo(() => {
         return advancedFilterColumns.reduce((acc, col) => {
             const values = Array.from(new Set(data
@@ -82,7 +87,12 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
         }, {});
     }, [advancedFilterColumns, data]);
     const hasActiveFilters = search.trim() !== '' ||
-        Object.values(columnFilters).some((value) => value && value.trim() !== '');
+      Object.values(columnFilters).some((value) => value && value.trim() !== '') ||
+      Object.values(rangeFilters).some((value) => {
+        const min = value?.min;
+        const max = value?.max;
+        return min !== '' || max !== '';
+      });
     const filteredData = useMemo(() => {
         const normalizedSearch = normalizeString(search);
         const filtered = data.filter((row) => {
@@ -91,6 +101,46 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
             if (!matchesSearch)
                 return false;
             return advancedFilterColumns.every((col) => {
+              const rangeConfig = rangeFilterMap[col.key];
+              if (rangeConfig) {
+                const rawValue = row[col.key];
+                const isDateRange = rangeConfig.inputType === 'date';
+                const minRaw = rangeFilters[col.key]?.min;
+                const maxRaw = rangeFilters[col.key]?.max;
+                const hasMin = minRaw !== '' && minRaw != null;
+                const hasMax = maxRaw !== '' && maxRaw != null;
+                if (!hasMin && !hasMax)
+                  return true;
+
+                let currentValue;
+                if (isDateRange) {
+                  const parsedByDate = new Date(rawValue).getTime();
+                  currentValue = Number.isNaN(parsedByDate)
+                    ? parseComparableValue(rawValue)
+                    : parsedByDate;
+                  if (typeof currentValue !== 'number' || Number.isNaN(currentValue))
+                    return false;
+                } else {
+                  currentValue = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+                  if (Number.isNaN(currentValue))
+                    return false;
+                }
+                const min = hasMin
+                  ? isDateRange
+                    ? new Date(`${minRaw}T00:00:00`).getTime()
+                    : Number(minRaw)
+                  : null;
+                const max = hasMax
+                  ? isDateRange
+                    ? new Date(`${maxRaw}T23:59:59.999`).getTime()
+                    : Number(maxRaw)
+                  : null;
+                if (hasMin && !Number.isNaN(min) && currentValue < min)
+                  return false;
+                if (hasMax && !Number.isNaN(max) && currentValue > max)
+                  return false;
+                return true;
+              }
                 const filterValue = normalizeString(columnFilters[col.key]);
                 if (!filterValue)
                     return true;
@@ -115,6 +165,8 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
         columns,
         advancedFilterColumns,
         columnFilters,
+        rangeFilters,
+        rangeFilterMap,
         sortBy,
         sortDirection,
     ]);
@@ -137,6 +189,7 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
     const handleClearFilters = () => {
         setSearch('');
         setColumnFilters({});
+        setRangeFilters({});
       setSortBy(defaultSortBy || columns[0]?.key || '');
       setSortDirection(defaultSortDirection);
         setCurrentPage(1);
@@ -185,8 +238,36 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
 
         {showAdvanced && (<div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {advancedFilterColumns.map((col) => {
+              const rangeConfig = rangeFilterMap[col.key];
+              if (rangeConfig) {
+                const minValue = rangeFilters[col.key]?.min || '';
+                const maxValue = rangeFilters[col.key]?.max || '';
+                const inputType = rangeConfig.inputType === 'date' ? 'date' : 'number';
+                return (<div key={col.key}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {col.label}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                  <input type={inputType} min={inputType === 'number' ? 0 : undefined} value={minValue} onChange={(e) => setRangeFilters((prev) => ({
+                      ...prev,
+                      [col.key]: {
+                        min: e.target.value,
+                        max: prev[col.key]?.max || '',
+                      },
+                    }))} placeholder={rangeConfig.minPlaceholder || 'Từ'} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50"/>
+                  <input type={inputType} min={inputType === 'number' ? 0 : undefined} value={maxValue} onChange={(e) => setRangeFilters((prev) => ({
+                      ...prev,
+                      [col.key]: {
+                        min: prev[col.key]?.min || '',
+                        max: e.target.value,
+                      },
+                    }))} placeholder={rangeConfig.maxPlaceholder || 'Đến'} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50"/>
+                  </div>
+                </div>);
+              }
                 const options = filterOptions[col.key] || [];
-                const useSelect = options.length > 0 && options.length <= 8;
+                const forceSelect = forceSelectFilterKeys.includes(col.key);
+                const useSelect = options.length > 0 && (forceSelect || options.length <= 8);
                 return (<div key={col.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     {col.label}
@@ -207,7 +288,7 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
             })}
           </div>)}
       </div>
-      <div className={noHorizontalScroll ? 'overflow-x-hidden' : 'overflow-x-auto'}>
+      <div className={`data-table-scroll ${noHorizontalScroll ? 'overflow-x-hidden' : 'overflow-x-auto'}`}>
         <table className={`w-full ${noHorizontalScroll ? 'table-fixed' : ''}`}>
           <thead>
             <tr className="bg-gradient-to-r from-gold-500/10 to-gold-400/5">
@@ -232,10 +313,26 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
                     </td>))}
                   {actionsToRender.length > 0 && (<td className="px-6 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {actionsToRender.map((action) => {
-                    const icon = action.key === 'edit' ? (<PencilIcon className="w-4 h-4"/>) : action.key === 'delete' ? (<Trash2Icon className="w-4 h-4"/>) : action.key === 'view' ? (<EyeIcon className="w-4 h-4"/>) : null;
-                    return (<button key={action.key} onClick={() => action.onClick(row)} className={action.className ||
-                            'px-3 py-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 hover:bg-gold-50 rounded-lg transition-colors'} aria-label={action.label} title={action.label}>
+                        {actionsToRender
+                          .filter((action) => !(typeof action.hidden === 'function' && action.hidden(row)))
+                          .map((action) => {
+                    const icon = action.key === 'edit'
+                      ? (<PencilIcon className="w-4 h-4"/>)
+                      : action.key === 'delete'
+                        ? (<Trash2Icon className="w-4 h-4"/>)
+                        : action.key === 'view'
+                          ? (<EyeIcon className="w-4 h-4"/>)
+                          : action.key === 'approve'
+                            ? (<CheckIcon className="w-4 h-4"/>)
+                            : action.key === 'reject'
+                              ? (<XIcon className="w-4 h-4"/>)
+                              : null;
+                    const isDisabled = typeof action.disabled === 'function' ? action.disabled(row) : Boolean(action.disabled);
+                    return (<button key={action.key} onClick={() => {
+                              if (!isDisabled)
+                                  action.onClick(row);
+                            }} disabled={isDisabled} className={`${action.className ||
+                            'px-3 py-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 hover:bg-gold-50 rounded-lg transition-colors'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`} aria-label={action.label} title={action.label}>
                               {icon || action.label}
                             </button>);
                 })}

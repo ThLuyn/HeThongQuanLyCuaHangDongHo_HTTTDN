@@ -60,6 +60,20 @@ router.get(
   inventoryController.getImportReceipts,
 );
 
+router.get(
+  "/inventory/import-receipts/:id",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.getImportReceiptDetail,
+);
+
+router.patch(
+  "/inventory/import-receipts/:id/decision",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.decideImportReceipt,
+);
+
 router.post(
   "/inventory/import-receipts",
   authenticateToken,
@@ -93,6 +107,34 @@ router.delete(
   authenticateToken,
   authorizeRoles("admin", "manager"),
   inventoryController.deleteSupplier,
+);
+
+router.get(
+  "/inventory/display-locations",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.getDisplayLocations,
+);
+
+router.post(
+  "/inventory/display-locations",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.createDisplayLocation,
+);
+
+router.put(
+  "/inventory/display-locations/:id",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.updateDisplayLocation,
+);
+
+router.delete(
+  "/inventory/display-locations/:id",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.deleteDisplayLocation,
 );
 
 router.get(

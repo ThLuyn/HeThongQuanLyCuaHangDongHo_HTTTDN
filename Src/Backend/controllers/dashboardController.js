@@ -25,7 +25,7 @@ async function getOverview(req, res, next) {
       `
         SELECT COUNT(*) AS SANPHAMTONTHAP
         FROM SANPHAM
-        WHERE TT = 1 AND SOLUONG <= 5
+        WHERE TT = 1 AND SOLUONG <= 3
       `,
     );
 

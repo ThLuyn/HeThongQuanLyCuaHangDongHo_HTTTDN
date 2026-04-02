@@ -1,4 +1,4 @@
-const { query } = require("../config/db");
+const { query, withTransaction } = require("../config/db");
 
 async function listAll() {
   return query(
@@ -134,23 +134,25 @@ async function getPayrollByMonth(month, year) {
 async function markAsResigned(mnv) {
   const employeeId = Number(mnv);
 
-  await query(
-    `
-      UPDATE NHANVIEN
-      SET TT = 0
-      WHERE MNV = ?
-    `,
-    [employeeId],
-  );
+  await withTransaction(async (connection) => {
+    await connection.execute(
+      `
+        UPDATE NHANVIEN
+        SET TT = 0
+        WHERE MNV = ?
+      `,
+      [employeeId],
+    );
 
-  await query(
-    `
-      UPDATE TAIKHOAN
-      SET TRANGTHAI = 0
-      WHERE MNV = ?
-    `,
-    [employeeId],
-  );
+    await connection.execute(
+      `
+        UPDATE TAIKHOAN
+        SET TRANGTHAI = 0
+        WHERE MNV = ?
+      `,
+      [employeeId],
+    );
+  });
 }
 
 module.exports = {

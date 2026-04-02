@@ -1,4 +1,4 @@
-const { query } = require("../config/db");
+const { query, withTransaction } = require("../config/db");
 
 async function findByUsername(username) {
   const rows = await query(
@@ -63,44 +63,58 @@ async function findById(mnv) {
 }
 
 async function updateProfileById(mnv, payload) {
-  await query(
-    `
-      UPDATE NHANVIEN
-      SET
-        HOTEN = ?,
-        GIOITINH = ?,
-        NGAYSINH = ?,
-        SDT = ?,
-        EMAIL = ?,
-        TT = ?,
-        QUEQUAN = ?,
-        DIACHI = ?,
-        HINHANH = ?,
-        NGAYVAOLAM = ?,
-        CCCD = ?,
-        BOPHAN = ?,
-        SOTAIKHOAN = ?,
-        TENNGANHANG = ?
-      WHERE MNV = ?
-    `,
-    [
-      payload.fullName,
-      Number(payload.gioiTinh),
-      payload.ngaySinh,
-      payload.soDienThoai,
-      payload.email,
-      Number(payload.trangThai),
-      payload.queQuan || null,
-      payload.diaChi || null,
-      payload.hinhAnh || null,
-      payload.ngayVaoLam || null,
-      payload.cccd || null,
-      payload.boPhan || null,
-      payload.soTaiKhoanNganHang || null,
-      payload.tenNganHang || null,
-      Number(mnv),
-    ],
-  );
+  const employeeId = Number(mnv);
+  const employeeStatus = Number(payload.trangThai) === 0 ? 0 : 1;
+
+  await withTransaction(async (connection) => {
+    await connection.execute(
+      `
+        UPDATE NHANVIEN
+        SET
+          HOTEN = ?,
+          GIOITINH = ?,
+          NGAYSINH = ?,
+          SDT = ?,
+          EMAIL = ?,
+          TT = ?,
+          QUEQUAN = ?,
+          DIACHI = ?,
+          HINHANH = ?,
+          NGAYVAOLAM = ?,
+          CCCD = ?,
+          BOPHAN = ?,
+          SOTAIKHOAN = ?,
+          TENNGANHANG = ?
+        WHERE MNV = ?
+      `,
+      [
+        payload.fullName,
+        Number(payload.gioiTinh),
+        payload.ngaySinh,
+        payload.soDienThoai,
+        payload.email,
+        employeeStatus,
+        payload.queQuan || null,
+        payload.diaChi || null,
+        payload.hinhAnh || null,
+        payload.ngayVaoLam || null,
+        payload.cccd || null,
+        payload.boPhan || null,
+        payload.soTaiKhoanNganHang || null,
+        payload.tenNganHang || null,
+        employeeId,
+      ],
+    );
+
+    await connection.execute(
+      `
+        UPDATE TAIKHOAN
+        SET TRANGTHAI = ?
+        WHERE MNV = ?
+      `,
+      [employeeStatus, employeeId],
+    );
+  });
 }
 
 async function updatePasswordById(mnv, hashedPassword) {

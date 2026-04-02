@@ -1,6 +1,14 @@
 // @ts-nocheck
-export function StatCard({ icon: Icon, label, value }) {
-    return (<div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 cursor-default">
+export function StatCard({ icon: Icon, label, value, onClick }) {
+    const clickable = typeof onClick === 'function';
+    return (<div className={`bg-white rounded-xl p-5 shadow-sm border border-gray-100 transition-shadow duration-200 ${clickable ? 'cursor-pointer hover:shadow-md hover:border-gold-200/70' : 'cursor-default hover:shadow-md'}`} onClick={onClick} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} onKeyDown={clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }
+            : undefined}>
       <div className="flex items-start gap-4">
         <div className="p-3 rounded-xl bg-gradient-to-br from-gold-500/15 to-gold-400/5 border border-gold-200/50">
           <Icon className="w-6 h-6 text-gold-500"/>

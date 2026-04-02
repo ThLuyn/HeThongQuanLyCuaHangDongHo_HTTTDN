@@ -20,7 +20,7 @@ const EMPTY_OVERVIEW = {
     })),
     recentTransactions: [],
 };
-export function Dashboard() {
+export function Dashboard({ onOpenLowStockProducts }) {
     const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
     const [overview, setOverview] = useState(EMPTY_OVERVIEW);
     const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={TrendingUpIcon} label={`Doanh thu`} value={formatVnd(overview.summary.doanhThu)}/>
           <StatCard icon={FileTextIcon} label="Hóa đơn mới" value={String(overview.summary.hoaDonMoi)}/>
-          <StatCard icon={PackageIcon} label="Sản phẩm tồn thấp" value={String(overview.summary.sanPhamTonThap)}/>
+          <StatCard icon={PackageIcon} label="Sản phẩm tồn thấp" value={String(overview.summary.sanPhamTonThap)} onClick={onOpenLowStockProducts}/>
           <StatCard icon={UsersIcon} label="Nhân sự" value={String(overview.summary.nhanSu)}/>
         </div>
       </div>

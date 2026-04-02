@@ -79,10 +79,17 @@ async function listAll() {
   );
 }
 
-async function createProduct(payload) {
-  const mvt = await ensureDisplayLocationByName(payload.displayPosition);
+async function createProduct(payload, connection = null) {
+  const executor = connection || {
+    execute: (sql, params) => query(sql, params).then((rows) => [rows]),
+  };
 
-  const result = await query(
+  const mvt = await ensureDisplayLocationByName(
+    payload.displayPosition,
+    connection,
+  );
+
+  const [result] = await executor.execute(
     `
       INSERT INTO SANPHAM (
         TEN,
@@ -130,9 +137,7 @@ async function updateProduct(productId, payload) {
         MVT = ?,
         THUONGHIEU = ?,
         NAMSANXUAT = ?,
-        GIANHAP = ?,
         GIABAN = ?,
-        SOLUONG = ?,
         THOIGIANBAOHANH = ?,
         TT = ?
       WHERE MSP = ?
@@ -144,9 +149,7 @@ async function updateProduct(productId, payload) {
       mvt,
       payload.brand || null,
       payload.productionYear || null,
-      Number(payload.importPrice || 0),
       Number(payload.sellPrice || 0),
-      Number(payload.stock || 0),
       Number(payload.warrantyMonths || 12),
       Number(payload.status ?? 1),
       Number(productId),
@@ -169,16 +172,76 @@ async function getInventoryReport(month, year) {
   const yearNumber = Number(year);
   const monthNumber = month ? Number(month) : null;
 
+  const periodEndDate = monthNumber
+    ? new Date(yearNumber, monthNumber, 0, 23, 59, 59)
+    : new Date(yearNumber, 11, 31, 23, 59, 59);
+
+  const periodEnd = `${periodEndDate.getFullYear()}-${String(
+    periodEndDate.getMonth() + 1,
+  ).padStart(2, "0")}-${String(periodEndDate.getDate()).padStart(
+    2,
+    "0",
+  )} ${String(periodEndDate.getHours()).padStart(2, "0")}:${String(
+    periodEndDate.getMinutes(),
+  ).padStart(2, "0")}:${String(periodEndDate.getSeconds()).padStart(2, "0")}`;
+
   const summaryRows = await query(
     `
       SELECT
         COUNT(*) AS TONG_SANPHAM,
-        SUM(CASE WHEN TT = 1 THEN 1 ELSE 0 END) AS SANPHAM_HOATDONG,
-        COALESCE(SUM(SOLUONG), 0) AS TONG_TON_KHO,
-        COALESCE(SUM(SOLUONG * GIANHAP), 0) AS GIA_TRI_TON_THEO_GIANHAP,
-        COALESCE(SUM(SOLUONG * GIABAN), 0) AS GIA_TRI_TON_THEO_GIABAN
-      FROM SANPHAM
+        SUM(CASE WHEN sp.TT = 1 THEN 1 ELSE 0 END) AS SANPHAM_HOATDONG,
+        COALESCE(
+          SUM(
+            GREATEST(
+              sp.SOLUONG - COALESCE(import_after.SO_LUONG_NHAP_SAU_MOC, 0) + COALESCE(export_after.SO_LUONG_XUAT_SAU_MOC, 0),
+              0
+            )
+          ),
+          0
+        ) AS TONG_TON_KHO,
+        COALESCE(
+          SUM(
+            GREATEST(
+              sp.SOLUONG - COALESCE(import_after.SO_LUONG_NHAP_SAU_MOC, 0) + COALESCE(export_after.SO_LUONG_XUAT_SAU_MOC, 0),
+              0
+            ) * sp.GIANHAP
+          ),
+          0
+        ) AS GIA_TRI_TON_THEO_GIANHAP,
+        COALESCE(
+          SUM(
+            GREATEST(
+              sp.SOLUONG - COALESCE(import_after.SO_LUONG_NHAP_SAU_MOC, 0) + COALESCE(export_after.SO_LUONG_XUAT_SAU_MOC, 0),
+              0
+            ) * sp.GIABAN
+          ),
+          0
+        ) AS GIA_TRI_TON_THEO_GIABAN
+      FROM SANPHAM sp
+      INNER JOIN (
+        SELECT ct.MSP, MIN(pn.TG) AS TG_NHAP_DAU_TIEN
+        FROM CTPHIEUNHAP ct
+        INNER JOIN PHIEUNHAP pn ON pn.MPN = ct.MPN
+        WHERE pn.TT = 1
+        GROUP BY ct.MSP
+      ) first_import ON first_import.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_NHAP_SAU_MOC
+        FROM CTPHIEUNHAP ct
+        INNER JOIN PHIEUNHAP pn ON pn.MPN = ct.MPN
+        WHERE pn.TT = 1 AND pn.TG > ?
+        GROUP BY ct.MSP
+      ) import_after ON import_after.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_XUAT_SAU_MOC
+        FROM CTPHIEUXUAT ct
+        INNER JOIN PHIEUXUAT px ON px.MPX = ct.MPX
+        WHERE px.TT = 1 AND px.TG > ?
+        GROUP BY ct.MSP
+      ) export_after ON export_after.MSP = sp.MSP
+      WHERE first_import.TG_NHAP_DAU_TIEN <= ?
     `,
+    [periodEnd, periodEnd, periodEnd],
   );
 
   const importRows = await query(
@@ -190,6 +253,7 @@ async function getInventoryReport(month, year) {
       FROM PHIEUNHAP pn
       INNER JOIN CTPHIEUNHAP ctpn ON ctpn.MPN = pn.MPN
       WHERE YEAR(pn.TG) = ?
+        AND pn.TT = 1
         AND (? IS NULL OR MONTH(pn.TG) = ?)
     `,
     [yearNumber, monthNumber, monthNumber],
@@ -202,22 +266,77 @@ async function getInventoryReport(month, year) {
         sp.TEN,
         sp.THUONGHIEU,
         ncc.TEN AS TENNHACUNGCAP,
-        sp.SOLUONG,
+        GREATEST(
+          sp.SOLUONG - COALESCE(import_after.SO_LUONG_NHAP_SAU_MOC, 0) + COALESCE(export_after.SO_LUONG_XUAT_SAU_MOC, 0),
+          0
+        ) AS SOLUONG,
+        GREATEST(
+          GREATEST(
+            sp.SOLUONG - COALESCE(import_after.SO_LUONG_NHAP_SAU_MOC, 0) + COALESCE(export_after.SO_LUONG_XUAT_SAU_MOC, 0),
+            0
+          ) - COALESCE(import_period.SO_LUONG_NHAP_TRONG_KY, 0) + COALESCE(export_period.SO_LUONG_XUAT_TRONG_KY, 0),
+          0
+        ) AS TON_DAU_KY,
+        COALESCE(import_period.SO_LUONG_NHAP_TRONG_KY, 0) AS NHAP_TRONG_KY,
+        COALESCE(export_period.SO_LUONG_XUAT_TRONG_KY, 0) AS XUAT_TRONG_KY,
         sp.GIANHAP,
         sp.GIABAN,
-        COALESCE(SUM(CASE
-          WHEN YEAR(pn.TG) = ? AND (? IS NULL OR MONTH(pn.TG) = ?)
-          THEN ctpn.SL
-          ELSE 0
-        END), 0) AS NHAP_TRONG_KY
+        sp.TT
       FROM SANPHAM sp
       INNER JOIN NHACUNGCAP ncc ON ncc.MNCC = sp.MNCC
-      LEFT JOIN CTPHIEUNHAP ctpn ON ctpn.MSP = sp.MSP
-      LEFT JOIN PHIEUNHAP pn ON pn.MPN = ctpn.MPN
-      GROUP BY sp.MSP, sp.TEN, sp.THUONGHIEU, ncc.TEN, sp.SOLUONG, sp.GIANHAP, sp.GIABAN
+      INNER JOIN (
+        SELECT ct.MSP, MIN(pn.TG) AS TG_NHAP_DAU_TIEN
+        FROM CTPHIEUNHAP ct
+        INNER JOIN PHIEUNHAP pn ON pn.MPN = ct.MPN
+        WHERE pn.TT = 1
+        GROUP BY ct.MSP
+      ) first_import ON first_import.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_NHAP_SAU_MOC
+        FROM CTPHIEUNHAP ct
+        INNER JOIN PHIEUNHAP pn ON pn.MPN = ct.MPN
+        WHERE pn.TT = 1 AND pn.TG > ?
+        GROUP BY ct.MSP
+      ) import_after ON import_after.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_XUAT_SAU_MOC
+        FROM CTPHIEUXUAT ct
+        INNER JOIN PHIEUXUAT px ON px.MPX = ct.MPX
+        WHERE px.TT = 1 AND px.TG > ?
+        GROUP BY ct.MSP
+      ) export_after ON export_after.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_NHAP_TRONG_KY
+        FROM CTPHIEUNHAP ct
+        INNER JOIN PHIEUNHAP pn ON pn.MPN = ct.MPN
+        WHERE pn.TT = 1
+          AND YEAR(pn.TG) = ?
+          AND (? IS NULL OR MONTH(pn.TG) = ?)
+        GROUP BY ct.MSP
+      ) import_period ON import_period.MSP = sp.MSP
+      LEFT JOIN (
+        SELECT ct.MSP, COALESCE(SUM(ct.SL), 0) AS SO_LUONG_XUAT_TRONG_KY
+        FROM CTPHIEUXUAT ct
+        INNER JOIN PHIEUXUAT px ON px.MPX = ct.MPX
+        WHERE px.TT = 1
+          AND YEAR(px.TG) = ?
+          AND (? IS NULL OR MONTH(px.TG) = ?)
+        GROUP BY ct.MSP
+      ) export_period ON export_period.MSP = sp.MSP
+      WHERE first_import.TG_NHAP_DAU_TIEN <= ?
       ORDER BY sp.MSP DESC
     `,
-    [yearNumber, monthNumber, monthNumber],
+    [
+      periodEnd,
+      periodEnd,
+      yearNumber,
+      monthNumber,
+      monthNumber,
+      yearNumber,
+      monthNumber,
+      monthNumber,
+      periodEnd,
+    ],
   );
 
   return {

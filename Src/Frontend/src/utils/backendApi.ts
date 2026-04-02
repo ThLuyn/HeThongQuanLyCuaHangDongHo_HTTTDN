@@ -126,6 +126,31 @@ export type ImportReceiptItem = {
   TIEN: number
   TG: string
   TT: number
+  LYDOHUY?: string | null
+  SO_DONG_SANPHAM?: number
+  TONG_SO_LUONG?: number
+}
+
+export type ImportReceiptDetail = {
+  MPN: number
+  MNV: number
+  TENNHANVIEN: string
+  MNCC: number
+  TENNHACUNGCAP: string
+  TIEN: number
+  TG: string
+  TT: number
+  LYDOHUY?: string | null
+  SO_DONG_SANPHAM: number
+  TONG_SO_LUONG: number
+  ITEMS: Array<{
+    MSP: number
+    TENSP: string
+    SL: number
+    TIENNHAP: number
+    HINHTHUC: number
+    THANHTIEN: number
+  }>
 }
 
 export type ProductItem = {
@@ -149,6 +174,14 @@ export type SupplierItem = {
   SDT: string | null
   EMAIL: string | null
   TT: number
+  THUONGHIEU_CUNG_CAP?: string | null
+}
+
+export type DisplayLocationItem = {
+  MVT: number
+  TEN: string
+  GHICHU: string | null
+  PRODUCT_COUNT?: number
 }
 
 export type InventoryReport = {
@@ -171,10 +204,13 @@ export type InventoryReport = {
     TEN: string
     THUONGHIEU: string | null
     TENNHACUNGCAP: string
+    TON_DAU_KY: number
     SOLUONG: number
+    XUAT_TRONG_KY: number
     GIANHAP: number
     GIABAN: number
     NHAP_TRONG_KY: number
+    TT: number
   }>
 }
 
@@ -409,6 +445,7 @@ export async function createSupplierApi(payload: {
   email?: string
   address?: string
   status?: number
+  brands?: string[]
 }): Promise<{ supplierId: number }> {
   const response = await apiRequest<ApiEnvelope<{ supplierId: number }>>('/api/admin/inventory/suppliers', {
     method: 'POST',
@@ -425,6 +462,7 @@ export async function updateSupplierApi(
     email?: string
     address?: string
     status?: number
+    brands?: string[]
   },
 ): Promise<void> {
   await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/suppliers/${id}`, {
@@ -439,8 +477,60 @@ export async function deleteSupplierApi(id: number): Promise<void> {
   })
 }
 
+export async function getDisplayLocationsApi(): Promise<DisplayLocationItem[]> {
+  const response = await apiRequest<ApiEnvelope<DisplayLocationItem[]>>('/api/admin/inventory/display-locations')
+  return response.data
+}
+
+export async function createDisplayLocationApi(payload: {
+  name: string
+  note?: string
+}): Promise<{ locationId: number }> {
+  const response = await apiRequest<ApiEnvelope<{ locationId: number }>>('/api/admin/inventory/display-locations', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function updateDisplayLocationApi(
+  id: number,
+  payload: {
+    name: string
+    note?: string
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/display-locations/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deleteDisplayLocationApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/display-locations/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function getInventoryReportApi(month: number | null, year: number): Promise<InventoryReport> {
   const query = month ? `month=${month}&year=${year}` : `year=${year}`
   const response = await apiRequest<ApiEnvelope<InventoryReport>>(`/api/admin/inventory/report?${query}`)
   return response.data
+}
+
+export async function getImportReceiptDetailApi(id: number): Promise<ImportReceiptDetail> {
+  const response = await apiRequest<ApiEnvelope<ImportReceiptDetail>>(
+    `/api/admin/inventory/import-receipts/${id}`,
+  )
+  return response.data
+}
+
+export async function decideImportReceiptApi(
+  id: number,
+  payload: { action: 'approve' | 'reject'; reason?: string },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/import-receipts/${id}/decision`, {
+    method: 'PATCH',
+    body: payload,
+  })
 }

@@ -44,6 +44,7 @@ export function App() {
     const [currentUser, setCurrentUser] = useState(initialSession?.fullName || initialSession?.username || '');
     const [currentUsername, setCurrentUsername] = useState(initialSession?.username || '');
     const [currentAvatar, setCurrentAvatar] = useState(initialSession?.avatar || '');
+    const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
     useEffect(() => {
         localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, activePage);
     }, [activePage]);
@@ -141,12 +142,19 @@ export function App() {
             'stock-receipts': 'watch-categories',
             system: 'user-management',
         };
+        if (iconId !== 'stock-receipts') {
+            setWatchCategoryLowStockOnly(false);
+        }
         setActivePage(pageMap[iconId] || 'dashboard');
+    };
+    const handleOpenLowStockProducts = () => {
+        setWatchCategoryLowStockOnly(true);
+        setActivePage('watch-categories');
     };
     const renderPage = () => {
         switch (activePage) {
             case 'dashboard':
-                return <Dashboard />;
+                return <Dashboard onOpenLowStockProducts={handleOpenLowStockProducts}/>;
             case 'employees':
                 return <EmployeeList />;
             case 'salary-leave':
@@ -154,7 +162,7 @@ export function App() {
             case 'position-salary':
                 return <PositionSalaryManagement />;
             case 'watch-categories':
-                return <WatchCategories />;
+                return (<WatchCategories lowStockOnly={watchCategoryLowStockOnly} onClearLowStockFilter={() => setWatchCategoryLowStockOnly(false)}/>);
             case 'suppliers':
                 return <Suppliers />;
             case 'stock-receipts':
