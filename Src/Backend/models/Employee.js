@@ -155,6 +155,56 @@ async function markAsResigned(mnv) {
   });
 }
 
+async function findPositionByName(positionName) {
+  const rows = await query(
+    `
+      SELECT
+        MCV,
+        TEN
+      FROM CHUCVU
+      WHERE TEN = ?
+      LIMIT 1
+    `,
+    [String(positionName || "").trim()],
+  );
+
+  return rows[0] || null;
+}
+
+async function create(payload) {
+  return query(
+    `
+      INSERT INTO NHANVIEN (
+        HOTEN,
+        GIOITINH,
+        NGAYSINH,
+        SDT,
+        EMAIL,
+        MCV,
+        TT,
+        QUEQUAN,
+        NGAYVAOLAM,
+        CCCD,
+        BOPHAN
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      String(payload.fullName || "").trim(),
+      Number(payload.gender),
+      payload.birthDate,
+      String(payload.phone || "").trim(),
+      String(payload.email || "").trim(),
+      Number(payload.positionId),
+      Number(payload.status),
+      String(payload.hometown || "").trim(),
+      payload.startDate,
+      String(payload.citizenId || "").trim(),
+      String(payload.department || "").trim() || null,
+    ],
+  );
+}
+
 module.exports = {
   listAll,
   findById,
@@ -162,4 +212,6 @@ module.exports = {
   approveLeaveRequest,
   getPayrollByMonth,
   markAsResigned,
+  findPositionByName,
+  create,
 };

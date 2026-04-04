@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import anhthe from '../assets/anhthe.jpg';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
-import { getEmployeeDetailApi, getEmployeesApi, resignEmployeeApi } from '../utils/backendApi';
+import { createEmployeeApi, getEmployeeDetailApi, getEmployeesApi, resignEmployeeApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
 const POSITION_OPTIONS = ['Quản lý cửa hàng', 'Nhân viên bán hàng', 'Nhân viên kho', 'Nhân viên kỹ thuật'];
 const POSITION_PROFILE_MAP = {
@@ -427,7 +427,7 @@ export function EmployeeList() {
         setEditLoading(false);
       }
     };
-    const handleSave = () => {
+    const handleSave = async () => {
         const nextFieldErrors = {};
         if (!form.name.trim())
           nextFieldErrors.name = 'Họ tên là bắt buộc.';
@@ -504,18 +504,39 @@ export function EmployeeList() {
               isLocal: e.isLocal !== false,
                 }
                 : e));
+            setModalOpen(false);
+            return;
         }
-        else {
-            setEmployees((prev) => [
-                ...prev,
-                {
-                    ...form,
-              isLocal: true,
-                },
-            ]);
+        try {
+          const created = await createEmployeeApi({
+            fullName: form.name.trim(),
+            gender: Number(form.gender) === 0 ? 0 : 1,
+            birthDate: form.birthDate,
+            phone: form.phone.trim(),
+            email: form.email.trim(),
+            positionName: form.position,
+            status: form.status === 'Đang làm' ? 1 : 0,
+            hometown: form.hometown.trim(),
+            startDate: form.startDate,
+            citizenId: form.cccd.trim(),
+            department: String(form.department || '').trim(),
+          });
+
+          setEmployees((prev) => [
+            ...prev,
+            {
+              ...form,
+              id: `NV${String(created.id).padStart(3, '0')}`,
+              isLocal: false,
+            },
+          ]);
           setIsCreating(false);
+          setModalOpen(false);
         }
-        setModalOpen(false);
+        catch (e) {
+          const message = e instanceof Error ? e.message : 'Không thể thêm nhân viên';
+          setFormError(message);
+        }
     };
       const closeEmployeeForm = () => {
         setFormError('');

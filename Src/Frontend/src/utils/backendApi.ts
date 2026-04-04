@@ -85,6 +85,20 @@ export type EmployeeDetail = {
   tyLeHoaHong: number
 }
 
+export type CreateEmployeePayload = {
+  fullName: string
+  gender: number
+  birthDate: string
+  phone: string
+  email: string
+  positionName: string
+  status: number
+  hometown: string
+  startDate: string
+  citizenId: string
+  department: string
+}
+
 export type PositionSalaryItem = {
   id: number
   positionName: string
@@ -232,6 +246,66 @@ export type DashboardOverview = {
     customer: string
     total: number
     time: string
+    type?: string
+    status?: string
+  }>
+}
+
+export type HeaderNotificationItem = {
+  id: string
+  text: string
+  time: string | null
+  unread: boolean
+}
+
+export type CustomerItem = {
+  MKH: number
+  HOTEN: string
+  SDT: string | null
+  EMAIL: string | null
+  TT: number
+}
+
+export type SaleProductItem = {
+  MSP: number
+  TEN: string
+  GIABAN: number
+  SOLUONG: number
+  TT: number
+}
+
+export type ExportReceiptItem = {
+  MPX: number
+  MNV: number | null
+  TENNHANVIEN?: string | null
+  MKH: number
+  TENKHACHHANG?: string
+  TIEN: number
+  TG: string
+  TT: number
+  LYDOHUY?: string | null
+  SO_DONG_SANPHAM?: number
+  TONG_SO_LUONG?: number
+}
+
+export type ExportReceiptDetail = {
+  MPX: number
+  MNV: number | null
+  TENNHANVIEN?: string | null
+  MKH: number
+  TENKHACHHANG?: string
+  TIEN: number
+  TG: string
+  TT: number
+  LYDOHUY?: string | null
+  SO_DONG_SANPHAM: number
+  TONG_SO_LUONG: number
+  ITEMS: Array<{
+    MSP: number
+    TENSP: string
+    SL: number
+    TIENXUAT: number
+    THANHTIEN: number
   }>
 }
 
@@ -250,6 +324,11 @@ export async function getMyProfileApi(): Promise<MyProfile> {
 
 export async function getDashboardOverviewApi(year: number): Promise<DashboardOverview> {
   const response = await apiRequest<ApiEnvelope<DashboardOverview>>(`/api/admin/dashboard/overview?year=${year}`)
+  return response.data
+}
+
+export async function getHeaderNotificationsApi(): Promise<HeaderNotificationItem[]> {
+  const response = await apiRequest<ApiEnvelope<HeaderNotificationItem[]>>('/api/admin/dashboard/notifications')
   return response.data
 }
 
@@ -293,6 +372,14 @@ export async function getEmployeesApi(): Promise<EmployeeItem[]> {
 
 export async function getEmployeeDetailApi(employeeId: number): Promise<EmployeeDetail> {
   const response = await apiRequest<ApiEnvelope<EmployeeDetail>>(`/api/hr/employees/${employeeId}`)
+  return response.data
+}
+
+export async function createEmployeeApi(payload: CreateEmployeePayload): Promise<{ id: number }> {
+  const response = await apiRequest<ApiEnvelope<{ id: number }>>('/api/hr/employees', {
+    method: 'POST',
+    body: payload,
+  })
   return response.data
 }
 
@@ -392,6 +479,7 @@ export async function getProductsApi(): Promise<ProductItem[]> {
 
 export async function createProductApi(payload: {
   name: string
+  image?: string
   mncc: number
   importPrice: number
   sellPrice: number
@@ -412,6 +500,7 @@ export async function updateProductApi(
   id: number,
   payload: {
     name: string
+    image?: string
     mncc: number
     importPrice: number
     sellPrice: number
@@ -533,4 +622,56 @@ export async function decideImportReceiptApi(
     method: 'PATCH',
     body: payload,
   })
+}
+
+export async function getCustomersApi(): Promise<CustomerItem[]> {
+  const response = await apiRequest<ApiEnvelope<CustomerItem[]>>('/api/sales/customers')
+  return response.data
+}
+
+export async function getSaleProductsApi(): Promise<SaleProductItem[]> {
+  const response = await apiRequest<ApiEnvelope<SaleProductItem[]>>('/api/sales/products')
+  return response.data
+}
+
+export async function getExportReceiptsApi(limit = 100): Promise<ExportReceiptItem[]> {
+  const response = await apiRequest<ApiEnvelope<ExportReceiptItem[]>>(`/api/sales/export-receipts?limit=${limit}`)
+  return response.data
+}
+
+export async function getExportReceiptDetailApi(id: number): Promise<ExportReceiptDetail> {
+  const response = await apiRequest<ApiEnvelope<ExportReceiptDetail>>(`/api/sales/export-receipts/${id}`)
+  return response.data
+}
+
+export async function cancelExportReceiptApi(id: number, reason?: string): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/sales/export-receipts/${id}/cancel`, {
+    method: 'PATCH',
+    body: { reason },
+  })
+}
+
+export async function createExportReceiptApi(payload: {
+  mnv?: number
+  mkh: number
+  items: Array<{ msp: number; sl: number; tienXuat: number; mkm?: string | null }>
+}): Promise<{ exportReceiptId: number; total: number }> {
+  const response = await apiRequest<ApiEnvelope<{ exportReceiptId: number; total: number }>>('/api/sales/export-receipts', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function uploadProductImageApi(file: File): Promise<{ imageUrl: string; fileName: string }> {
+  const formData = new FormData()
+  formData.append('image', file)
+  const response = await apiRequest<ApiEnvelope<{ imageUrl: string; fileName: string }>>(
+    '/api/admin/inventory/products/upload-image',
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
+  return response.data
 }

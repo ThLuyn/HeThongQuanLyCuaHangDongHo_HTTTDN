@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
+const path = require("path");
 
 const adminRoutes = require("./routes/adminRoutes");
 const hrRoutes = require("./routes/hrRoutes");
@@ -20,25 +21,22 @@ const port = Number(process.env.PORT) || 5000;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/api/health", async (req, res) => {
   try {
     await testConnection();
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Backend is running",
-        database: "connected",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Backend is running",
+      database: "connected",
+    });
   } catch (error) {
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Backend is running",
-        database: "disconnected",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Backend is running",
+      database: "disconnected",
+    });
   }
 });
 

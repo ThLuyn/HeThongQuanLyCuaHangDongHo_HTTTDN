@@ -45,6 +45,7 @@ export function App() {
     const [currentUsername, setCurrentUsername] = useState(initialSession?.username || '');
     const [currentAvatar, setCurrentAvatar] = useState(initialSession?.avatar || '');
     const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
+    const [targetLowStockProductId, setTargetLowStockProductId] = useState(null);
     useEffect(() => {
         localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, activePage);
     }, [activePage]);
@@ -144,17 +145,37 @@ export function App() {
         };
         if (iconId !== 'stock-receipts') {
             setWatchCategoryLowStockOnly(false);
+            setTargetLowStockProductId(null);
         }
         setActivePage(pageMap[iconId] || 'dashboard');
     };
     const handleOpenLowStockProducts = () => {
         setWatchCategoryLowStockOnly(true);
+        setTargetLowStockProductId(null);
         setActivePage('watch-categories');
+    };
+    const handleOpenExportReceipts = () => {
+        setActivePage('export-receipts');
+    };
+    const handleOpenNotification = (notification) => {
+        const notificationId = String(notification?.id || '').toUpperCase();
+        if (notificationId.startsWith('LOWSTOCK-')) {
+            const parsedProductId = Number(notificationId.replace('LOWSTOCK-', ''));
+            setTargetLowStockProductId(Number.isInteger(parsedProductId) && parsedProductId > 0 ? parsedProductId : null);
+            setWatchCategoryLowStockOnly(true);
+            setActivePage('watch-categories');
+            return;
+        }
+        if (notificationId.startsWith('LEAVE-')) {
+            setTargetLowStockProductId(null);
+            setActivePage('salary-leave');
+            return;
+        }
     };
     const renderPage = () => {
         switch (activePage) {
             case 'dashboard':
-                return <Dashboard onOpenLowStockProducts={handleOpenLowStockProducts}/>;
+                return <Dashboard onOpenLowStockProducts={handleOpenLowStockProducts} onOpenExportReceipts={handleOpenExportReceipts}/>;
             case 'employees':
                 return <EmployeeList />;
             case 'salary-leave':
@@ -162,7 +183,10 @@ export function App() {
             case 'position-salary':
                 return <PositionSalaryManagement />;
             case 'watch-categories':
-                return (<WatchCategories lowStockOnly={watchCategoryLowStockOnly} onClearLowStockFilter={() => setWatchCategoryLowStockOnly(false)}/>);
+                return (<WatchCategories lowStockOnly={watchCategoryLowStockOnly} targetLowStockProductId={targetLowStockProductId} onConsumeTargetLowStock={() => setTargetLowStockProductId(null)} onClearLowStockFilter={() => {
+                        setWatchCategoryLowStockOnly(false);
+                        setTargetLowStockProductId(null);
+                    }}/>);
             case 'suppliers':
                 return <Suppliers />;
             case 'stock-receipts':
@@ -180,7 +204,7 @@ export function App() {
             case 'change-password':
                 return (<ChangePasswordPage username={currentUsername || currentUser} onChangePassword={handleChangePassword}/>);
             default:
-                return <Dashboard />;
+                return <Dashboard onOpenLowStockProducts={handleOpenLowStockProducts} onOpenExportReceipts={handleOpenExportReceipts}/>;
         }
     };
     if (!isAuthenticated) {
@@ -195,7 +219,7 @@ export function App() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')}/>
+        <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')} onOpenNotification={handleOpenNotification}/>
         <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
           {renderPage()}
         </main>

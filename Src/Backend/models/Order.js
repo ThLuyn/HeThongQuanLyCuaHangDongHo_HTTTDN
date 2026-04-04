@@ -237,18 +237,173 @@ async function createExportReceipt(connection, payload) {
       `,
       [receiptId, item.msp, item.mkm || null, item.sl, item.tienXuat],
     );
-
-    await connection.execute(
-      `
-        UPDATE SANPHAM
-        SET SOLUONG = SOLUONG - ?
-        WHERE MSP = ?
-      `,
-      [item.sl, item.msp],
-    );
   }
 
   return receiptId;
+}
+
+async function listExportReceipts(limit = 50) {
+  const parsedLimit = Number(limit);
+  const safeLimit = Number.isInteger(parsedLimit)
+    ? Math.min(Math.max(parsedLimit, 1), 500)
+    : 50;
+
+  return query(
+    `
+      SELECT
+        px.MPX,
+        px.MNV,
+        nv.HOTEN AS TENNHANVIEN,
+        px.MKH,
+        COALESCE(kh.HOTEN, 'Khách lẻ') AS TENKHACHHANG,
+        px.TIEN,
+        px.TG,
+        px.TT,
+        px.LYDOHUY,
+        COUNT(ctx.MSP) AS SO_DONG_SANPHAM,
+        COALESCE(SUM(ctx.SL), 0) AS TONG_SO_LUONG
+      FROM PHIEUXUAT px
+      LEFT JOIN NHANVIEN nv ON nv.MNV = px.MNV
+      LEFT JOIN KHACHHANG kh ON kh.MKH = px.MKH
+      LEFT JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      GROUP BY px.MPX, px.MNV, nv.HOTEN, px.MKH, kh.HOTEN, px.TIEN, px.TG, px.TT, px.LYDOHUY
+      ORDER BY px.MPX DESC
+      LIMIT ${safeLimit}
+    `,
+  );
+}
+
+async function getExportReceiptDetail(receiptId) {
+  const parsedId = Number(receiptId);
+
+  const headers = await query(
+    `
+      SELECT
+        px.MPX,
+        px.MNV,
+        nv.HOTEN AS TENNHANVIEN,
+        px.MKH,
+        COALESCE(kh.HOTEN, 'Khách lẻ') AS TENKHACHHANG,
+        px.TIEN,
+        px.TG,
+        px.TT,
+        px.LYDOHUY,
+        COUNT(ctx.MSP) AS SO_DONG_SANPHAM,
+        COALESCE(SUM(ctx.SL), 0) AS TONG_SO_LUONG
+      FROM PHIEUXUAT px
+      LEFT JOIN NHANVIEN nv ON nv.MNV = px.MNV
+      LEFT JOIN KHACHHANG kh ON kh.MKH = px.MKH
+      LEFT JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      WHERE px.MPX = ?
+      GROUP BY px.MPX, px.MNV, nv.HOTEN, px.MKH, kh.HOTEN, px.TIEN, px.TG, px.TT, px.LYDOHUY
+      LIMIT 1
+    `,
+    [parsedId],
+  );
+
+  if (!headers[0]) {
+    return null;
+  }
+
+  const items = await query(
+    `
+      SELECT
+        ctx.MSP,
+        sp.TEN AS TENSP,
+        ctx.SL,
+        ctx.TIENXUAT,
+        (ctx.SL * ctx.TIENXUAT) AS THANHTIEN
+      FROM CTPHIEUXUAT ctx
+      INNER JOIN SANPHAM sp ON sp.MSP = ctx.MSP
+      WHERE ctx.MPX = ?
+      ORDER BY ctx.MSP ASC
+    `,
+    [parsedId],
+  );
+
+  return {
+    ...headers[0],
+    ITEMS: items,
+  };
+}
+
+async function cancelExportReceipt(connection, receiptId, reason) {
+  const parsedId = Number(receiptId);
+
+  const [rows] = await connection.execute(
+    `
+      SELECT MPX, TT
+      FROM PHIEUXUAT
+      WHERE MPX = ?
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [parsedId],
+  );
+
+  const receipt = rows[0];
+  if (!receipt) {
+    const error = new Error("Export receipt not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (Number(receipt.TT) === 0) {
+    const error = new Error("Export receipt is already canceled");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (Number(receipt.TT) !== 1) {
+    const error = new Error("Only sold export receipts can be canceled");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const [items] = await connection.execute(
+    `
+      SELECT MSP, SL
+      FROM CTPHIEUXUAT
+      WHERE MPX = ?
+    `,
+    [parsedId],
+  );
+
+  for (const item of items) {
+    await connection.execute(
+      `
+        UPDATE SANPHAM
+        SET SOLUONG = SOLUONG + ?
+        WHERE MSP = ?
+      `,
+      [Number(item.SL || 0), Number(item.MSP)],
+    );
+  }
+
+  await connection.execute(
+    `
+      UPDATE PHIEUXUAT
+      SET TT = 0, LYDOHUY = ?
+      WHERE MPX = ?
+    `,
+    [reason || null, parsedId],
+  );
+}
+
+async function listCustomers() {
+  return query(
+    `
+      SELECT
+        MKH,
+        HOTEN,
+        SDT,
+        EMAIL,
+        TT
+      FROM KHACHHANG
+      WHERE TT = 1
+      ORDER BY HOTEN ASC
+    `,
+  );
 }
 
 async function listImportReceipts(limit = 20) {
@@ -311,6 +466,10 @@ module.exports = {
   getImportReceiptDetail,
   decideImportReceipt,
   createExportReceipt,
+  listExportReceipts,
+  getExportReceiptDetail,
+  cancelExportReceipt,
+  listCustomers,
   listImportReceipts,
   getProfitByDateRange,
 };

@@ -14,6 +14,11 @@ router.get(
   authorizeRoles("admin", "manager", "hr"),
   hrController.getEmployees,
 );
+router.post(
+  "/employees",
+  authorizeRoles("admin", "manager", "hr"),
+  hrController.createEmployee,
+);
 router.get(
   "/employees/:id",
   authorizeRoles("admin", "manager", "hr"),

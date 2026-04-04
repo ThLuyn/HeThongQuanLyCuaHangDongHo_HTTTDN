@@ -42,7 +42,7 @@ const menuItems = [
             },
             {
                 id: 'stock-receipts',
-                label: 'Phiếu nhập kho',
+                label: 'Nhập kho',
             },
         ],
     },
@@ -53,7 +53,7 @@ const menuItems = [
         children: [
             {
                 id: 'export-receipts',
-                label: 'Phiếu xuất hàng',
+                label: 'Xuất hàng',
             },
             {
                 id: 'sales-report',

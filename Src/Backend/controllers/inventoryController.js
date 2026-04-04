@@ -1,14 +1,76 @@
 const { withTransaction } = require("../config/db");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
 const Product = require("../models/Product");
 const Supplier = require("../models/Supplier");
 const DisplayLocation = require("../models/DisplayLocation");
 const Order = require("../models/Order");
 const { success, fail } = require("../utils/response");
 
+const uploadDir = path.join(__dirname, "..", "uploads", "products");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const safeBaseName = String(file.originalname || "product")
+      .replace(/\.[^.]+$/, "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .slice(0, 60);
+    const ext = path.extname(file.originalname || "").toLowerCase() || ".jpg";
+    cb(null, `${Date.now()}-${safeBaseName || "product"}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/avif",
+    ];
+    if (!allowedMimeTypes.includes(String(file.mimetype || "").toLowerCase())) {
+      cb(new Error("Only .jpg, .png, .webp, .avif files are allowed"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+const uploadProductImageMiddleware = upload.single("image");
+
 async function getProducts(req, res, next) {
   try {
     const products = await Product.listAll();
     return success(res, products, "Product list loaded");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function uploadProductImage(req, res, next) {
+  try {
+    if (!req.file) {
+      return fail(res, "image file is required", 400);
+    }
+
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+    return success(
+      res,
+      {
+        imageUrl,
+        fileName: req.file.filename,
+      },
+      "Product image uploaded",
+      201,
+    );
   } catch (error) {
     return next(error);
   }
@@ -193,19 +255,30 @@ async function createProduct(req, res, next) {
       );
 
       if (initialStock > 0) {
-        await Order.createImportReceipt(connection, {
-          mnv: creatorId,
-          mncc: Number(mncc),
-          total: initialStock * normalizedImportPrice,
-          items: [
-            {
-              msp: createdProductId,
-              sl: initialStock,
-              tienNhap: normalizedImportPrice,
-              hinhThuc: 0,
-            },
-          ],
-        });
+        const bootstrapImportReceiptId = await Order.createImportReceipt(
+          connection,
+          {
+            mnv: creatorId,
+            mncc: Number(mncc),
+            total: initialStock * normalizedImportPrice,
+            items: [
+              {
+                msp: createdProductId,
+                sl: initialStock,
+                tienNhap: normalizedImportPrice,
+                hinhThuc: 0,
+              },
+            ],
+          },
+        );
+
+        // Auto-approve initial stock receipt to reduce setup steps for new products.
+        await Order.decideImportReceipt(
+          connection,
+          Number(bootstrapImportReceiptId),
+          "approve",
+          null,
+        );
       }
 
       return createdProductId;
@@ -383,6 +456,8 @@ async function getInventoryReport(req, res, next) {
 }
 
 module.exports = {
+  uploadProductImageMiddleware,
+  uploadProductImage,
   getProducts,
   createImportReceipt,
   getImportReceipts,

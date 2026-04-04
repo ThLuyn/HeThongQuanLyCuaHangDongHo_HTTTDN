@@ -26,6 +26,13 @@ router.get(
 );
 
 router.get(
+  "/dashboard/notifications",
+  authenticateToken,
+  authorizeRoles("admin", "manager", "hr"),
+  dashboardController.getHeaderNotifications,
+);
+
+router.get(
   "/inventory/products",
   authenticateToken,
   authorizeRoles("admin", "manager"),
@@ -37,6 +44,14 @@ router.post(
   authenticateToken,
   authorizeRoles("admin", "manager"),
   inventoryController.createProduct,
+);
+
+router.post(
+  "/inventory/products/upload-image",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  inventoryController.uploadProductImageMiddleware,
+  inventoryController.uploadProductImage,
 );
 
 router.put(

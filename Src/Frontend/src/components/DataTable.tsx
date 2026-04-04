@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { ArrowUpDownIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, FilterIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon, } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+
+const sortStateMemory = new Map();
+
 function normalizeString(value) {
     if (value == null)
         return '';
@@ -31,12 +34,17 @@ function parseComparableValue(value) {
     return raw.toLowerCase();
 }
 export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm kiếm...', onAdd, onEdit, onDelete, addLabel = 'Thêm mới', rowActions, advancedFilterKeys, rangeFilterKeys, forceSelectFilterKeys = [], emptyState, noHorizontalScroll = false, pageSize = 10, defaultSortBy, defaultSortDirection = 'asc', }) {
+    const tableMemoryKey = useMemo(() => {
+      const columnKeys = columns.map((col) => col.key).join('|');
+      return `${title}__${columnKeys}`;
+    }, [title, columns]);
+    const initialSortState = sortStateMemory.get(tableMemoryKey);
     const [search, setSearch] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [columnFilters, setColumnFilters] = useState({});
     const [rangeFilters, setRangeFilters] = useState({});
-    const [sortBy, setSortBy] = useState(defaultSortBy || columns[0]?.key || '');
-    const [sortDirection, setSortDirection] = useState(defaultSortDirection);
+    const [sortBy, setSortBy] = useState(initialSortState?.sortBy || defaultSortBy || columns[0]?.key || '');
+    const [sortDirection, setSortDirection] = useState(initialSortState?.sortDirection || defaultSortDirection);
   const [currentPage, setCurrentPage] = useState(1);
     const defaultRowActions = useMemo(() => {
         const actions = [];
@@ -194,6 +202,18 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
       setSortDirection(defaultSortDirection);
         setCurrentPage(1);
     };
+    useEffect(() => {
+      const sortKeyExists = columns.some((col) => col.key === sortBy);
+      if (!sortKeyExists) {
+        setSortBy(defaultSortBy || columns[0]?.key || '');
+      }
+    }, [columns, defaultSortBy, sortBy]);
+    useEffect(() => {
+      sortStateMemory.set(tableMemoryKey, {
+        sortBy,
+        sortDirection,
+      });
+    }, [tableMemoryKey, sortBy, sortDirection]);
     return (<div className="bg-white rounded-xl shadow-sm border border-gray-100">
       <div className="px-6 py-4 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

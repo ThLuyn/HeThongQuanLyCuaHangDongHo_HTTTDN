@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { loadAuthSession } from '../utils/authStorage';
-import { createDisplayLocationApi, createProductApi, deleteDisplayLocationApi, deleteProductApi, getDisplayLocationsApi, getInventoryReportApi, getProductsApi, getSuppliersApi, updateDisplayLocationApi, updateProductApi, } from '../utils/backendApi';
+import { createDisplayLocationApi, createImportReceiptApi, createProductApi, decideImportReceiptApi, deleteDisplayLocationApi, deleteProductApi, getDisplayLocationsApi, getInventoryReportApi, getProductsApi, getSuppliersApi, updateDisplayLocationApi, updateProductApi, uploadProductImageApi, } from '../utils/backendApi';
+import { buildInventoryReportDocument, exportInventoryReportPdf, printInventoryReportDocument } from '../utils/inventoryReportExport';
 const productImageModules = import.meta.glob('../assets/img_products/*.{png,jpg,jpeg,webp,avif}', {
   eager: true,
   import: 'default',
@@ -21,15 +22,7 @@ function normalizeKeyword(value) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter }) {
+export function WatchCategories({ lowStockOnly = false, targetLowStockProductId = null, onConsumeTargetLowStock, onClearLowStockFilter }) {
     const [products, setProducts] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [displayLocations, setDisplayLocations] = useState([]);
@@ -49,8 +42,15 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
     const [locationForm, setLocationForm] = useState({ name: '', note: '' });
     const [locationViewMode, setLocationViewMode] = useState('table');
     const [isLowStockMode, setIsLowStockMode] = useState(Boolean(lowStockOnly));
+    const [selectedLowStockIds, setSelectedLowStockIds] = useState([]);
+    const [prioritizedLowStockProductId, setPrioritizedLowStockProductId] = useState(null);
+    const [quickImportOpen, setQuickImportOpen] = useState(false);
+    const [quickImportSaving, setQuickImportSaving] = useState(false);
+    const [quickImportLines, setQuickImportLines] = useState([]);
+    const [imageUploading, setImageUploading] = useState(false);
     const [form, setForm] = useState({
         name: '',
+      image: '',
         supplierId: 0,
         brand: '',
         displayPosition: '',
@@ -79,6 +79,17 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
     const getProductImageSrc = (product) => {
       if (!product)
         return '';
+      const explicitImage = String(product.image || '').trim();
+      if (explicitImage) {
+        if (/^(https?:\/\/|data:|blob:|\/)/i.test(explicitImage)) {
+          return explicitImage;
+        }
+        const normalizedExplicit = normalizeKeyword(explicitImage.replace(/\.[^.]+$/, ''));
+        const matchedByName = productImageList.find((image) => image.normalizedName === normalizedExplicit);
+        if (matchedByName) {
+          return matchedByName.src;
+        }
+      }
       const normalizedProductName = normalizeKeyword(product.name || '');
       const normalizedBrand = normalizeKeyword(product.brand || '');
       if (!normalizedProductName)
@@ -234,6 +245,7 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
                 msp: Number(item.MSP),
                 id: `SP${String(item.MSP).padStart(3, '0')}`,
                 name: item.TEN,
+              image: item.HINHANH || '',
                 brand: item.THUONGHIEU || 'Chưa cập nhật',
                 supplier: item.TENNHACUNGCAP,
                 supplierId: Number(item.MNCC),
@@ -280,6 +292,7 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
         setEditing(null);
         setForm({
             name: '',
+          image: '',
             supplierId: Number(suppliers[0]?.MNCC || 0),
             brand: '',
         displayPosition: displayLocations[0]?.TEN || '',
@@ -308,6 +321,7 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
         setEditing(row);
         setForm({
             name: row.name,
+          image: row.image || '',
             supplierId: row.supplierId,
             brand: row.brand === 'Chưa cập nhật' ? '' : row.brand,
             displayPosition: row.displayPosition === 'Chưa cập nhật' ? '' : row.displayPosition,
@@ -324,6 +338,7 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
             return;
         const payload = {
             name: form.name.trim(),
+          image: form.image.trim() || undefined,
             mncc: Number(form.supplierId),
             brand: form.brand.trim() || undefined,
             displayPosition: form.displayPosition.trim() || undefined,
@@ -347,6 +362,26 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
         catch (e) {
             alert(e instanceof Error ? e.message : 'Khong the luu san pham');
         }
+    };
+    const handleUploadImageFromDevice = async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file)
+        return;
+      setImageUploading(true);
+      try {
+        const uploaded = await uploadProductImageApi(file);
+        setForm((prev) => ({
+          ...prev,
+          image: uploaded.imageUrl,
+        }));
+      }
+      catch (e) {
+        alert(e instanceof Error ? e.message : 'Không thể tải ảnh từ máy lên');
+      }
+      finally {
+        setImageUploading(false);
+      }
     };
     const handleDelete = async (row) => {
         if (!confirm(`Xóa sản phẩm "${row.name}"?`))
@@ -404,216 +439,192 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
     const visibleProducts = useMemo(() => {
         if (!isLowStockMode)
             return products;
-      return products.filter((item) => item.status === 'Hoạt động' && Number(item.stock || 0) <= 3);
-    }, [products, isLowStockMode]);
+      const filtered = products.filter((item) => item.status === 'Hoạt động' && Number(item.stock || 0) <= 3);
+      const targetId = Number(prioritizedLowStockProductId);
+      if (!Number.isInteger(targetId) || targetId <= 0)
+        return filtered;
+      const foundIndex = filtered.findIndex((item) => Number(item.msp) === targetId);
+      if (foundIndex <= 0)
+        return filtered;
+      const reordered = [...filtered];
+      const [targetRow] = reordered.splice(foundIndex, 1);
+      return [targetRow, ...reordered];
+    }, [products, isLowStockMode, prioritizedLowStockProductId]);
+    const lowStockCount = useMemo(() => {
+      return products.filter((item) => item.status === 'Hoạt động' && Number(item.stock || 0) <= 3).length;
+    }, [products]);
+    const allVisibleLowStockIds = useMemo(() => visibleProducts.map((item) => Number(item.msp)), [visibleProducts]);
+    const selectedLowStockProducts = useMemo(() => {
+      const selectedSet = new Set(selectedLowStockIds.map((id) => Number(id)));
+      return products.filter((item) => selectedSet.has(Number(item.msp)));
+    }, [products, selectedLowStockIds]);
+    const productColumns = useMemo(() => {
+      if (!isLowStockMode) {
+        return columns;
+      }
+      const allChecked = allVisibleLowStockIds.length > 0 && allVisibleLowStockIds.every((id) => selectedLowStockIds.includes(id));
+      return [
+        {
+          key: '__pick',
+          label: (<input
+            type="checkbox"
+            checked={allChecked}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedLowStockIds(allVisibleLowStockIds);
+              }
+              else {
+                setSelectedLowStockIds([]);
+              }
+            }}
+            className="h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500"
+            aria-label="Chọn tất cả sản phẩm sắp hết hàng"
+          />),
+          render: (_val, row) => (<input
+            type="checkbox"
+            checked={selectedLowStockIds.includes(Number(row.msp))}
+            onChange={(e) => {
+              const msp = Number(row.msp);
+              setSelectedLowStockIds((prev) => e.target.checked
+                ? Array.from(new Set([...prev, msp]))
+                : prev.filter((id) => Number(id) !== msp));
+            }}
+            className="h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500"
+            aria-label={`Chọn ${row.name}`}
+          />),
+        },
+        ...columns,
+      ];
+    }, [isLowStockMode, columns, allVisibleLowStockIds, selectedLowStockIds]);
     const clearLowStockMode = () => {
         setIsLowStockMode(false);
+        setSelectedLowStockIds([]);
         if (typeof onClearLowStockFilter === 'function') {
             onClearLowStockFilter();
         }
     };
+    const openQuickImport = () => {
+      if (selectedLowStockProducts.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 sản phẩm cần nhập nhanh.');
+        return;
+      }
+      setQuickImportLines(selectedLowStockProducts.map((item) => ({
+        msp: Number(item.msp),
+        name: item.name,
+        supplier: item.supplier,
+        supplierId: Number(item.supplierId),
+        stock: Number(item.stock || 0),
+        qty: Math.max(1, 5 - Number(item.stock || 0)),
+        tienNhap: Number(item.importPrice || 0),
+      })));
+      setQuickImportOpen(true);
+    };
+    const saveQuickImport = async () => {
+      if (quickImportLines.length === 0) {
+        alert('Không có sản phẩm để nhập kho.');
+        return;
+      }
+      const hasInvalid = quickImportLines.some((line) => Number(line.qty) <= 0 || Number(line.tienNhap) <= 0);
+      if (hasInvalid) {
+        alert('Vui lòng nhập số lượng và giá nhập hợp lệ (> 0).');
+        return;
+      }
+      const groupedBySupplier = quickImportLines.reduce((acc, line) => {
+        const key = Number(line.supplierId);
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(line);
+        return acc;
+      }, {});
+      setQuickImportSaving(true);
+      try {
+        const session = loadAuthSession();
+        for (const supplierId of Object.keys(groupedBySupplier)) {
+          const lines = groupedBySupplier[supplierId];
+          const created = await createImportReceiptApi({
+            mnv: session?.mnv,
+            mncc: Number(supplierId),
+            items: lines.map((line) => ({
+              msp: Number(line.msp),
+              sl: Number(line.qty),
+              tienNhap: Number(line.tienNhap),
+            })),
+          });
+          await decideImportReceiptApi(Number(created.importReceiptId), { action: 'approve' });
+        }
+        setQuickImportOpen(false);
+        setSelectedLowStockIds([]);
+        await loadProductsAndSuppliers();
+        await loadReport();
+      }
+      catch (e) {
+        alert(e instanceof Error ? e.message : 'Không thể nhập kho nhanh');
+      }
+      finally {
+        setQuickImportSaving(false);
+      }
+    };
+    useEffect(() => {
+      if (!isLowStockMode) {
+        setSelectedLowStockIds([]);
+      }
+    }, [isLowStockMode]);
+    useEffect(() => {
+      const allowedIds = new Set(allVisibleLowStockIds.map((id) => Number(id)));
+      setSelectedLowStockIds((prev) => prev.filter((id) => allowedIds.has(Number(id))));
+    }, [allVisibleLowStockIds]);
+    useEffect(() => {
+      if (!isLowStockMode || loading)
+        return;
+      const targetId = Number(targetLowStockProductId);
+      if (!Number.isInteger(targetId) || targetId <= 0)
+        return;
+      if (!allVisibleLowStockIds.includes(targetId))
+        return;
+      setPrioritizedLowStockProductId(targetId);
+      // Notification targeting is single-focus: keep only the clicked low-stock product checked.
+      setSelectedLowStockIds([targetId]);
+      if (typeof onConsumeTargetLowStock === 'function') {
+        onConsumeTargetLowStock();
+      }
+    }, [targetLowStockProductId, isLowStockMode, loading, allVisibleLowStockIds, onConsumeTargetLowStock]);
+
+    useEffect(() => {
+      if (!isLowStockMode) {
+        setPrioritizedLowStockProductId(null);
+      }
+    }, [isLowStockMode]);
+    const buildInventoryReportData = () => {
+      const session = loadAuthSession();
+      const reportCreator = session?.fullName || session?.username || 'Chưa xác định';
+      return buildInventoryReportDocument(reportData, reportMonth, reportYear, reportCreator, new Date());
+    };
+
     const handlePrintInventoryReport = () => {
       if (!reportData) {
         alert('Chưa có dữ liệu thống kê để in báo cáo.');
         return;
       }
 
-      const periodLabel = reportMonth
-        ? `Tháng ${reportMonth} Năm ${reportYear}`
-        : `Năm ${reportYear}`;
-      const createdAt = new Date();
-      const createdAtLabel = createdAt.toLocaleString('vi-VN');
-      const session = loadAuthSession();
-      const reportCreator = session?.fullName || session?.username || 'Chưa xác định';
-
-      const reportRows = (reportData.products || []).map((item, index) => {
-        const tonDauKy = Number(item.TON_DAU_KY || 0);
-        const nhapTrongKy = Number(item.NHAP_TRONG_KY || 0);
-        const xuatTrongKy = Number(item.XUAT_TRONG_KY || 0);
-        const tonCuoiKy = Number(item.SOLUONG || 0);
-        const giaTriTonKho = tonCuoiKy * Number(item.GIANHAP || 0);
-
-        return {
-          stt: index + 1,
-          maSp: `SP${String(item.MSP || 0).padStart(3, '0')}`,
-          tenSp: item.TEN || '-',
-          tonDauKy,
-          nhapTrongKy,
-          xuatTrongKy,
-          tonCuoiKy,
-          giaTriTonKho,
-        };
-      });
-
-      const topSellingRows = [...reportRows]
-        .filter((item) => item.xuatTrongKy > 0)
-        .sort((a, b) => b.xuatTrongKy - a.xuatTrongKy)
-        .slice(0, 5);
-
-      const lowStockRows = reportRows.filter((item) => item.tonCuoiKy < 5);
-
-      const tableRowsHtml = reportRows.length === 0
-        ? '<tr><td colspan="8" style="text-align:center; padding:12px; color:#6b7280;">Không có dữ liệu</td></tr>'
-        : reportRows
-            .map((item) => `
-              <tr>
-                <td>${item.stt}</td>
-                <td>${escapeHtml(item.maSp)}</td>
-                <td>${escapeHtml(item.tenSp)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.tonDauKy)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.nhapTrongKy)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.xuatTrongKy)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.tonCuoiKy)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.giaTriTonKho)} đ</td>
-              </tr>
-            `)
-            .join('');
-
-      const topSellingTableHtml = topSellingRows.length === 0
-        ? '<tr><td colspan="4" style="text-align:center; padding:10px; color:#6b7280;">Không có dữ liệu bán trong kỳ.</td></tr>'
-        : topSellingRows
-            .map((item, index) => `
-              <tr>
-                <td style="text-align:center;">${index + 1}</td>
-                <td>${escapeHtml(item.maSp)}</td>
-                <td>${escapeHtml(item.tenSp)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.xuatTrongKy)}</td>
-              </tr>
-            `)
-            .join('');
-
-      const lowStockTableHtml = lowStockRows.length === 0
-        ? '<tr><td colspan="4" style="text-align:center; padding:10px; color:#6b7280;">Không có sản phẩm tồn cuối kỳ dưới 5.</td></tr>'
-        : lowStockRows
-            .map((item, index) => `
-              <tr>
-                <td style="text-align:center;">${index + 1}</td>
-                <td>${escapeHtml(item.maSp)}</td>
-                <td>${escapeHtml(item.tenSp)}</td>
-                <td style="text-align:right;">${numberFormatter.format(item.tonCuoiKy)}</td>
-              </tr>
-            `)
-            .join('');
-
-      const printableHtml = `
-<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <title>Báo cáo thống kê biến động kho hàng</title>
-    <style>
-      body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
-      h1 { text-align: center; font-size: 20px; margin: 0 0 12px 0; letter-spacing: .3px; }
-      .meta { margin-bottom: 14px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; background: #fafafa; }
-      .meta p { margin: 4px 0; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #d1d5db; padding: 8px; vertical-align: top; }
-      th { background: #f3f4f6; text-align: center; }
-      .section-title { margin-top: 18px; margin-bottom: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase; color: #374151; }
-      .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
-      .summary-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; background: #fff; }
-      .summary-card .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
-      .summary-card .value { font-size: 14px; font-weight: 700; color: #111827; }
-      .signatures { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-      .sign-box { text-align: center; min-height: 140px; }
-      .sign-label { font-weight: 700; margin-bottom: 6px; }
-      .sign-note { color: #6b7280; font-size: 12px; margin-top: 80px; }
-    </style>
-  </head>
-  <body>
-    <h1>BÁO CÁO THỐNG KÊ BIẾN ĐỘNG KHO HÀNG</h1>
-    <div class="meta">
-      <p><strong>Thời gian báo cáo:</strong> ${escapeHtml(periodLabel)}</p>
-      <p><strong>Ngày lập báo cáo:</strong> ${escapeHtml(createdAtLabel)}</p>
-    </div>
-
-    <div class="section-title">Nội dung thống kê chi tiết</div>
-    <table>
-      <thead>
-        <tr>
-          <th>STT</th>
-          <th>Mã SP</th>
-          <th>Tên Sản Phẩm</th>
-          <th>Tồn đầu kỳ</th>
-          <th>Nhập trong kỳ</th>
-          <th>Xuất trong kỳ</th>
-          <th>Tồn cuối kỳ</th>
-          <th>Giá trị tồn kho</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tableRowsHtml}
-      </tbody>
-    </table>
-
-    <div class="section-title">2. Tổng hợp và nhận xét</div>
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="label">Tổng số sản phẩm hoạt động</div>
-        <div class="value">${numberFormatter.format(Number(reportData.summary.SANPHAM_HOATDONG || 0))} sản phẩm</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Tổng vốn nhập hàng trong tháng</div>
-        <div class="value">${numberFormatter.format(Number(reportData.imports.TONG_GIA_TRI_NHAP || 0))} đ</div>
-      </div>
-    </div>
-
-    <div class="section-title" style="margin-top:12px;">Danh sách sản phẩm bán chạy (Top 3-5)</div>
-    <table>
-      <thead>
-        <tr>
-          <th>STT</th>
-          <th>Mã SP</th>
-          <th>Tên sản phẩm</th>
-          <th>Số lượng xuất</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${topSellingTableHtml}
-      </tbody>
-    </table>
-
-    <div class="section-title" style="margin-top:12px;">Cảnh báo hàng tồn kho (Tồn cuối kỳ &lt; 5)</div>
-    <table>
-      <thead>
-        <tr>
-          <th>STT</th>
-          <th>Mã SP</th>
-          <th>Tên sản phẩm</th>
-          <th>Tồn cuối kỳ</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${lowStockTableHtml}
-      </tbody>
-    </table>
-
-    <div class="signatures">
-      <div class="sign-box">
-        <div class="sign-label">Người lập biểu</div>
-        <div>${escapeHtml(reportCreator)}</div>
-        <div class="sign-note">(Ký và ghi rõ họ tên)</div>
-      </div>
-      <div class="sign-box">
-        <div class="sign-label">Quản lý cửa hàng</div>
-        <div class="sign-note">(Ký duyệt)</div>
-      </div>
-    </div>
-  </body>
-</html>
-      `;
-
-      const printWindow = window.open('', '_blank', 'width=1200,height=900');
-      if (!printWindow) {
-        alert('Không thể mở cửa sổ in. Vui lòng kiểm tra trình duyệt có chặn popup hay không.');
+      const reportDoc = buildInventoryReportData();
+      if (!reportDoc) {
         return;
       }
 
-      printWindow.document.open();
-      printWindow.document.write(printableHtml);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
+      const printed = printInventoryReportDocument(reportDoc);
+      if (!printed) {
+        alert('Không thể mở cửa sổ in. Vui lòng kiểm tra trình duyệt có chặn popup hay không.');
+      }
+    };
+
+    const handleDownloadInventoryReport = () => {
+      if (!reportData) {
+        alert('Chưa có dữ liệu thống kê để xuất báo cáo PDF.');
+        return;
+      }
+
+      exportInventoryReportPdf(reportData, reportMonth, reportYear);
     };
     return (<div className="space-y-4">
       {error && (<div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
@@ -651,6 +662,10 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
               <FileTextIcon className="w-4 h-4"/>
               In báo cáo
             </button>
+            <button onClick={handleDownloadInventoryReport} className="inline-flex items-center gap-2 px-3 py-2 text-sm border border-blue-300 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100">
+              <FileTextIcon className="w-4 h-4"/>
+              Xuất file báo cáo
+            </button>
           </div>
         </div>
 
@@ -682,9 +697,42 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
           </div>) : (<p className="text-sm text-gray-500">Không có dữ liệu báo cáo.</p>)}
       </div>
 
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={isLowStockMode}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setIsLowStockMode(checked);
+                if (!checked && typeof onClearLowStockFilter === 'function') {
+                  onClearLowStockFilter();
+                }
+              }}
+              className="h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500"
+            />
+            <span className="font-medium">Sản phẩm sắp hết hàng (≤3)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            {isLowStockMode ? (<button
+                type="button"
+                onClick={openQuickImport}
+                disabled={selectedLowStockIds.length === 0}
+                className="inline-flex items-center rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Nhập kho ({selectedLowStockIds.length})
+              </button>) : null}
+            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+              Cần nhập gấp: {lowStockCount}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <DataTable
         title={loading ? 'Sản phẩm (đang tải...)' : 'Sản phẩm'}
-        columns={columns}
+        columns={productColumns}
         data={visibleProducts}
         searchPlaceholder="Tìm sản phẩm..."
         onAdd={openAdd}
@@ -707,6 +755,7 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
         emptyState={emptyState}
         addLabel="Thêm sản phẩm"
         pageSize={10}
+        defaultSortBy="name"
       />
 
       <div className="space-y-3">
@@ -809,6 +858,17 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
             <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm *</label>
             <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"/>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh (URL hoặc tên file)</label>
+            <input value={form.image} onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.value }))} placeholder="VD: https://... hoặc rolex_sub.jpg" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"/>
+            <div className="mt-2 flex items-center gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" onChange={handleUploadImageFromDevice} className="hidden"/>
+                Chọn ảnh từ máy
+              </label>
+              {imageUploading ? <span className="text-xs text-blue-700">Đang tải ảnh...</span> : null}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nhà cung cấp *</label>
@@ -904,6 +964,64 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
         </div>
       </Modal>
 
+      <Modal isOpen={quickImportOpen} onClose={() => setQuickImportOpen(false)} title="Nhập kho nhanh sản phẩm sắp hết hàng" size="xl">
+        <div className="space-y-3">
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+            Hệ thống sẽ tự tạo phiếu nhập theo từng nhà cung cấp và tự duyệt để cập nhật tồn kho ngay.
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-gray-100">
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Mã SP</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Tên sản phẩm</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Nhà cung cấp</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Tồn hiện tại</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Số lượng nhập</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá nhập</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm">
+                {quickImportLines.map((line, index) => (<tr key={line.msp}>
+                    <td className="px-3 py-2">SP{String(line.msp).padStart(3, '0')}</td>
+                    <td className="px-3 py-2">{line.name}</td>
+                    <td className="px-3 py-2">{line.supplier}</td>
+                    <td className="px-3 py-2 text-right">{line.stock}</td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        min={1}
+                        value={line.qty}
+                        onChange={(e) => setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, qty: Number(e.target.value) || 0 } : item))}
+                        className="w-24 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        min={1}
+                        value={line.tienNhap}
+                        onChange={(e) => setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, tienNhap: Number(e.target.value) || 0 } : item))}
+                        className="w-32 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
+                      />
+                    </td>
+                  </tr>))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setQuickImportOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
+              Hủy
+            </button>
+            <button type="button" onClick={saveQuickImport} disabled={quickImportSaving} className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60">
+              {quickImportSaving ? 'Đang nhập...' : 'Xác nhận nhập kho'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} title={`Chi tiết ${viewingProduct?.name || ''}`} size="xl">
         <div className="grid gap-4 md:grid-cols-[280px_1fr]">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
@@ -934,6 +1052,10 @@ export function WatchCategories({ lowStockOnly = false, onClearLowStockFilter })
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                 <p className="text-xs text-gray-500">Vị trí trưng bày</p>
                 <p className="mt-1 font-medium text-gray-900">{viewingProduct?.displayPosition || 'Chưa cập nhật'}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 sm:col-span-2">
+                <p className="text-xs text-gray-500">Đường dẫn hình ảnh</p>
+                <p className="mt-1 break-all font-medium text-gray-900">{viewingProduct?.image || 'Chưa cập nhật'}</p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                 <p className="text-xs text-gray-500">Năm sản xuất</p>
