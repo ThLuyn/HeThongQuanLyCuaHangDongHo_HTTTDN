@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { EmployeeList } from './pages/EmployeeList';
 import { ExportReceipts } from './pages/ExportReceipts';
 import { LoginPage } from './pages/LoginPage';
+import { PermissionManagement } from './pages/PermissionManagement';
 import { PersonalProfile } from './pages/PersonalProfile';
 import { PositionSalaryManagement } from './pages/PositionSalaryManagement';
 import { SalaryLeave } from './pages/SalaryLeave';
@@ -31,6 +32,7 @@ const pageTitles = {
     'export-receipts': 'Phiếu xuất hàng',
     'sales-report': 'Báo cáo doanh số',
     'user-management': 'Quản lý User',
+    'permission-management': 'Phân quyền hệ thống',
     'backup-restore': 'Sao lưu & Phục hồi',
     profile: 'Thông tin cá nhân',
     'change-password': 'Đổi mật khẩu',
@@ -197,6 +199,8 @@ export function App() {
                 return <SalesReport />;
             case 'user-management':
                 return <UserManagement />;
+            case 'permission-management':
+                return <PermissionManagement />;
             case 'backup-restore':
                 return <BackupRestore />;
             case 'profile':

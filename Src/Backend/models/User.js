@@ -133,4 +133,115 @@ module.exports = {
   findById,
   updateProfileById,
   updatePasswordById,
+  listAccounts,
+  listRoleGroups,
+  listEmployeesWithoutAccount,
+  createAccount,
+  updateAccountByEmployeeId,
+  deleteAccountByEmployeeId,
 };
+
+async function listAccounts() {
+  return query(
+    `
+      SELECT
+        tk.MNV,
+        tk.TDN,
+        tk.MNQ,
+        tk.TRANGTHAI,
+        nv.HOTEN,
+        nv.NGAYVAOLAM,
+        COALESCE(nq.TEN, 'Không xác định') AS TENNHOMQUYEN
+      FROM TAIKHOAN tk
+      INNER JOIN NHANVIEN nv ON nv.MNV = tk.MNV
+      LEFT JOIN NHOMQUYEN nq ON nq.MNQ = tk.MNQ
+      ORDER BY tk.MNV DESC
+    `,
+  );
+}
+
+async function listRoleGroups() {
+  return query(
+    `
+      SELECT MNQ, TEN
+      FROM NHOMQUYEN
+      WHERE TT = 1
+      ORDER BY MNQ ASC
+    `,
+  );
+}
+
+async function listEmployeesWithoutAccount() {
+  return query(
+    `
+      SELECT
+        nv.MNV,
+        nv.HOTEN
+      FROM NHANVIEN nv
+      LEFT JOIN TAIKHOAN tk ON tk.MNV = nv.MNV
+      WHERE nv.TT = 1 AND tk.MNV IS NULL
+      ORDER BY nv.HOTEN ASC
+    `,
+  );
+}
+
+async function createAccount(payload) {
+  await query(
+    `
+      INSERT INTO TAIKHOAN (MNV, TDN, MK, MNQ, TRANGTHAI)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    [
+      Number(payload.mnv),
+      String(payload.username).trim(),
+      String(payload.passwordHash),
+      Number(payload.mnq),
+      Number(payload.status),
+    ],
+  );
+}
+
+async function updateAccountByEmployeeId(mnv, payload) {
+  const updates = [];
+  const params = [];
+
+  if (payload.mnq != null) {
+    updates.push("MNQ = ?");
+    params.push(Number(payload.mnq));
+  }
+
+  if (payload.status != null) {
+    updates.push("TRANGTHAI = ?");
+    params.push(Number(payload.status));
+  }
+
+  if (payload.passwordHash) {
+    updates.push("MK = ?");
+    params.push(String(payload.passwordHash));
+  }
+
+  if (updates.length === 0) {
+    return;
+  }
+
+  params.push(Number(mnv));
+
+  await query(
+    `
+      UPDATE TAIKHOAN
+      SET ${updates.join(", ")}
+      WHERE MNV = ?
+    `,
+    params,
+  );
+}
+
+async function deleteAccountByEmployeeId(mnv) {
+  await query(
+    `
+      DELETE FROM TAIKHOAN
+      WHERE MNV = ?
+    `,
+    [Number(mnv)],
+  );
+}

@@ -461,6 +461,167 @@ async function getProfitByDateRange(startDate, endDate) {
   };
 }
 
+async function getSalesReportByDateRange(startDate, endDate) {
+  const summaryRows = await query(
+    `
+      SELECT
+        COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU,
+        COALESCE(SUM(ctx.SL * sp.GIANHAP), 0) AS GIANVON,
+        COALESCE(SUM(ctx.SL), 0) AS TONGSOLUONG
+      FROM PHIEUXUAT px
+      INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      INNER JOIN SANPHAM sp ON sp.MSP = ctx.MSP
+      WHERE px.TT = 1 AND DATE(px.TG) BETWEEN ? AND ?
+    `,
+    [startDate, endDate],
+  );
+
+  const dailyRows = await query(
+    `
+      SELECT
+        DATE(px.TG) AS NGAY,
+        COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU
+      FROM PHIEUXUAT px
+      INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      WHERE px.TT = 1 AND DATE(px.TG) BETWEEN ? AND ?
+      GROUP BY DATE(px.TG)
+      ORDER BY DATE(px.TG) ASC
+    `,
+    [startDate, endDate],
+  );
+
+  const categoryRows = await query(
+    `
+      SELECT
+        COALESCE(NULLIF(TRIM(sp.THUONGHIEU), ''), 'Khác') AS DANHMUC,
+        COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU
+      FROM PHIEUXUAT px
+      INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      INNER JOIN SANPHAM sp ON sp.MSP = ctx.MSP
+      WHERE px.TT = 1 AND DATE(px.TG) BETWEEN ? AND ?
+      GROUP BY COALESCE(NULLIF(TRIM(sp.THUONGHIEU), ''), 'Khác')
+      ORDER BY DOANHTHU DESC
+    `,
+    [startDate, endDate],
+  );
+
+  const monthlyRows = await query(
+    `
+      SELECT
+        MONTH(px.TG) AS THANG,
+        COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU,
+        COALESCE(SUM(ctx.SL), 0) AS DATHANG
+      FROM PHIEUXUAT px
+      INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      WHERE px.TT = 1 AND DATE(px.TG) BETWEEN ? AND ?
+      GROUP BY MONTH(px.TG)
+      ORDER BY MONTH(px.TG) ASC
+    `,
+    [startDate, endDate],
+  );
+
+  const productRows = await query(
+    `
+      SELECT
+        sp.MSP,
+        sp.TEN AS TENSANPHAM,
+        COALESCE(NULLIF(TRIM(sp.THUONGHIEU), ''), 'Khác') AS DANHMUC,
+        COALESCE(SUM(ctx.SL), 0) AS SOLUONG,
+        COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU,
+        COALESCE(SUM(ctx.SL * sp.GIANHAP), 0) AS GIANVON
+      FROM PHIEUXUAT px
+      INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
+      INNER JOIN SANPHAM sp ON sp.MSP = ctx.MSP
+      WHERE px.TT = 1 AND DATE(px.TG) BETWEEN ? AND ?
+      GROUP BY sp.MSP, sp.TEN, COALESCE(NULLIF(TRIM(sp.THUONGHIEU), ''), 'Khác')
+      ORDER BY SOLUONG DESC, DOANHTHU DESC
+    `,
+    [startDate, endDate],
+  );
+
+  const doanhThu = Number(summaryRows[0]?.DOANHTHU || 0);
+  const giaVon = Number(summaryRows[0]?.GIANVON || 0);
+  const tongSoLuong = Number(summaryRows[0]?.TONGSOLUONG || 0);
+
+  const dailyRevenue = dailyRows.map((row) => Number(row.DOANHTHU || 0));
+  const middle = Math.ceil(dailyRevenue.length / 2);
+  const firstHalf = dailyRevenue
+    .slice(0, middle)
+    .reduce((sum, value) => sum + value, 0);
+  const secondHalf = dailyRevenue
+    .slice(middle)
+    .reduce((sum, value) => sum + value, 0);
+  const growth =
+    firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
+
+  const dailySales = dailyRows.map((row) => {
+    const rawDate = new Date(row.NGAY);
+    const label = Number.isNaN(rawDate.getTime())
+      ? String(row.NGAY || "")
+      : rawDate.toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+    return {
+      date: String(row.NGAY || ""),
+      label,
+      sales: Number(row.DOANHTHU || 0),
+    };
+  });
+
+  const categoryData = categoryRows.map((row) => ({
+    name: row.DANHMUC,
+    value:
+      doanhThu > 0
+        ? Number(((Number(row.DOANHTHU || 0) / doanhThu) * 100).toFixed(1))
+        : 0,
+  }));
+
+  const monthlySales = monthlyRows.map((row) => ({
+    month: `T${Number(row.THANG || 0)}`,
+    sales: Number(row.DOANHTHU || 0),
+    orders: Number(row.DATHANG || 0),
+  }));
+
+  const normalizedProductRows = productRows.map((row) => {
+    const revenue = Number(row.DOANHTHU || 0);
+    const cost = Number(row.GIANVON || 0);
+    const profit = revenue - cost;
+    return {
+      productName: row.TENSANPHAM,
+      category: row.DANHMUC,
+      units: Number(row.SOLUONG || 0),
+      revenue,
+      cost,
+      profit,
+      margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+    };
+  });
+
+  const sortedByUnits = [...normalizedProductRows].sort(
+    (a, b) => b.units - a.units,
+  );
+  const topProduct = sortedByUnits[0];
+  const slowProduct = sortedByUnits[sortedByUnits.length - 1];
+
+  return {
+    revenue: doanhThu,
+    orders: tongSoLuong,
+    growth,
+    profitMargin: doanhThu > 0 ? ((doanhThu - giaVon) / doanhThu) * 100 : 0,
+    totalCost: giaVon,
+    grossProfit: doanhThu - giaVon,
+    topProductName: topProduct?.productName || "-",
+    topProductUnits: topProduct?.units || 0,
+    slowProductName: slowProduct?.productName || "-",
+    slowProductUnits: slowProduct?.units || 0,
+    categoryData,
+    monthlySales,
+    dailySales,
+    productRows: normalizedProductRows,
+  };
+}
+
 module.exports = {
   createImportReceipt,
   getImportReceiptDetail,
@@ -472,4 +633,5 @@ module.exports = {
   listCustomers,
   listImportReceipts,
   getProfitByDateRange,
+  getSalesReportByDateRange,
 };

@@ -25,12 +25,13 @@ const transactionColumns = [
         label: 'Loại',
     },
     {
-        key: 'customer',
-        label: 'Đối tượng',
+        key: 'supplier',
+        label: 'Nhà cung cấp',
     },
     {
         key: 'total',
         label: 'Tổng tiền',
+        render: (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} đ`,
     },
     {
         key: 'status',
@@ -39,6 +40,7 @@ const transactionColumns = [
     {
         key: 'time',
         label: 'Thời gian',
+        render: (_value, row) => row.timeText,
     },
 ];
 export function RecentTransactions({ data }) {
@@ -48,11 +50,14 @@ export function RecentTransactions({ data }) {
         return {
             id: normalizedId,
             type: item.type || '-',
-            customer: item.customer,
-            total: `${new Intl.NumberFormat('vi-VN').format(Number(item.total || 0))} đ`,
+            supplier: item.customer || '-',
+            total: Number(item.total || 0),
             status: item.status || '-',
             time: Number.isNaN(date.getTime())
-                ? String(item.time)
+                ? String(item.time || '')
+                : date.toISOString(),
+            timeText: Number.isNaN(date.getTime())
+                ? String(item.time || '')
                 : date.toLocaleString('vi-VN', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -62,5 +67,26 @@ export function RecentTransactions({ data }) {
                 }),
         };
     });
-    return (<DataTable title="Giao dịch gần đây" columns={transactionColumns} data={transactionData} searchPlaceholder="Tìm mã giao dịch, đối tượng, thời gian..."/>);
+    return (<DataTable
+        title="Giao dịch gần đây"
+        columns={transactionColumns}
+        data={transactionData}
+        searchPlaceholder="Tìm mã giao dịch, nhà cung cấp, thời gian..."
+        advancedFilterKeys={['id', 'type', 'supplier', 'total', 'status', 'time']}
+        forceSelectFilterKeys={['supplier', 'type', 'status']}
+        rangeFilterKeys={[
+            {
+                key: 'total',
+                inputType: 'number',
+                minPlaceholder: 'Từ tổng tiền',
+                maxPlaceholder: 'Đến tổng tiền',
+            },
+            {
+                key: 'time',
+                inputType: 'date',
+                minPlaceholder: 'Từ ngày',
+                maxPlaceholder: 'Đến ngày',
+            },
+        ]}
+    />);
 }

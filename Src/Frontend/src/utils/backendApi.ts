@@ -258,6 +258,53 @@ export type HeaderNotificationItem = {
   unread: boolean
 }
 
+export type UserAccountItem = {
+  mnv: number
+  username: string
+  fullName: string
+  mnq: number
+  roleName: string
+  status: number
+  startDate: string | null
+}
+
+export type UserMeta = {
+  roles: Array<{
+    mnq: number
+    name: string
+  }>
+  availableEmployees: Array<{
+    mnv: number
+    fullName: string
+  }>
+}
+
+export type PermissionItem = {
+  mnq: number
+  roleName: string
+  status: number
+}
+
+export type PermissionMeta = {
+  features: Array<{
+    mcn: string
+    name: string
+  }>
+  actions: Array<{
+    key: string
+    label: string
+  }>
+}
+
+export type PermissionGroupDetail = {
+  mnq: number
+  roleName: string
+  permissions: Array<{
+    mcn: string
+    actions: string[]
+  }>
+}
+
 export type CustomerItem = {
   MKH: number
   HOTEN: string
@@ -309,6 +356,36 @@ export type ExportReceiptDetail = {
   }>
 }
 
+export type SalesReportData = {
+  id: string
+  reportName: string
+  fromDate: string
+  toDate: string
+  createdAt: string
+  revenue: number
+  orders: number
+  growth: number
+  profitMargin: number
+  totalCost: number
+  grossProfit: number
+  topProductName: string
+  topProductUnits: number
+  slowProductName: string
+  slowProductUnits: number
+  categoryData: Array<{ name: string; value: number }>
+  monthlySales: Array<{ month: string; sales: number; orders: number }>
+  dailySales?: Array<{ date: string; label: string; sales: number }>
+  productRows: Array<{
+    productName: string
+    category: string
+    units: number
+    revenue: number
+    cost: number
+    profit: number
+    margin: number
+  }>
+}
+
 export async function loginApi(username: string, password: string): Promise<LoginResponse> {
   const response = await apiRequest<ApiEnvelope<LoginResponse>>('/api/admin/auth/login', {
     method: 'POST',
@@ -330,6 +407,93 @@ export async function getDashboardOverviewApi(year: number): Promise<DashboardOv
 export async function getHeaderNotificationsApi(): Promise<HeaderNotificationItem[]> {
   const response = await apiRequest<ApiEnvelope<HeaderNotificationItem[]>>('/api/admin/dashboard/notifications')
   return response.data
+}
+
+export async function getUserAccountsApi(): Promise<UserAccountItem[]> {
+  const response = await apiRequest<ApiEnvelope<UserAccountItem[]>>('/api/admin/users')
+  return response.data
+}
+
+export async function getUserMetaApi(): Promise<UserMeta> {
+  const response = await apiRequest<ApiEnvelope<UserMeta>>('/api/admin/users/meta')
+  return response.data
+}
+
+export async function createUserAccountApi(payload: {
+  mnv: number
+  username: string
+  password: string
+  mnq: number
+  status: number
+}): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>('/api/admin/users', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export async function updateUserAccountApi(
+  id: number,
+  payload: {
+    mnq?: number
+    status?: number
+    newPassword?: string
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/users/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deleteUserAccountApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/users/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getPermissionsApi(): Promise<PermissionItem[]> {
+  const response = await apiRequest<ApiEnvelope<PermissionItem[]>>('/api/admin/permissions/groups')
+  return response.data
+}
+
+export async function getPermissionMetaApi(): Promise<PermissionMeta> {
+  const response = await apiRequest<ApiEnvelope<PermissionMeta>>('/api/admin/permissions/meta')
+  return response.data
+}
+
+export async function getPermissionGroupDetailApi(id: number): Promise<PermissionGroupDetail> {
+  const response = await apiRequest<ApiEnvelope<PermissionGroupDetail>>(`/api/admin/permissions/groups/${id}`)
+  return response.data
+}
+
+export async function createPermissionApi(payload: {
+  roleName: string
+  permissions: Array<{ mcn: string; actions: string[] }>
+}): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>('/api/admin/permissions/groups', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export async function updatePermissionApi(
+  id: number,
+  payload: {
+    roleName: string
+    permissions: Array<{ mcn: string; actions: string[] }>
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/permissions/groups/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deletePermissionApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/permissions/groups/${id}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function updateMyProfileApi(payload: {
@@ -641,6 +805,20 @@ export async function getExportReceiptsApi(limit = 100): Promise<ExportReceiptIt
 
 export async function getExportReceiptDetailApi(id: number): Promise<ExportReceiptDetail> {
   const response = await apiRequest<ApiEnvelope<ExportReceiptDetail>>(`/api/sales/export-receipts/${id}`)
+  return response.data
+}
+
+export async function getSalesReportApi(payload: {
+  fromDate: string
+  toDate: string
+  reportName?: string
+}): Promise<SalesReportData> {
+  const query = new URLSearchParams({
+    fromDate: payload.fromDate,
+    toDate: payload.toDate,
+    ...(payload.reportName ? { reportName: payload.reportName } : {}),
+  })
+  const response = await apiRequest<ApiEnvelope<SalesReportData>>(`/api/sales/reports?${query.toString()}`)
   return response.data
 }
 

@@ -150,6 +150,39 @@ async function getProfitReport(req, res, next) {
   }
 }
 
+async function getSalesReport(req, res, next) {
+  try {
+    const { fromDate, toDate, reportName } = req.query;
+
+    if (!fromDate || !toDate) {
+      return fail(res, "fromDate and toDate are required", 400);
+    }
+
+    if (String(fromDate) > String(toDate)) {
+      return fail(res, "fromDate must be before or equal to toDate", 400);
+    }
+
+    const report = await Order.getSalesReportByDateRange(fromDate, toDate);
+    const now = new Date();
+
+    return success(
+      res,
+      {
+        id: `RPT-${now.getTime()}-${Math.floor(Math.random() * 9999)}`,
+        reportName:
+          String(reportName || "").trim() || `BC ${fromDate} - ${toDate}`,
+        fromDate,
+        toDate,
+        createdAt: now.toLocaleString("vi-VN"),
+        ...report,
+      },
+      "Sales report loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createExportReceipt,
   getExportReceipts,
@@ -158,4 +191,5 @@ module.exports = {
   getCustomers,
   getSaleProducts,
   getProfitReport,
+  getSalesReport,
 };

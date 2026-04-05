@@ -45,5 +45,10 @@ router.get(
   authorizeRoles("admin", "manager"),
   salesController.getProfitReport,
 );
+router.get(
+  "/reports",
+  authorizeRoles("admin", "manager", "staff"),
+  salesController.getSalesReport,
+);
 
 module.exports = router;

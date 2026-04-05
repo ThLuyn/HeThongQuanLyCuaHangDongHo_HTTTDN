@@ -57,7 +57,7 @@ const menuItems = [
             },
             {
                 id: 'sales-report',
-                label: 'Báo cáo doanh số',
+                label: 'Báo cáo & Thống kê',
             },
         ],
     },
@@ -67,8 +67,12 @@ const menuItems = [
         icon: SettingsIcon,
         children: [
             {
+                id: 'permission-management',
+                label: 'Phân quyền',
+            },
+            {
                 id: 'user-management',
-                label: 'Quản lý User',
+                label: 'Quản lý tài khoản',
             },
             {
                 id: 'backup-restore',

@@ -2,6 +2,8 @@ const express = require("express");
 const authController = require("../controllers/authController");
 const dashboardController = require("../controllers/dashboardController");
 const inventoryController = require("../controllers/inventoryController");
+const permissionController = require("../controllers/permissionController");
+const userController = require("../controllers/userController");
 const {
   authenticateToken,
   authorizeRoles,
@@ -30,6 +32,83 @@ router.get(
   authenticateToken,
   authorizeRoles("admin", "manager", "hr"),
   dashboardController.getHeaderNotifications,
+);
+
+router.get(
+  "/users",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  userController.getUsers,
+);
+
+router.get(
+  "/permissions/groups",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.getPermissionGroups,
+);
+
+router.get(
+  "/permissions/meta",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.getPermissionMeta,
+);
+
+router.get(
+  "/permissions/groups/:id",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.getPermissionGroupDetail,
+);
+
+router.post(
+  "/permissions/groups",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.createPermissionGroup,
+);
+
+router.put(
+  "/permissions/groups/:id",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.updatePermissionGroup,
+);
+
+router.delete(
+  "/permissions/groups/:id",
+  authenticateToken,
+  authorizeRoles("admin"),
+  permissionController.deletePermissionGroup,
+);
+
+router.get(
+  "/users/meta",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  userController.getUserMeta,
+);
+
+router.post(
+  "/users",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  userController.createUser,
+);
+
+router.put(
+  "/users/:id",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  userController.updateUser,
+);
+
+router.delete(
+  "/users/:id",
+  authenticateToken,
+  authorizeRoles("admin", "manager"),
+  userController.deleteUser,
 );
 
 router.get(
