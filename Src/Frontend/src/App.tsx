@@ -5,10 +5,14 @@ import { IconBar } from './components/IconBar';
 import { Sidebar } from './components/Sidebar';
 import { BackupRestore } from './pages/BackupRestore';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { DailyAttendance } from './pages/DailyAttendance';
 import { Dashboard } from './pages/Dashboard';
 import { EmployeeList } from './pages/EmployeeList';
 import { ExportReceipts } from './pages/ExportReceipts';
+import { LeaveOperations } from './pages/LeaveOperations';
 import { LoginPage } from './pages/LoginPage';
+import { MyLeaveRequests } from './pages/MyLeaveRequests';
+import { MySalary } from './pages/MySalary';
 import { PermissionManagement } from './pages/PermissionManagement';
 import { PersonalProfile } from './pages/PersonalProfile';
 import { PositionSalaryManagement } from './pages/PositionSalaryManagement';
@@ -21,10 +25,16 @@ import { WatchCategories } from './pages/WatchCategories';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './utils/authStorage';
 import { changeMyPasswordApi, getMyProfileApi, loginApi } from './utils/backendApi';
 const ACTIVE_PAGE_STORAGE_KEY = 'watch_store_active_page';
+const AUTH_EXPIRED_EVENT = 'watch-store-auth-expired';
 const pageTitles = {
     dashboard: 'Tổng quan',
     employees: 'Danh sách nhân viên',
-    'salary-leave': 'Tính lương & Nghỉ phép',
+    'my-attendance': 'Chấm công của tôi',
+    'my-salary': 'Lương cá nhân',
+    'salary-leave': 'Quản lý lương',
+    'leave-operations': 'Điều hành Nghỉ phép',
+    'daily-attendance': 'Chấm công hằng ngày',
+    'my-leave-requests': 'Đơn xin nghỉ của tôi',
     'position-salary': 'Chức vụ & Lương',
     'watch-categories': 'Sản phẩm',
     suppliers: 'Nhà cung cấp',
@@ -46,8 +56,85 @@ export function App() {
     const [currentUser, setCurrentUser] = useState(initialSession?.fullName || initialSession?.username || '');
     const [currentUsername, setCurrentUsername] = useState(initialSession?.username || '');
     const [currentAvatar, setCurrentAvatar] = useState(initialSession?.avatar || '');
+    const [currentRole, setCurrentRole] = useState(initialSession?.role || '');
+    const [currentPermissions, setCurrentPermissions] = useState(initialSession?.permissions || []);
     const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
     const [targetLowStockProductId, setTargetLowStockProductId] = useState(null);
+
+    const hasPermission = (mcn, action = 'view') => currentPermissions.some((item) => String(item?.mcn || '').toLowerCase() === String(mcn).toLowerCase() && String(item?.hanhDong || '').toLowerCase() === String(action).toLowerCase());
+    const isAdminOrHr = ['admin', 'hr'].includes(String(currentRole || '').toLowerCase());
+
+    const canAccessPage = (pageId) => {
+        switch (pageId) {
+            case 'dashboard':
+            case 'profile':
+            case 'change-password':
+            case 'my-attendance':
+                return true;
+            case 'employees':
+                return hasPermission('nhanvien', 'view');
+            case 'position-salary':
+                return hasPermission('chucvu', 'view');
+            case 'salary-leave':
+                return isAdminOrHr;
+            case 'leave-operations':
+                return isAdminOrHr || hasPermission('donxinngh', 'view');
+            case 'daily-attendance':
+                return ['admin', 'manager'].includes(String(currentRole || '').toLowerCase()) || hasPermission('chamcong', 'view') || hasPermission('chamcong', 'create');
+            case 'my-leave-requests':
+                return hasPermission('donxinngh', 'create') || hasPermission('donxinngh', 'view');
+            case 'my-salary':
+                return hasPermission('bangluong', 'view');
+            case 'watch-categories':
+                return hasPermission('sanpham', 'view');
+            case 'suppliers':
+                return hasPermission('nhacungcap', 'view');
+            case 'stock-receipts':
+                return hasPermission('phieunhap', 'view');
+            case 'export-receipts':
+                return hasPermission('phieuxuat', 'view');
+            case 'sales-report':
+                return hasPermission('thongke', 'view');
+            case 'permission-management':
+                return hasPermission('nhomquyen', 'view');
+            case 'user-management':
+                return hasPermission('taikhoan', 'view');
+            case 'backup-restore':
+                return hasPermission('thongke', 'export') || hasPermission('thongke', 'view');
+            default:
+                return false;
+        }
+    };
+
+    const allowedPages = [
+        'dashboard',
+        'profile',
+        'change-password',
+        'my-attendance',
+        'employees',
+        'position-salary',
+        'my-salary',
+        'salary-leave',
+        'leave-operations',
+        'daily-attendance',
+        'my-leave-requests',
+        'watch-categories',
+        'suppliers',
+        'stock-receipts',
+        'export-receipts',
+        'sales-report',
+        'permission-management',
+        'user-management',
+        'backup-restore',
+    ].filter((page) => canAccessPage(page));
+
+    const findFirstAllowedPage = () => allowedPages[0] || 'dashboard';
+
+    useEffect(() => {
+        if (!canAccessPage(activePage)) {
+            setActivePage(findFirstAllowedPage());
+        }
+    }, [activePage, currentPermissions]);
     useEffect(() => {
         localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, activePage);
     }, [activePage]);
@@ -61,11 +148,14 @@ export function App() {
                 avatar: loginData.user.hinhAnh || '',
                 role: loginData.user.role,
                 mnv: loginData.user.mnv,
+                permissions: loginData.user.permissions || [],
             });
             setIsAuthenticated(true);
             setCurrentUser(loginData.user.fullName || loginData.user.username);
             setCurrentUsername(loginData.user.username);
             setCurrentAvatar(loginData.user.hinhAnh || '');
+            setCurrentRole(loginData.user.role || '');
+            setCurrentPermissions(loginData.user.permissions || []);
             return { ok: true };
         }
         catch (error) {
@@ -82,8 +172,19 @@ export function App() {
         setCurrentUser('');
         setCurrentUsername('');
         setCurrentAvatar('');
+        setCurrentRole('');
+        setCurrentPermissions([]);
         setActivePage('dashboard');
     };
+    useEffect(() => {
+        const onAuthExpired = () => {
+            handleLogout();
+        };
+        window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+        return () => {
+            window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+        };
+    }, []);
     const handleChangePassword = async (username, currentPassword, newPassword) => {
         try {
             await changeMyPasswordApi({
@@ -131,7 +232,11 @@ export function App() {
                     ...session,
                     fullName: nextName,
                     avatar: nextAvatar,
+                    permissions: profile.permissions || session.permissions || [],
+                    role: profile.role || session.role,
                 });
+                setCurrentRole(profile.role || '');
+                setCurrentPermissions(profile.permissions || []);
             }
             catch (_error) {
             }
@@ -139,29 +244,45 @@ export function App() {
         syncCurrentProfile();
     }, [isAuthenticated]);
     const handleIconNavigate = (iconId) => {
-        const pageMap = {
-            dashboard: 'dashboard',
-            employees: 'employees',
-            'stock-receipts': 'watch-categories',
-            system: 'user-management',
+        const groupPagesMap = {
+            dashboard: ['dashboard'],
+            employees: ['employees', 'position-salary', 'leave-operations', 'daily-attendance', 'salary-leave', 'my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'],
+            'stock-receipts': ['watch-categories', 'suppliers', 'stock-receipts', 'export-receipts', 'sales-report'],
+            system: ['permission-management', 'user-management', 'backup-restore'],
         };
+        const targetPage = (groupPagesMap[iconId] || []).find((page) => canAccessPage(page));
+        if (!targetPage)
+            return;
         if (iconId !== 'stock-receipts') {
             setWatchCategoryLowStockOnly(false);
             setTargetLowStockProductId(null);
         }
-        setActivePage(pageMap[iconId] || 'dashboard');
+        setActivePage(targetPage);
     };
     const handleOpenLowStockProducts = () => {
+        if (!canAccessPage('watch-categories'))
+            return;
         setWatchCategoryLowStockOnly(true);
         setTargetLowStockProductId(null);
         setActivePage('watch-categories');
     };
     const handleOpenExportReceipts = () => {
+        if (!canAccessPage('export-receipts'))
+            return;
         setActivePage('export-receipts');
+    };
+    const handleOpenAttendanceShortcut = () => {
+        if (!canAccessPage('my-attendance'))
+            return;
+        setTargetLowStockProductId(null);
+        setWatchCategoryLowStockOnly(false);
+        setActivePage('my-attendance');
     };
     const handleOpenNotification = (notification) => {
         const notificationId = String(notification?.id || '').toUpperCase();
         if (notificationId.startsWith('LOWSTOCK-')) {
+            if (!canAccessPage('watch-categories'))
+                return;
             const parsedProductId = Number(notificationId.replace('LOWSTOCK-', ''));
             setTargetLowStockProductId(Number.isInteger(parsedProductId) && parsedProductId > 0 ? parsedProductId : null);
             setWatchCategoryLowStockOnly(true);
@@ -169,8 +290,25 @@ export function App() {
             return;
         }
         if (notificationId.startsWith('LEAVE-')) {
+            const targetPage = canAccessPage('leave-operations')
+                ? 'leave-operations'
+                : canAccessPage('my-leave-requests')
+                    ? 'my-leave-requests'
+                : canAccessPage('salary-leave')
+                    ? 'salary-leave'
+                    : 'my-salary';
+            if (!canAccessPage(targetPage))
+                return;
             setTargetLowStockProductId(null);
-            setActivePage('salary-leave');
+            setActivePage(targetPage);
+            return;
+        }
+        if (notificationId.startsWith('ATTENDANCE-')) {
+            if (!canAccessPage('my-attendance'))
+                return;
+            setTargetLowStockProductId(null);
+            setWatchCategoryLowStockOnly(false);
+            setActivePage('my-attendance');
             return;
         }
     };
@@ -182,6 +320,16 @@ export function App() {
                 return <EmployeeList />;
             case 'salary-leave':
                 return <SalaryLeave />;
+            case 'leave-operations':
+                return <LeaveOperations />;
+            case 'daily-attendance':
+                return <DailyAttendance viewMode="manage"/>;
+            case 'my-attendance':
+                return <DailyAttendance viewMode="self"/>;
+            case 'my-leave-requests':
+                return <MyLeaveRequests />;
+            case 'my-salary':
+                return <MySalary />;
             case 'position-salary':
                 return <PositionSalaryManagement />;
             case 'watch-categories':
@@ -216,14 +364,18 @@ export function App() {
     }
     return (<div className="h-screen w-full flex overflow-hidden bg-gray-100">
       {/* Left Icon Bar */}
-      <IconBar activePage={activePage} onNavigate={handleIconNavigate} onLogout={handleLogout}/>
+      <IconBar activePage={activePage} onNavigate={handleIconNavigate} onLogout={handleLogout} allowedPages={allowedPages}/>
 
       {/* Sidebar */}
-      <Sidebar activePage={activePage} onNavigate={setActivePage} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)}/>
+      <Sidebar activePage={activePage} onNavigate={(page) => {
+            if (canAccessPage(page)) {
+                setActivePage(page);
+            }
+        }} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} allowedPages={allowedPages}/>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')} onOpenNotification={handleOpenNotification}/>
+                <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')} onOpenNotification={handleOpenNotification} onOpenAttendancePage={handleOpenAttendanceShortcut} showAttendanceShortcut={canAccessPage('my-attendance')}/>
         <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
           {renderPage()}
         </main>

@@ -243,7 +243,6 @@ export function UserManagement() {
                   {role.name}
                 </option>))}
             </select>
-            {form.mnq && roleById[Number(form.mnq)] ? (<p className="mt-1 text-xs text-gray-500">Nhóm quyền: {roleById[Number(form.mnq)]}</p>) : null}
           </div>
 
           <div>

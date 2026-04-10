@@ -63,6 +63,14 @@ function normalizeRole(roleName, groupId) {
   return "staff";
 }
 
+async function getUserPermissionsByGroup(mnq) {
+  const rows = await User.listPermissionsByGroup(mnq);
+  return rows.map((row) => ({
+    mcn: String(row.MCN || "").toLowerCase(),
+    hanhDong: String(row.HANHDONG || "").toLowerCase(),
+  }));
+}
+
 async function login(req, res, next) {
   try {
     const { username, password } = req.body;
@@ -86,6 +94,7 @@ async function login(req, res, next) {
     }
 
     const role = normalizeRole(user.TENNHOMQUYEN, user.MNQ);
+    const permissions = await getUserPermissionsByGroup(user.MNQ);
 
     const accessToken = jwt.sign(
       {
@@ -109,6 +118,7 @@ async function login(req, res, next) {
           hinhAnh: user.HINHANH || null,
           role,
           groupName: user.TENNHOMQUYEN,
+          permissions,
         },
       },
       "Login successful",
@@ -174,6 +184,8 @@ async function me(req, res, next) {
       return fail(res, "User not found", 404);
     }
 
+    const permissions = await getUserPermissionsByGroup(profile.MNQ);
+
     return success(
       res,
       {
@@ -183,6 +195,7 @@ async function me(req, res, next) {
         mnq: profile.MNQ,
         role: normalizeRole(profile.TENNHOMQUYEN, profile.MNQ),
         groupName: profile.TENNHOMQUYEN,
+        permissions,
         ngaySinh: profile.NGAYSINH,
         gioiTinh: Number(profile.GIOITINH),
         soDienThoai: profile.SDT,

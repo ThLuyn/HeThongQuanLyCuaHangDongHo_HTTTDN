@@ -5,6 +5,15 @@ function toNumber(value) {
   return Number(value || 0);
 }
 
+function getVietnamDateString() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 async function getOverview(req, res, next) {
   try {
     const currentYear = new Date().getFullYear();
@@ -160,32 +169,58 @@ async function getOverview(req, res, next) {
 
 async function getHeaderNotifications(req, res, next) {
   try {
-    const leaveRows = await query(
-      `
-        SELECT
-          dxn.MDN,
-          nv.HOTEN,
-          dxn.NGAYTAO
-        FROM DONXINNGH dxn
-        INNER JOIN NHANVIEN nv ON nv.MNV = dxn.MNV
-        WHERE dxn.TRANGTHAI = 0
-        ORDER BY dxn.NGAYTAO DESC, dxn.MDN DESC
-        LIMIT 5
-      `,
+    const currentRole = String(req.user?.role || "").toLowerCase();
+    const currentMnv = Number(req.user?.mnv || 0);
+    const canSeeAdminNotifications = ["admin", "manager", "hr"].includes(
+      currentRole,
     );
+    const attendanceDate = getVietnamDateString();
 
-    const lowStockRows = await query(
-      `
-        SELECT
-          MSP,
-          TEN,
-          SOLUONG
-        FROM SANPHAM
-        WHERE TT = 1 AND SOLUONG <= 3
-        ORDER BY SOLUONG ASC, MSP ASC
-        LIMIT 5
-      `,
-    );
+    const [leaveRows, lowStockRows, myAttendanceRows] = await Promise.all([
+      canSeeAdminNotifications
+        ? query(
+            `
+              SELECT
+                dxn.MDN,
+                nv.HOTEN,
+                dxn.NGAYTAO
+              FROM DONXINNGH dxn
+              INNER JOIN NHANVIEN nv ON nv.MNV = dxn.MNV
+              WHERE dxn.TRANGTHAI = 0
+              ORDER BY dxn.NGAYTAO DESC, dxn.MDN DESC
+              LIMIT 5
+            `,
+          )
+        : Promise.resolve([]),
+      canSeeAdminNotifications
+        ? query(
+            `
+              SELECT
+                MSP,
+                TEN,
+                SOLUONG
+              FROM SANPHAM
+              WHERE TT = 1 AND SOLUONG <= 3
+              ORDER BY SOLUONG ASC, MSP ASC
+              LIMIT 5
+            `,
+          )
+        : Promise.resolve([]),
+      currentMnv
+        ? query(
+            `
+              SELECT
+                COUNT(*) AS TOTAL_SHIFT,
+                SUM(CASE WHEN GIO_CHECKIN IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_IN,
+                SUM(CASE WHEN GIO_CHECKIN IS NOT NULL AND GIO_CHECKOUT IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_OUT
+              FROM PHANCALAM
+              WHERE MNV = ?
+                AND NGAY = ?
+            `,
+            [currentMnv, attendanceDate],
+          )
+        : Promise.resolve([]),
+    ]);
 
     const leaveNotifications = leaveRows.map((row) => ({
       id: `LEAVE-${row.MDN}`,
@@ -201,7 +236,30 @@ async function getHeaderNotifications(req, res, next) {
       unread: true,
     }));
 
+    const attendanceSummary = myAttendanceRows?.[0] || {};
+    const totalShift = Number(attendanceSummary.TOTAL_SHIFT || 0);
+    const checkedIn = Number(attendanceSummary.CHECKED_IN || 0);
+    const checkedOut = Number(attendanceSummary.CHECKED_OUT || 0);
+    const attendanceNotifications = [];
+
+    if (totalShift > 0 && checkedIn === 0) {
+      attendanceNotifications.push({
+        id: `ATTENDANCE-CHECKIN-${attendanceDate}`,
+        text: "Bạn có ca làm hôm nay. Nhấn để check-in",
+        time: null,
+        unread: true,
+      });
+    } else if (checkedIn > checkedOut) {
+      attendanceNotifications.push({
+        id: `ATTENDANCE-CHECKOUT-${attendanceDate}`,
+        text: "Bạn đang trong ca làm. Nhấn để check-out",
+        time: null,
+        unread: true,
+      });
+    }
+
     const notifications = [
+      ...attendanceNotifications,
       ...leaveNotifications,
       ...lowStockNotifications,
     ].slice(0, 10);

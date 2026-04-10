@@ -21,6 +21,9 @@ const EMPTY_OVERVIEW = {
     recentTransactions: [],
 };
 export function Dashboard({ onOpenLowStockProducts, onOpenExportReceipts }) {
+  const storeOpenYear = 2024;
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: Math.max(1, currentYear - storeOpenYear + 1) }, (_, index) => String(storeOpenYear + index));
     const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
     const [overview, setOverview] = useState(EMPTY_OVERVIEW);
     const [loading, setLoading] = useState(false);
@@ -59,7 +62,11 @@ export function Dashboard({ onOpenLowStockProducts, onOpenExportReceipts }) {
           <h2 className="text-lg font-semibold text-gray-900">
             Tổng quan hệ thống
           </h2>
-          <input type="number" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} placeholder="Nhập năm" min="1900" max="9999" className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50 focus:border-gold-400 bg-white"/>
+          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50 focus:border-gold-400 bg-white">
+            {yearOptions.map((year) => (<option key={year} value={year}>
+                {year}
+              </option>))}
+          </select>
         </div>
         {loading && (<p className="mb-4 text-sm text-gray-500">Đang tải dữ liệu tổng quan...</p>)}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -5,6 +5,10 @@ export type AuthSession = {
   avatar?: string
   role: string
   mnv: number
+  permissions?: Array<{
+    mcn: string
+    hanhDong: string
+  }>
 }
 
 const AUTH_STORAGE_KEY = 'watch_store_auth_session'

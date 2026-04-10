@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import anhthe from '../assets/anhthe.jpg';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
-import { createEmployeeApi, getEmployeeDetailApi, getEmployeesApi, resignEmployeeApi } from '../utils/backendApi';
+import { createEmployeeApi, getEmployeeDetailApi, getEmployeesApi, getPositionSalaryApi, resignEmployeeApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
 const POSITION_OPTIONS = ['Quản lý cửa hàng', 'Nhân viên bán hàng', 'Nhân viên kho', 'Nhân viên kỹ thuật'];
 const POSITION_PROFILE_MAP = {
@@ -155,6 +155,7 @@ function buildLocalEmployeeDetail(emp) {
     ngayVaoLam: emp.startDate || null,
     cccd: emp.cccd || null,
     boPhan: emp.department || null,
+    ngayNghiViec: emp.resignedDate || null,
     soTaiKhoanNganHang: null,
     tenNganHang: null,
     luongCoBan: Number(emp.baseSalary || 0),
@@ -178,6 +179,14 @@ function formatGender(value) {
 }
 function formatWorkStatus(value) {
     return value === 1 ? 'Đang làm' : 'Đã nghỉ';
+}
+function getEmployeeNumericId(value) {
+  return Number(String(value || '').replace(/\D/g, '')) || 0;
+}
+function sortEmployeesNewestFirst(rows) {
+  return [...(Array.isArray(rows) ? rows : [])].sort(
+    (a, b) => getEmployeeNumericId(b?.id) - getEmployeeNumericId(a?.id),
+  );
 }
 const initialEmployees = [
     {
@@ -257,9 +266,20 @@ const columns = [
         {val}
       </span>),
     },
+    {
+      key: 'resignedDate',
+      label: 'Ngày nghỉ việc',
+      render: (val, row) => {
+        if (row.status === 'Đang làm')
+          return '-';
+        return formatDisplayDate(val);
+      },
+    },
 ];
 export function EmployeeList() {
-    const [employees, setEmployees] = useState(initialEmployees);
+  const [employees, setEmployees] = useState(sortEmployeesNewestFirst(initialEmployees));
+  const [positionOptions, setPositionOptions] = useState(POSITION_OPTIONS);
+  const [positionProfiles, setPositionProfiles] = useState(POSITION_PROFILE_MAP);
     const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -271,6 +291,14 @@ export function EmployeeList() {
     const [editLoading, setEditLoading] = useState(false);
     const [viewError, setViewError] = useState('');
     const [viewDetail, setViewDetail] = useState(null);
+    const [notice, setNotice] = useState({
+      type: 'success',
+      message: '',
+    });
+    const resolvePositionProfile = (position) => {
+      const normalized = String(position || '').trim();
+      return positionProfiles[normalized] || getPositionProfile(normalized);
+    };
     const [form, setForm] = useState({
         id: '',
         name: '',
@@ -289,36 +317,89 @@ export function EmployeeList() {
         status: 'Đang làm',
     });
     useEffect(() => {
+      const loadPositions = async () => {
+        try {
+          const rows = await getPositionSalaryApi();
+          const activeRows = (Array.isArray(rows) ? rows : []).filter((row) => Number(row.status) === 1);
+          const source = activeRows.length > 0 ? activeRows : Array.isArray(rows) ? rows : [];
+          const dynamicNames = source
+            .map((row) => String(row.positionName || '').trim())
+            .filter(Boolean);
+
+          const dynamicProfiles = source.reduce((acc, row) => {
+            const name = String(row.positionName || '').trim();
+            if (!name) {
+              return acc;
+            }
+            const fallback = getPositionProfile(name);
+            acc[name] = {
+              groupName: fallback.groupName,
+              department: fallback.department,
+              baseSalary: Number(row.baseSalary || 0),
+              commissionRate: Number(row.commissionRate || 0),
+            };
+            return acc;
+          }, {});
+
+          if (Object.keys(dynamicProfiles).length > 0) {
+            setPositionProfiles((prev) => ({
+              ...prev,
+              ...dynamicProfiles,
+            }));
+          }
+
+          if (dynamicNames.length === 0) {
+            return;
+          }
+
+          setPositionOptions(Array.from(new Set(dynamicNames)));
+        }
+        catch {
+          // Keep fallback hard-coded positions if API is unavailable.
+        }
+      };
+
         const loadEmployees = async () => {
             try {
                 setError('');
                 const rows = await getEmployeesApi();
                 const mapped = rows.map((row) => ({
-                  ...getPositionProfile(row.TENCHUCVU),
+                  ...resolvePositionProfile(row.TENCHUCVU),
                     id: `NV${String(row.MNV).padStart(3, '0')}`,
                     name: row.HOTEN,
                     position: row.TENCHUCVU,
                     phone: row.SDT,
                     email: row.EMAIL,
+                  resignedDate: row.NGAYNGHIVIEC || null,
                   isLocal: false,
                     status: row.TT === 1 ? 'Đang làm' : 'Đã nghỉ',
                 }));
-                setEmployees(mapped);
+                setEmployees(sortEmployeesNewestFirst(mapped));
             }
             catch (e) {
                 const message = e instanceof Error ? e.message : 'Khong the tai danh sach nhan vien';
                 setError(message);
             }
         };
+        loadPositions();
         loadEmployees();
     }, []);
+    useEffect(() => {
+      if (!notice.message) {
+        return;
+      }
+      const timer = window.setTimeout(() => {
+        setNotice((prev) => ({ ...prev, message: '' }));
+      }, 8000);
+      return () => window.clearTimeout(timer);
+    }, [notice.message]);
       const setFormField = (key, value) => {
         setForm((prev) => ({
           ...(key === 'position'
             ? {
                 ...prev,
                 position: value,
-                ...getPositionProfile(value),
+                ...resolvePositionProfile(value),
               }
             : {
                 ...prev,
@@ -344,11 +425,11 @@ export function EmployeeList() {
         setFormError('');
         setFieldErrors({});
       const maxEmployeeNumber = employees.reduce((max, row) => {
-        const value = Number(String(row.id || '').replace(/\D/g, ''));
+        const value = getEmployeeNumericId(row.id);
         return Number.isFinite(value) ? Math.max(max, value) : max;
       }, 0);
-      const defaultPosition = POSITION_OPTIONS[0];
-      const defaultProfile = getPositionProfile(defaultPosition);
+      const defaultPosition = positionOptions[0] || POSITION_OPTIONS[0] || '';
+      const defaultProfile = resolvePositionProfile(defaultPosition);
         setForm({
         id: `NV${String(maxEmployeeNumber + 1).padStart(3, '0')}`,
             name: '',
@@ -371,7 +452,7 @@ export function EmployeeList() {
         setFormError('');
         setFieldErrors({});
       if (emp.isLocal) {
-        const positionProfile = getPositionProfile(emp.position);
+        const positionProfile = resolvePositionProfile(emp.position);
         setForm({
           ...emp,
           ...positionProfile,
@@ -396,8 +477,8 @@ export function EmployeeList() {
           return;
         }
         const detail = await getEmployeeDetailApi(employeeId);
-        const resolvedPosition = detail.chucVu || emp.position || POSITION_OPTIONS[0];
-        const positionProfile = getPositionProfile(resolvedPosition);
+        const resolvedPosition = detail.chucVu || emp.position || positionOptions[0] || POSITION_OPTIONS[0];
+        const positionProfile = resolvePositionProfile(resolvedPosition);
         setForm({
           ...emp,
           id: emp.id,
@@ -522,14 +603,20 @@ export function EmployeeList() {
             department: String(form.department || '').trim(),
           });
 
-          setEmployees((prev) => [
-            ...prev,
-            {
-              ...form,
-              id: `NV${String(created.id).padStart(3, '0')}`,
-              isLocal: false,
-            },
-          ]);
+          setEmployees((prev) =>
+            sortEmployeesNewestFirst([
+              {
+                ...form,
+                id: `NV${String(created.id).padStart(3, '0')}`,
+                isLocal: false,
+              },
+              ...prev,
+            ]),
+          );
+          setNotice({
+            type: 'success',
+            message: 'Thêm thành công',
+          });
           setIsCreating(false);
           setModalOpen(false);
         }
@@ -568,7 +655,10 @@ export function EmployeeList() {
                 return;
             }
             const detail = await getEmployeeDetailApi(employeeId);
-            setViewDetail(detail);
+            setViewDetail({
+              ...detail,
+              ngayNghiViec: detail.ngayNghiViec || emp.resignedDate || null,
+            });
         }
         catch (e) {
             const message = e instanceof Error ? e.message : 'Không thể tải thông tin nhân viên';
@@ -594,6 +684,7 @@ export function EmployeeList() {
                 ? {
                     ...row,
                     status: 'Đã nghỉ',
+                resignedDate: toIsoDate(new Date()),
                 }
                 : row));
         }
@@ -643,8 +734,8 @@ export function EmployeeList() {
             Chức vụ *
           </label>
           <select value={form.position} onChange={(e) => setFormField('position', e.target.value)} className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50 ${fieldErrors.position ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
-            {!POSITION_OPTIONS.includes(form.position) && form.position && (<option value={form.position}>{form.position}</option>)}
-            {POSITION_OPTIONS.map((position) => (<option key={position} value={position}>
+            {!positionOptions.includes(form.position) && form.position && (<option value={form.position}>{form.position}</option>)}
+            {positionOptions.map((position) => (<option key={position} value={position}>
                 {position}
               </option>))}
           </select>
@@ -711,29 +802,64 @@ export function EmployeeList() {
         </div>
       </div>);
     return (<>
+        {notice.message ? (
+          <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg">
+              <p className="leading-relaxed">{notice.message}</p>
+              <button
+                type="button"
+                onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
+                className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
+                aria-label="Đóng thông báo"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ) : null}
         {error && (<div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </div>)}
-      {!isCreating && (<DataTable title="Danh sách nhân viên" columns={columns} data={employees} searchPlaceholder="Tìm nhân viên..." onAdd={openAdd} noHorizontalScroll pageSize={10} rowActions={[
+      {!isCreating && (
+        <DataTable
+          title="Danh sách nhân viên"
+          columns={columns}
+          data={employees}
+          searchPlaceholder="Tìm nhân viên..."
+          onAdd={openAdd}
+          noHorizontalScroll
+          pageSize={5}
+          rangeFilterKeys={[
             {
-                key: 'view',
-                label: 'Xem',
-                onClick: handleView,
-                className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
+              key: 'resignedDate',
+              minPlaceholder: 'Ngày nghỉ việc từ',
+              maxPlaceholder: 'Ngày nghỉ việc đến',
+              inputType: 'date',
+            },
+          ]}
+          rowActions={[
+            {
+              key: 'view',
+              label: 'Xem',
+              onClick: handleView,
+              className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
             },
             {
-                key: 'edit',
-                label: 'Sửa',
-                onClick: openEdit,
-                className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
+              key: 'edit',
+              label: 'Sửa',
+              onClick: openEdit,
+              className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
             },
             {
-                key: 'delete',
-                label: 'Xóa',
-                onClick: handleDelete,
-                className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
+              key: 'delete',
+              label: 'Xóa',
+              onClick: handleDelete,
+              className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
             },
-        ]} addLabel="Thêm nhân viên"/>) }
+          ]}
+          addLabel="Thêm nhân viên"
+        />
+      )}
       {isCreating && (<div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
             <button onClick={closeEmployeeForm} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
@@ -765,87 +891,112 @@ export function EmployeeList() {
                   {viewDetail.fullName}
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Mã nhân viên</p>
-                <p className="font-semibold">NV{String(viewDetail.mnv).padStart(3, '0')}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Tài khoản</p>
-                <p className="font-semibold">{viewDetail.username || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Họ tên</p>
-                <p className="font-semibold">{viewDetail.fullName}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Nhóm quyền</p>
-                <p className="font-semibold">{viewDetail.groupName || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Chức vụ</p>
-                <p className="font-semibold">{viewDetail.chucVu || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Bộ phận</p>
-                <p className="font-semibold">{viewDetail.boPhan || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Giới tính</p>
-                <p className="font-semibold">{formatGender(viewDetail.gioiTinh)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Ngày sinh</p>
-                <p className="font-semibold">{formatDisplayDate(viewDetail.ngaySinh)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Số điện thoại</p>
-                <p className="font-semibold">{viewDetail.soDienThoai || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-1">
-                <p className="text-xs text-gray-500">Email</p>
-                <p className="font-semibold">{viewDetail.email || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-3">
-                <p className="text-xs text-gray-500">Địa chỉ</p>
-                <p className="font-semibold">{viewDetail.diaChi || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Quê quán</p>
-                <p className="font-semibold">{viewDetail.queQuan || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">CCCD</p>
-                <p className="font-semibold">{viewDetail.cccd || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Ngày vào làm</p>
-                <p className="font-semibold">{formatDisplayDate(viewDetail.ngayVaoLam)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Trạng thái làm việc</p>
-                <p className="font-semibold">{formatWorkStatus(viewDetail.trangThai)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Trạng thái tài khoản</p>
-                <p className="font-semibold">{viewDetail.trangThaiTaiKhoan === 1 ? 'Hoạt động' : 'Khóa'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Lương cơ bản</p>
-                <p className="font-semibold">{new Intl.NumberFormat('vi-VN').format(viewDetail.luongCoBan)} đ</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Tỷ lệ hoa hồng</p>
-                <p className="font-semibold">{viewDetail.tyLeHoaHong}%</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-1">
-                <p className="text-xs text-gray-500">Số tài khoản ngân hàng</p>
-                <p className="font-semibold">{viewDetail.soTaiKhoanNganHang || 'Chưa cập nhật'}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                <p className="text-xs text-gray-500">Tên ngân hàng</p>
-                <p className="font-semibold">{viewDetail.tenNganHang || 'Chưa cập nhật'}</p>
-              </div>
+              <div className="space-y-4">
+                <section className="rounded-xl border border-gray-100 bg-white p-3">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gold-700">Thông tin cơ bản</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Mã nhân viên</p>
+                      <p className="font-semibold">NV{String(viewDetail.mnv).padStart(3, '0')}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Tài khoản</p>
+                      <p className="font-semibold">{viewDetail.username || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Họ tên</p>
+                      <p className="font-semibold">{viewDetail.fullName}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Giới tính</p>
+                      <p className="font-semibold">{formatGender(viewDetail.gioiTinh)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Ngày sinh</p>
+                      <p className="font-semibold">{formatDisplayDate(viewDetail.ngaySinh)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">CCCD</p>
+                      <p className="font-semibold">{viewDetail.cccd || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Số điện thoại</p>
+                      <p className="font-semibold">{viewDetail.soDienThoai || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-2">
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="font-semibold">{viewDetail.email || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-3">
+                      <p className="text-xs text-gray-500">Địa chỉ</p>
+                      <p className="font-semibold">{viewDetail.diaChi || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-3">
+                      <p className="text-xs text-gray-500">Quê quán</p>
+                      <p className="font-semibold">{viewDetail.queQuan || 'Chưa cập nhật'}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-gray-100 bg-white p-3">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gold-700">Thông tin nghiệp vụ</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Nhóm quyền</p>
+                      <p className="font-semibold">{viewDetail.groupName || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Chức vụ</p>
+                      <p className="font-semibold">{viewDetail.chucVu || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Bộ phận</p>
+                      <p className="font-semibold">{viewDetail.boPhan || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Ngày vào làm</p>
+                      <p className="font-semibold">{formatDisplayDate(viewDetail.ngayVaoLam)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Ngày nghỉ việc</p>
+                      <p className="font-semibold">
+                        {viewDetail.trangThai === 1
+                          ? '-'
+                          : formatDisplayDate(viewDetail.ngayNghiViec)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Trạng thái làm việc</p>
+                      <p className="font-semibold">{formatWorkStatus(viewDetail.trangThai)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Trạng thái tài khoản</p>
+                      <p className="font-semibold">{viewDetail.trangThaiTaiKhoan === 1 ? 'Hoạt động' : 'Khóa'}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-gray-100 bg-white p-3">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gold-700">Lương và ngân hàng</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Lương cơ bản</p>
+                      <p className="font-semibold">{new Intl.NumberFormat('vi-VN').format(viewDetail.luongCoBan)} đ</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Tỷ lệ hoa hồng</p>
+                      <p className="font-semibold">{viewDetail.tyLeHoaHong}%</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words sm:col-span-2 xl:col-span-1">
+                      <p className="text-xs text-gray-500">Số tài khoản ngân hàng</p>
+                      <p className="font-semibold">{viewDetail.soTaiKhoanNganHang || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
+                      <p className="text-xs text-gray-500">Tên ngân hàng</p>
+                      <p className="font-semibold">{viewDetail.tenNganHang || 'Chưa cập nhật'}</p>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
             </>);

@@ -1,5 +1,7 @@
 import { clearAuthSession, loadAuthSession } from './authStorage'
 
+const AUTH_EXPIRED_EVENT = 'watch-store-auth-expired'
+
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 type ApiRequestOptions = {
@@ -34,6 +36,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     const message = payload?.message || 'Yeu cau that bai'
     if (response.status === 401) {
       clearAuthSession()
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT))
     }
     throw new Error(message)
   }
