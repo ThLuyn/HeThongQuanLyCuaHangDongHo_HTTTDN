@@ -46,7 +46,7 @@ const menuItems = [
             },
             {
                 id: 'position-salary',
-                label: 'Chức vụ & Công tác',
+                label: 'Chức vụ và Công tác',
             },
             {
                 id: 'leave-operations',
@@ -54,7 +54,7 @@ const menuItems = [
             },
             {
                 id: 'daily-attendance',
-                label: 'Quản lý chấm công',
+                label: 'Chấm công và Phân ca',
             },
             {
                 id: 'salary-leave',

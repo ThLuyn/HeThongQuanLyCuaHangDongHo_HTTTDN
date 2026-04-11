@@ -767,6 +767,84 @@ async function saveTodayAttendance(req, res, next) {
   }
 }
 
+async function getShiftAssignments(req, res, next) {
+  try {
+    const attendanceDate = resolveAttendanceDate(req.query?.date);
+    if (!attendanceDate) {
+      return fail(res, "date must be in YYYY-MM-DD format", 400);
+    }
+
+    const [shiftRows, assignmentRows] = await Promise.all([
+      Employee.listActiveShifts(),
+      Employee.listShiftAssignmentsByDate(attendanceDate),
+    ]);
+
+    return success(
+      res,
+      {
+        date: attendanceDate,
+        shifts: (shiftRows || []).map((row) => ({
+          mca: Number(row.MCA),
+          shiftName: row.TENCA,
+          startTime: row.GIO_BATDAU || null,
+          endTime: row.GIO_KETTHUC || null,
+          status: Number(row.TT || 0),
+        })),
+        assignments: (assignmentRows || []).map((row) => ({
+          mpcl: Number(row.MPCL),
+          mnv: Number(row.MNV),
+          fullName: row.HOTEN,
+          positionName: row.TENCHUCVU || null,
+          shiftId: Number(row.MCA),
+          shiftName: row.TENCA || null,
+          startTime: row.GIO_BATDAU || null,
+          endTime: row.GIO_KETTHUC || null,
+          date: row.NGAY,
+          checkIn: row.GIO_CHECKIN || null,
+          checkOut: row.GIO_CHECKOUT || null,
+          status: Number(row.TT || 0),
+        })),
+      },
+      "Shift assignments loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function saveShiftAssignments(req, res, next) {
+  try {
+    const attendanceDate = resolveAttendanceDate(req.body?.date);
+    if (!attendanceDate) {
+      return fail(res, "date must be in YYYY-MM-DD format", 400);
+    }
+
+    const today = getVietnamDateString();
+    if (attendanceDate < today) {
+      return fail(res, "Chỉ được phân ca từ hôm nay trở đi", 400);
+    }
+
+    const assignments = Array.isArray(req.body?.assignments)
+      ? req.body.assignments
+      : [];
+    const assignedCount = await Employee.saveShiftAssignmentsByDate(
+      assignments,
+      attendanceDate,
+    );
+
+    return success(
+      res,
+      {
+        date: attendanceDate,
+        assignedCount: Number(assignedCount || 0),
+      },
+      "Shift assignments saved",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function getMyAttendanceStatus(req, res, next) {
   try {
     const currentMnv = Number(req.user?.mnv || 0);
@@ -1039,6 +1117,8 @@ module.exports = {
   deleteHoliday,
   getTodayAttendance,
   saveTodayAttendance,
+  getShiftAssignments,
+  saveShiftAssignments,
   getMyAttendanceStatus,
   checkInAttendance,
   checkOutAttendance,

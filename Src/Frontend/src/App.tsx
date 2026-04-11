@@ -246,7 +246,8 @@ export function App() {
     const handleIconNavigate = (iconId) => {
         const groupPagesMap = {
             dashboard: ['dashboard'],
-            employees: ['employees', 'position-salary', 'leave-operations', 'daily-attendance', 'salary-leave', 'my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'],
+            'personal-work': ['my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'],
+            employees: ['employees', 'position-salary', 'leave-operations', 'daily-attendance', 'salary-leave'],
             'stock-receipts': ['watch-categories', 'suppliers', 'stock-receipts', 'export-receipts', 'sales-report'],
             system: ['permission-management', 'user-management', 'backup-restore'],
         };

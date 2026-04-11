@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { CalendarIcon, HomeIcon, LogOutIcon, SettingsIcon, UsersIcon, } from 'lucide-react';
+import { CalendarIcon, HomeIcon, LogOutIcon, SettingsIcon, UserIcon, UsersIcon, } from 'lucide-react';
 const topIcons = [
     {
         id: 'dashboard',
@@ -7,9 +7,14 @@ const topIcons = [
         label: 'Tổng quan',
     },
     {
+        id: 'personal-work',
+        icon: UserIcon,
+        label: 'Công việc cá nhân',
+    },
+    {
         id: 'employees',
         icon: UsersIcon,
-        label: 'Nhân sự',
+        label: 'Quản lý nhân sự',
     },
     {
         id: 'stock-receipts',
@@ -27,7 +32,9 @@ export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [] })
     const getGroupForPage = (page) => {
         if (page === 'dashboard')
             return 'dashboard';
-        if (['employees', 'my-salary', 'salary-leave', 'leave-operations', 'daily-attendance', 'my-attendance', 'my-leave-requests', 'position-salary', 'profile', 'change-password'].includes(page))
+        if (['my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'].includes(page))
+            return 'personal-work';
+        if (['employees', 'salary-leave', 'leave-operations', 'daily-attendance', 'position-salary'].includes(page))
             return 'employees';
         if ([
             'watch-categories',
@@ -43,7 +50,8 @@ export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [] })
     };
     const groupToPages = {
         dashboard: ['dashboard'],
-        employees: ['employees', 'my-salary', 'salary-leave', 'leave-operations', 'daily-attendance', 'my-attendance', 'my-leave-requests', 'position-salary', 'profile', 'change-password'],
+        'personal-work': ['my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'],
+        employees: ['employees', 'salary-leave', 'leave-operations', 'daily-attendance', 'position-salary'],
         'stock-receipts': ['watch-categories', 'suppliers', 'stock-receipts', 'export-receipts', 'sales-report'],
         system: ['permission-management', 'user-management', 'backup-restore'],
     };
