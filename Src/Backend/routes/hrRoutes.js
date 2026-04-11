@@ -77,6 +77,16 @@ router.post(
   hrController.saveTodayAttendance,
 );
 router.get(
+  "/attendance/shifts",
+  authorizeRoles("admin", "manager", "hr"),
+  hrController.getShiftAssignments,
+);
+router.post(
+  "/attendance/shifts",
+  authorizeRoles("admin", "manager", "hr"),
+  hrController.saveShiftAssignments,
+);
+router.get(
   "/attendance/me",
   authorizeRolesOrPermissions(
     ["admin", "manager", "staff"],

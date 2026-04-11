@@ -214,6 +214,35 @@ export type MyAttendanceStatus = {
   shifts: MyAttendanceShiftItem[]
 }
 
+export type AttendanceShiftItem = {
+  mca: number
+  shiftName: string
+  startTime: string | null
+  endTime: string | null
+  status: number
+}
+
+export type AttendanceShiftAssignmentItem = {
+  mpcl: number
+  mnv: number
+  fullName: string
+  positionName: string | null
+  shiftId: number
+  shiftName: string | null
+  startTime: string | null
+  endTime: string | null
+  date: string
+  checkIn: string | null
+  checkOut: string | null
+  status: number
+}
+
+export type AttendanceShiftAssignmentData = {
+  date: string
+  shifts: AttendanceShiftItem[]
+  assignments: AttendanceShiftAssignmentItem[]
+}
+
 export type HolidayMultiplierItem = {
   id: number
   name: string
@@ -665,6 +694,23 @@ export async function saveTodayAttendanceApi(payload: {
   date?: string
 }): Promise<{ date: string; presentCount: number }> {
   const response = await apiRequest<ApiEnvelope<{ date: string; presentCount: number }>>('/api/hr/attendance/today', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function getShiftAssignmentsApi(date?: string): Promise<AttendanceShiftAssignmentData> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const response = await apiRequest<ApiEnvelope<AttendanceShiftAssignmentData>>(`/api/hr/attendance/shifts${query}`)
+  return response.data
+}
+
+export async function saveShiftAssignmentsApi(payload: {
+  date?: string
+  assignments: Array<{ employeeId: number; shiftIds: number[] }>
+}): Promise<{ date: string; assignedCount: number }> {
+  const response = await apiRequest<ApiEnvelope<{ date: string; assignedCount: number }>>('/api/hr/attendance/shifts', {
     method: 'POST',
     body: payload,
   })

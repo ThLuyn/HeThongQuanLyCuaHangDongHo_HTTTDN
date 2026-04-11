@@ -896,6 +896,121 @@ async function listActiveEmployeesForAttendance(attendanceDate) {
   );
 }
 
+async function listActiveShifts() {
+  return query(
+    `
+      SELECT
+        c.MCA,
+        c.TENCA,
+        c.GIO_BATDAU,
+        c.GIO_KETTHUC,
+        c.TT
+      FROM CALAM c
+      WHERE c.TT = 1
+      ORDER BY c.GIO_BATDAU ASC, c.MCA ASC
+    `,
+  );
+}
+
+async function listShiftAssignmentsByDate(attendanceDate) {
+  return query(
+    `
+      SELECT
+        p.MPCL,
+        p.MNV,
+        nv.HOTEN,
+        cv.TEN AS TENCHUCVU,
+        p.MCA,
+        c.TENCA,
+        c.GIO_BATDAU,
+        c.GIO_KETTHUC,
+        p.NGAY,
+        p.GIO_CHECKIN,
+        p.GIO_CHECKOUT,
+        p.TT
+      FROM PHANCALAM p
+      INNER JOIN NHANVIEN nv ON nv.MNV = p.MNV
+      LEFT JOIN CHUCVU cv ON cv.MCV = nv.MCV
+      LEFT JOIN CALAM c ON c.MCA = p.MCA
+      WHERE p.NGAY = ?
+        AND nv.TT = 1
+      ORDER BY nv.MNV ASC, c.GIO_BATDAU ASC, p.MCA ASC, p.MPCL ASC
+    `,
+    [attendanceDate],
+  );
+}
+
+async function saveShiftAssignmentsByDate(assignments, attendanceDate) {
+  const normalizedAssignments = Array.from(
+    new Map(
+      (Array.isArray(assignments) ? assignments : [])
+        .map((item) => {
+          const employeeId = Number(item?.employeeId);
+          const shiftIds = Array.from(
+            new Set(
+              (Array.isArray(item?.shiftIds) ? item.shiftIds : [])
+                .map((shiftId) => Number(shiftId))
+                .filter((shiftId) => Number.isInteger(shiftId) && shiftId > 0),
+            ),
+          );
+
+          if (!Number.isInteger(employeeId) || employeeId <= 0) {
+            return null;
+          }
+
+          return [employeeId, { employeeId, shiftIds }];
+        })
+        .filter(Boolean),
+    ).values(),
+  );
+
+  if (normalizedAssignments.length === 0) {
+    return 0;
+  }
+
+  return withTransaction(async (connection) => {
+    const employeeIds = normalizedAssignments.map((item) => item.employeeId);
+    const employeePlaceholders = employeeIds.map(() => "?").join(", ");
+
+    await connection.execute(
+      `
+        DELETE FROM PHANCALAM
+        WHERE NGAY = ?
+          AND MNV IN (${employeePlaceholders})
+      `,
+      [attendanceDate, ...employeeIds],
+    );
+
+    const insertRows = normalizedAssignments.flatMap((item) =>
+      item.shiftIds.map((shiftId) => ({
+        employeeId: item.employeeId,
+        shiftId,
+      })),
+    );
+
+    if (insertRows.length <= 0) {
+      return 0;
+    }
+
+    const valuePlaceholders = insertRows.map(() => "(?, ?, ?, 0)").join(", ");
+    const valueParams = insertRows.flatMap((row) => [
+      row.employeeId,
+      row.shiftId,
+      attendanceDate,
+    ]);
+
+    await connection.execute(
+      `
+        INSERT INTO PHANCALAM (MNV, MCA, NGAY, TT)
+        VALUES ${valuePlaceholders}
+      `,
+      valueParams,
+    );
+
+    return insertRows.length;
+  });
+}
+
 async function listTodayAttendanceEmployeeIds(attendanceDate) {
   const rows = await query(
     `
@@ -1168,6 +1283,9 @@ module.exports = {
   markAsResigned,
   findPositionByName,
   listActiveEmployeesForAttendance,
+  listActiveShifts,
+  listShiftAssignmentsByDate,
+  saveShiftAssignmentsByDate,
   listTodayAttendanceEmployeeIds,
   saveTodayAttendanceByEmployeeIds,
   getMyAttendanceByDate,
