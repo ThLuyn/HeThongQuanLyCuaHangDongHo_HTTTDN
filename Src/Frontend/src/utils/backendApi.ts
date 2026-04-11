@@ -6,6 +6,11 @@ type ApiEnvelope<T> = {
   data: T
 }
 
+export type PermissionGrant = {
+  mcn: string
+  hanhDong: string
+}
+
 export type LoginResponse = {
   accessToken: string
   user: {
@@ -15,6 +20,7 @@ export type LoginResponse = {
     hinhAnh: string | null
     role: string
     groupName: string
+    permissions: PermissionGrant[]
   }
 }
 
@@ -25,6 +31,7 @@ export type MyProfile = {
   mnq: number
   role: string
   groupName: string
+  permissions: PermissionGrant[]
   ngaySinh: string | null
   gioiTinh: number | null
   soDienThoai: string | null
@@ -118,6 +125,7 @@ export type PositionWorkHistoryItem = {
   newPositionName: string | null
   newBaseSalary: number
   effectiveDate: string | null
+  endDate: string | null
   note: string | null
   approverId: number | null
   approverName: string | null
@@ -126,10 +134,92 @@ export type PositionWorkHistoryItem = {
 export type SalaryRecord = {
   MNV: number
   HOTEN: string
+  TENCHUCVU?: string
   LUONGCOBAN: number
   PHUCAP: number
   NGAYCONG: number
+  BHXH?: number
+  BHYT?: number
+  BHTN?: number
+  KHAUTRU_KHAC?: number
+  KHAUTRU?: number
+  NGAYCONG_THUCTE?: number
+  SO_NGAY_LE_DI_LAM?: number
+  NGAYCONG_LE_QUYDOI_THEM?: number
+  DOANH_SO?: number
+  TY_LE_HOA_HONG?: number
+  HOA_HONG?: number
+  NGAYNGHI_DA_DUNG?: number
+  NGAYNGHI_CONLAI?: number
+  NGAY_NGHI_KHONG_LUONG?: number
   LUONGTHUCLANH: number
+  TT: number
+}
+
+export type LeaveRequestItem = {
+  MDN: number
+  MNV: number
+  HOTEN: string
+  LOAI: number
+  NGAYNGHI: string
+  NGAYKETTHUC?: string | null
+  NGAY_NGHIVIEC?: string | null
+  SONGAY?: number
+  LYDO: string | null
+  MINHCHUNG?: string | null
+  TRANGTHAI: number
+  NGUOIDUYET: number | null
+  NGAYTAO: string
+  GHICHU: string | null
+}
+
+export type CreateMyLeaveRequestPayload = {
+  type: 0 | 1 | 2 | 3
+  startDate: string
+  endDate?: string
+  resignationDate?: string
+  reason: string
+  evidenceFile?: File | null
+}
+
+export type DailyAttendanceEmployee = {
+  mnv: number
+  fullName: string
+  positionName: string | null
+  status: number
+  present: boolean
+}
+
+export type DailyAttendanceData = {
+  date: string
+  employees: DailyAttendanceEmployee[]
+}
+
+export type MyAttendanceShiftItem = {
+  mpcl: number
+  shiftId: number
+  shiftName: string | null
+  startTime: string | null
+  endTime: string | null
+  checkIn: string | null
+  checkOut: string | null
+  status: number
+}
+
+export type MyAttendanceStatus = {
+  date: string
+  hasShift: boolean
+  canCheckIn: boolean
+  canCheckOut: boolean
+  shifts: MyAttendanceShiftItem[]
+}
+
+export type HolidayMultiplierItem = {
+  id: number
+  name: string
+  date: string
+  multiplier: number
+  note: string | null
 }
 
 export type ImportReceiptItem = {
@@ -564,9 +654,144 @@ export async function getSalaryApi(month: number, year: number): Promise<SalaryR
   return response.data.records
 }
 
+export async function getTodayAttendanceApi(date?: string): Promise<DailyAttendanceData> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const response = await apiRequest<ApiEnvelope<DailyAttendanceData>>(`/api/hr/attendance/today${query}`)
+  return response.data
+}
+
+export async function saveTodayAttendanceApi(payload: {
+  presentEmployeeIds: number[]
+  date?: string
+}): Promise<{ date: string; presentCount: number }> {
+  const response = await apiRequest<ApiEnvelope<{ date: string; presentCount: number }>>('/api/hr/attendance/today', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function getMyAttendanceStatusApi(date?: string): Promise<MyAttendanceStatus> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const response = await apiRequest<ApiEnvelope<MyAttendanceStatus>>(`/api/hr/attendance/me${query}`)
+  return response.data
+}
+
+export async function checkInAttendanceApi(payload?: { date?: string }): Promise<{ date: string }> {
+  const response = await apiRequest<ApiEnvelope<{ date: string }>>('/api/hr/attendance/check-in', {
+    method: 'POST',
+    body: payload || {},
+  })
+  return response.data
+}
+
+export async function checkOutAttendanceApi(payload?: { date?: string }): Promise<{ date: string }> {
+  const response = await apiRequest<ApiEnvelope<{ date: string }>>('/api/hr/attendance/check-out', {
+    method: 'POST',
+    body: payload || {},
+  })
+  return response.data
+}
+
+export async function getMySalaryApi(month: number, year: number): Promise<SalaryRecord | null> {
+  const response = await apiRequest<
+    ApiEnvelope<{
+      month: number
+      year: number
+      record: SalaryRecord | null
+    }>
+  >(`/api/hr/salary/me?month=${month}&year=${year}`)
+  return response.data.record || null
+}
+
 export async function getPositionSalaryApi(): Promise<PositionSalaryItem[]> {
   const response = await apiRequest<ApiEnvelope<PositionSalaryItem[]>>('/api/hr/positions')
   return response.data
+}
+
+export async function getHolidayMultipliersApi(year?: number): Promise<HolidayMultiplierItem[]> {
+  const query = Number.isInteger(year) ? `?year=${year}` : ''
+  const response = await apiRequest<ApiEnvelope<HolidayMultiplierItem[]>>(`/api/hr/holidays${query}`)
+  return response.data
+}
+
+export async function createHolidayMultiplierApi(payload: {
+  name: string
+  date: string
+  multiplier: number
+  note?: string
+}): Promise<{ id: number }> {
+  const response = await apiRequest<ApiEnvelope<{ id: number }>>('/api/hr/holidays', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function updateHolidayMultiplierApi(
+  id: number,
+  payload: {
+    name: string
+    date: string
+    multiplier: number
+    note?: string
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/holidays/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deleteHolidayMultiplierApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/holidays/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getLeaveRequestsApi(status?: number): Promise<LeaveRequestItem[]> {
+  const query = typeof status === 'number' ? `?status=${status}` : ''
+  const response = await apiRequest<ApiEnvelope<LeaveRequestItem[]>>(`/api/hr/leave-requests${query}`)
+  return response.data
+}
+
+export async function getMyLeaveRequestsApi(): Promise<LeaveRequestItem[]> {
+  const response = await apiRequest<ApiEnvelope<LeaveRequestItem[]>>('/api/hr/my-leave-requests')
+  return response.data
+}
+
+export async function createMyLeaveRequestApi(
+  payload: CreateMyLeaveRequestPayload,
+): Promise<{ id: number }> {
+  const formData = new FormData()
+  formData.append('type', String(payload.type))
+  formData.append('startDate', payload.startDate)
+  if (payload.endDate) {
+    formData.append('endDate', payload.endDate)
+  }
+  if (payload.resignationDate) {
+    formData.append('resignationDate', payload.resignationDate)
+  }
+  formData.append('reason', payload.reason)
+  if (payload.evidenceFile) {
+    formData.append('evidence', payload.evidenceFile)
+  }
+
+  const response = await apiRequest<ApiEnvelope<{ id: number }>>('/api/hr/my-leave-requests', {
+    method: 'POST',
+    body: formData,
+  })
+  return response.data
+}
+
+export async function decideLeaveRequestApi(
+  id: number,
+  payload: { status: 1 | 2; note?: string },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/leave-requests/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
 }
 
 export async function getPositionWorkHistoryApi(): Promise<PositionWorkHistoryItem[]> {

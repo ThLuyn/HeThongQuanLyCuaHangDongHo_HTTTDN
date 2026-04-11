@@ -72,6 +72,9 @@ function buildDateRange(periodType, month, quarter, year) {
 
 export function SalesReport() {
     const now = new Date();
+    const storeOpenYear = 2024;
+    const currentYear = now.getFullYear();
+    const yearOptions = Array.from({ length: Math.max(1, currentYear - storeOpenYear + 1) }, (_, index) => String(storeOpenYear + index));
     const [periodType, setPeriodType] = useState('month');
     const [month, setMonth] = useState(String(now.getMonth() + 1));
     const [quarter, setQuarter] = useState(String(Math.floor(now.getMonth() / 3) + 1));
@@ -351,14 +354,17 @@ export function SalesReport() {
 
                     <div>
                         <label className="mb-1.5 block text-sm text-gray-600">Năm</label>
-                        <input
-                            type="number"
-                            min="2000"
-                            max="2100"
+                        <select
                             value={year}
                             onChange={(e) => setYear(e.target.value)}
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-                        />
+                        >
+                            {yearOptions.map((yearOption) => (
+                                <option key={yearOption} value={yearOption}>
+                                    {yearOption}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="flex items-end">

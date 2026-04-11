@@ -82,6 +82,7 @@ async function listWorkHistory() {
         cv_moi.TEN AS TENCHUCVU_MOI,
         cv_moi.LUONGCOBAN AS LUONGCOBAN_MOI,
         ls.NGAY_HIEULUC,
+        ls.NGAY_KETTHUC,
         ls.GHICHU,
         ls.MNV_DUYET,
         nv_duyet.HOTEN AS HOTEN_DUYET
@@ -137,6 +138,29 @@ async function transferEmployeePosition(payload) {
       throw error;
     }
 
+    const [duplicateTransferRows] = await connection.execute(
+      `
+        SELECT MLS
+        FROM LICHSUCHUCVU
+        WHERE MNV = ?
+          AND MONTH(NGAY_HIEULUC) = MONTH(?)
+          AND YEAR(NGAY_HIEULUC) = YEAR(?)
+        LIMIT 1
+      `,
+      [employeeId, effectiveDate, effectiveDate],
+    );
+
+    if (
+      Array.isArray(duplicateTransferRows) &&
+      duplicateTransferRows.length > 0
+    ) {
+      const error = new Error(
+        "Nhân viên này đã có quyết định chuyển công tác trong tháng đã chọn. Vui lòng chọn tháng khác.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
     await connection.execute(
       `
         UPDATE NHANVIEN
@@ -148,8 +172,8 @@ async function transferEmployeePosition(payload) {
 
     const [insertResult] = await connection.execute(
       `
-        INSERT INTO LICHSUCHUCVU (MNV, MCV_CU, MCV_MOI, NGAY_HIEULUC, GHICHU, MNV_DUYET)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO LICHSUCHUCVU (MNV, MCV_CU, MCV_MOI, NGAY_HIEULUC, NGAY_KETTHUC, GHICHU, MNV_DUYET)
+        VALUES (?, ?, ?, ?, NULL, ?, ?)
       `,
       [
         employeeId,
@@ -161,8 +185,36 @@ async function transferEmployeePosition(payload) {
       ],
     );
 
+    const insertedHistoryId = Number(insertResult.insertId);
+
+    await connection.execute(
+      `
+        UPDATE LICHSUCHUCVU target
+        LEFT JOIN (
+          SELECT
+            ls1.MLS,
+            (
+              SELECT DATE_SUB(ls2.NGAY_HIEULUC, INTERVAL 1 DAY)
+              FROM LICHSUCHUCVU ls2
+              WHERE ls2.MNV = ls1.MNV
+                AND (
+                  ls2.NGAY_HIEULUC > ls1.NGAY_HIEULUC
+                  OR (ls2.NGAY_HIEULUC = ls1.NGAY_HIEULUC AND ls2.MLS > ls1.MLS)
+                )
+              ORDER BY ls2.NGAY_HIEULUC ASC, ls2.MLS ASC
+              LIMIT 1
+            ) AS COMPUTED_NGAY_KETTHUC
+          FROM LICHSUCHUCVU ls1
+          WHERE ls1.MNV = ?
+        ) calc ON calc.MLS = target.MLS
+        SET target.NGAY_KETTHUC = calc.COMPUTED_NGAY_KETTHUC
+        WHERE target.MNV = ?
+      `,
+      [employeeId, employeeId],
+    );
+
     return {
-      historyId: Number(insertResult.insertId),
+      historyId: insertedHistoryId,
       previousPositionId: currentPositionId,
     };
   });

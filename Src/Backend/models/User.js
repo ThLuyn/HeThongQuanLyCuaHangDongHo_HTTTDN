@@ -131,6 +131,7 @@ async function updatePasswordById(mnv, hashedPassword) {
 module.exports = {
   findByUsername,
   findById,
+  listPermissionsByGroup,
   updateProfileById,
   updatePasswordById,
   listAccounts,
@@ -140,6 +141,20 @@ module.exports = {
   updateAccountByEmployeeId,
   deleteAccountByEmployeeId,
 };
+
+async function listPermissionsByGroup(mnq) {
+  return query(
+    `
+      SELECT ct.MCN, ct.HANHDONG
+      FROM CTQUYEN ct
+      INNER JOIN NHOMQUYEN nq ON nq.MNQ = ct.MNQ
+      INNER JOIN DANHMUCCHUCNANG d ON d.MCN = ct.MCN
+      WHERE ct.MNQ = ? AND nq.TT = 1 AND d.TT = 1
+      ORDER BY ct.MCN ASC, ct.HANHDONG ASC
+    `,
+    [Number(mnq)],
+  );
+}
 
 async function listAccounts() {
   return query(

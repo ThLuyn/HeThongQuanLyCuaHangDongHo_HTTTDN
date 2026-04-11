@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { BellIcon, ChevronDownIcon, IdCardIcon, LockIcon, MenuIcon, } from 'lucide-react';
+import { BellIcon, ChevronDownIcon, Clock3Icon, IdCardIcon, LockIcon, MenuIcon, } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import anhthe from '../assets/anhthe.jpg';
 import { getHeaderNotificationsApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
-export function Header({ title, onToggleSidebar, sidebarOpen, currentUser, currentUsername, currentAvatar, onOpenProfilePage, onOpenChangePasswordPage, onOpenNotification, }) {
+export function Header({ title, onToggleSidebar, sidebarOpen, currentUser, currentUsername, currentAvatar, onOpenProfilePage, onOpenChangePasswordPage, onOpenNotification, onOpenAttendancePage, showAttendanceShortcut = false, }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -100,6 +100,16 @@ export function Header({ title, onToggleSidebar, sidebarOpen, currentUser, curre
       </div>
 
       <div className="flex items-center gap-4">
+        {showAttendanceShortcut ? (<button onClick={() => {
+          setShowNotifications(false);
+          setShowProfile(false);
+          if (typeof onOpenAttendancePage === 'function') {
+            onOpenAttendancePage();
+          }
+        }} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 border border-gray-200 hover:text-gold-700 hover:bg-gold-50 hover:border-gold-200 transition-colors" aria-label="Mở trang chấm công" title="Chấm công">
+          <Clock3Icon className="w-4 h-4"/>
+          <span className="text-sm font-medium">Chấm công</span>
+          </button>) : null}
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
           <button onClick={() => {

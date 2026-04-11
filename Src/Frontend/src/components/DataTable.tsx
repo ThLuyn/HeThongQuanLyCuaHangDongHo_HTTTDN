@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { ArrowUpDownIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, FilterIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon, } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const sortStateMemory = new Map();
 
@@ -33,7 +33,7 @@ function parseComparableValue(value) {
     }
     return raw.toLowerCase();
 }
-export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm kiếm...', onAdd, onEdit, onDelete, addLabel = 'Thêm mới', rowActions, advancedFilterKeys, rangeFilterKeys, forceSelectFilterKeys = [], emptyState, noHorizontalScroll = false, pageSize = 10, defaultSortBy, defaultSortDirection = 'asc', }) {
+export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm kiếm...', onAdd, onEdit, onDelete, addLabel = 'Thêm mới', rowActions, advancedFilterKeys, rangeFilterKeys, forceSelectFilterKeys = [], fixedSelectOptions = {}, customAdvancedFilters, externalHasActiveFilters = false, onClearExternalFilters, emptyState, noHorizontalScroll = false, pageSize = 5, defaultSortBy, defaultSortDirection = 'asc', resetSignal, }) {
     const tableMemoryKey = useMemo(() => {
       const columnKeys = columns.map((col) => col.key).join('|');
       return `${title}__${columnKeys}`;
@@ -46,6 +46,7 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
     const [sortBy, setSortBy] = useState(initialSortState?.sortBy || defaultSortBy || columns[0]?.key || '');
     const [sortDirection, setSortDirection] = useState(initialSortState?.sortDirection || defaultSortDirection);
   const [currentPage, setCurrentPage] = useState(1);
+    const lastResetSignalRef = useRef(resetSignal);
     const defaultRowActions = useMemo(() => {
         const actions = [];
         if (onEdit) {
@@ -85,22 +86,26 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
     }, [rangeFilterKeys]);
     const filterOptions = useMemo(() => {
         return advancedFilterColumns.reduce((acc, col) => {
-            const values = Array.from(new Set(data
+        const values = Array.from(new Set(data
                 .map((row) => row[col.key])
                 .filter((value) => value != null)
                 .map((value) => String(value).trim())
                 .filter((value) => value !== '')));
-            acc[col.key] = values;
+        const fixedOptions = Array.isArray(fixedSelectOptions[col.key])
+          ? fixedSelectOptions[col.key].map((item) => String(item).trim()).filter((item) => item !== '')
+          : [];
+        acc[col.key] = Array.from(new Set([...fixedOptions, ...values]));
             return acc;
         }, {});
-    }, [advancedFilterColumns, data]);
+    }, [advancedFilterColumns, data, fixedSelectOptions]);
     const hasActiveFilters = search.trim() !== '' ||
       Object.values(columnFilters).some((value) => value && value.trim() !== '') ||
       Object.values(rangeFilters).some((value) => {
         const min = value?.min;
         const max = value?.max;
         return min !== '' || max !== '';
-      });
+      }) ||
+      Boolean(externalHasActiveFilters);
     const filteredData = useMemo(() => {
         const normalizedSearch = normalizeString(search);
         const filtered = data.filter((row) => {
@@ -198,6 +203,9 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
         setSearch('');
         setColumnFilters({});
         setRangeFilters({});
+      if (typeof onClearExternalFilters === 'function') {
+        onClearExternalFilters();
+      }
       setSortBy(defaultSortBy || columns[0]?.key || '');
       setSortDirection(defaultSortDirection);
         setCurrentPage(1);
@@ -214,6 +222,18 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
         sortDirection,
       });
     }, [tableMemoryKey, sortBy, sortDirection]);
+    useEffect(() => {
+      if (resetSignal === undefined || resetSignal === lastResetSignalRef.current)
+        return;
+      lastResetSignalRef.current = resetSignal;
+      setSearch('');
+      setShowAdvanced(false);
+      setColumnFilters({});
+      setRangeFilters({});
+      setSortBy(defaultSortBy || columns[0]?.key || '');
+      setSortDirection(defaultSortDirection);
+      setCurrentPage(1);
+    }, [resetSignal, defaultSortBy, defaultSortDirection, columns]);
     return (<div className="bg-white rounded-xl shadow-sm border border-gray-100">
       <div className="px-6 py-4 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -306,6 +326,9 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
                         }))} placeholder={`Lọc theo ${col.label.toLowerCase()}`} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50"/>)}
                 </div>);
             })}
+          {customAdvancedFilters ? (<div className="sm:col-span-2 xl:col-span-3">
+            {customAdvancedFilters}
+            </div>) : null}
           </div>)}
       </div>
       <div className={`data-table-scroll ${noHorizontalScroll ? 'overflow-x-hidden' : 'overflow-x-auto'}`}>

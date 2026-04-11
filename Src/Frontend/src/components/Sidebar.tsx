@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { BarChart3Icon, ChevronDownIcon, ChevronUpIcon, LayoutDashboardIcon, MenuIcon, PackageIcon, SettingsIcon, UsersIcon } from 'lucide-react';
+import { BarChart3Icon, ChevronDownIcon, ChevronUpIcon, LayoutDashboardIcon, MenuIcon, PackageIcon, SettingsIcon, UserIcon, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import logo from '../assets/LOGO.png';
 const menuItems = [
@@ -9,21 +9,56 @@ const menuItems = [
         icon: LayoutDashboardIcon,
     },
     {
+        id: 'personal-work',
+        label: 'Công việc cá nhân',
+        icon: UserIcon,
+        children: [
+            {
+                id: 'my-attendance',
+                label: 'Chấm công',
+            },
+            {
+                id: 'my-leave-requests',
+                label: 'Xin nghỉ',
+            },
+            {
+                id: 'my-salary',
+                label: 'Lương cá nhân',
+            },
+            {
+                id: 'profile',
+                label: 'Hồ sơ cá nhân',
+            },
+            {
+                id: 'change-password',
+                label: 'Đổi mật khẩu',
+            },
+        ],
+    },
+    {
         id: 'hr',
         label: 'Quản lý nhân sự',
         icon: UsersIcon,
         children: [
             {
                 id: 'employees',
-                label: 'Danh sách nhân viên',
+                label: 'Hồ sơ nhân sự',
             },
             {
                 id: 'position-salary',
                 label: 'Chức vụ & Công tác',
             },
             {
+                id: 'leave-operations',
+                label: 'Điều hành nghỉ phép',
+            },
+            {
+                id: 'daily-attendance',
+                label: 'Quản lý chấm công',
+            },
+            {
                 id: 'salary-leave',
-                label: 'Tính lương & Nghỉ phép',
+                label: 'Quản lý lương',
             },
         ],
     },
@@ -81,8 +116,10 @@ const menuItems = [
         ],
     },
 ];
-export function Sidebar({ activePage, onNavigate, isOpen, onToggle, }) {
+export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages = [], }) {
+    const allowedSet = new Set(allowedPages);
     const [expandedSections, setExpandedSections] = useState([
+        'personal-work',
         'hr',
         'warehouse',
         'business',
@@ -98,6 +135,19 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, }) {
             return false;
         return item.children.some((child) => child.id === activePage);
     };
+    const visibleMenuItems = menuItems
+        .map((item) => {
+        if (!item.children)
+            return item;
+        const visibleChildren = item.children.filter((child) => allowedSet.has(child.id));
+        if (visibleChildren.length === 0)
+            return null;
+        return {
+            ...item,
+            children: visibleChildren,
+        };
+    })
+        .filter(Boolean);
     return (<div className={`bg-dark-700 flex flex-col flex-shrink-0 transition-all duration-300 overflow-hidden ${isOpen ? 'w-[250px]' : 'w-0'}`}>
       {/* Brand Header */}
       <div className="h-16 flex items-center px-4 gap-3 border-b border-white/5 flex-shrink-0">
@@ -114,7 +164,7 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, }) {
 
       {/* Menu */}
       <nav className="flex-1 overflow-y-auto sidebar-scroll py-3 px-3">
-        {menuItems.map((item) => {
+                {visibleMenuItems.map((item) => {
             const isActive = item.id === activePage ||
                 (item.id === 'dashboard' && activePage === 'dashboard');
             const isExpanded = expandedSections.includes(item.id);

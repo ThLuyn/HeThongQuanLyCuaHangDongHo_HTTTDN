@@ -31,6 +31,10 @@ export function PositionSalaryManagement() {
     effectiveDate: '',
     note: '',
   });
+  const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
+  const [selectedHistoryRow, setSelectedHistoryRow] = useState(null);
+  const [effectiveDateRange, setEffectiveDateRange] = useState({ from: '', to: '' });
+  const [endDateRange, setEndDateRange] = useState({ from: '', to: '' });
 
   useEffect(() => {
     const loadRows = async () => {
@@ -117,19 +121,14 @@ export function PositionSalaryManagement() {
   const historyColumns = useMemo(
     () => [
       {
-        key: 'employeeName',
+        key: 'employeeSearchText',
         label: 'Nhân viên',
-        render: (_val, row) => `NV${String(row.employeeId).padStart(3, '0')} - ${row.employeeName || ''}`,
-      },
-      {
-        key: 'oldPositionName',
-        label: 'Chức vụ cũ',
-        render: (val, row) => `${val || 'Khởi tạo'} (${formatMoney(row.oldBaseSalary || 0)})`,
+        render: (val) => val || '-',
       },
       {
         key: 'newPositionName',
         label: 'Chức vụ mới',
-        render: (val, row) => `${val || 'Chưa cập nhật'} (${formatMoney(row.newBaseSalary || 0)})`,
+        render: (val) => val || 'Chưa cập nhật',
       },
       {
         key: 'effectiveDate',
@@ -142,11 +141,13 @@ export function PositionSalaryManagement() {
         },
       },
       {
-        key: 'approverName',
-        label: 'Người duyệt',
-        render: (_val, row) => {
-          const approverIdText = row.approverId ? `NV${String(row.approverId).padStart(3, '0')}` : '---';
-          return `${approverIdText} - ${row.approverName || 'Chưa cập nhật'}`;
+        key: 'endDate',
+        label: 'Ngày kết thúc',
+        render: (val) => {
+          if (!val) {
+            return '-';
+          }
+          return new Date(val).toLocaleDateString('vi-VN');
         },
       },
       {
@@ -157,6 +158,59 @@ export function PositionSalaryManagement() {
     ],
     [],
   );
+
+  const historyTableData = useMemo(
+    () =>
+      (historyRows || []).map((row) => ({
+        ...row,
+        employeeSearchText: `NV${String(row.employeeId).padStart(3, '0')} - ${row.employeeName || ''}`,
+      })),
+    [historyRows],
+  );
+
+  const filteredHistoryTableData = useMemo(() => {
+    const fromEffective = effectiveDateRange.from ? new Date(`${effectiveDateRange.from}T00:00:00`).getTime() : null;
+    const toEffective = effectiveDateRange.to ? new Date(`${effectiveDateRange.to}T23:59:59.999`).getTime() : null;
+    const fromEnd = endDateRange.from ? new Date(`${endDateRange.from}T00:00:00`).getTime() : null;
+    const toEnd = endDateRange.to ? new Date(`${endDateRange.to}T23:59:59.999`).getTime() : null;
+
+    return historyTableData.filter((row) => {
+      const effectiveTime = row.effectiveDate ? new Date(row.effectiveDate).getTime() : NaN;
+      const endTime = row.endDate ? new Date(row.endDate).getTime() : NaN;
+
+      if (fromEffective != null && (Number.isNaN(effectiveTime) || effectiveTime < fromEffective)) {
+        return false;
+      }
+      if (toEffective != null && (Number.isNaN(effectiveTime) || effectiveTime > toEffective)) {
+        return false;
+      }
+
+      if (fromEnd != null && (Number.isNaN(endTime) || endTime < fromEnd)) {
+        return false;
+      }
+      if (toEnd != null && (Number.isNaN(endTime) || endTime > toEnd)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [historyTableData, effectiveDateRange, endDateRange]);
+
+  const hasExternalHistoryDateFilters =
+    Boolean(effectiveDateRange.from) ||
+    Boolean(effectiveDateRange.to) ||
+    Boolean(endDateRange.from) ||
+    Boolean(endDateRange.to);
+
+  const clearExternalHistoryDateFilters = () => {
+    setEffectiveDateRange({ from: '', to: '' });
+    setEndDateRange({ from: '', to: '' });
+  };
+
+  const openHistoryDetail = (row) => {
+    setSelectedHistoryRow(row);
+    setHistoryDetailOpen(true);
+  };
 
   const openEdit = (row) => {
     setIsCreating(false);
@@ -312,6 +366,31 @@ export function PositionSalaryManagement() {
       return;
     }
 
+    const targetDate = new Date(`${effectiveDate}T00:00:00`);
+    if (Number.isNaN(targetDate.getTime())) {
+      setError('Ngày bắt đầu không hợp lệ.');
+      return;
+    }
+
+    const hasTransferInSameMonth = (historyRows || []).some((item) => {
+      if (Number(item.employeeId) !== employeeId) {
+        return false;
+      }
+      const itemDate = new Date(String(item.effectiveDate || '').slice(0, 10));
+      if (Number.isNaN(itemDate.getTime())) {
+        return false;
+      }
+      return (
+        itemDate.getMonth() === targetDate.getMonth() &&
+        itemDate.getFullYear() === targetDate.getFullYear()
+      );
+    });
+
+    if (hasTransferInSameMonth) {
+      setError('Mỗi nhân viên chỉ được chuyển công tác 1 lần trong cùng một tháng.');
+      return;
+    }
+
     try {
       await transferEmployeePositionApi({
         employeeId,
@@ -333,10 +412,6 @@ export function PositionSalaryManagement() {
 
   return (
     <div className="space-y-5">
-      {error && !modalOpen && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-      )}
-
       <DataTable
         title="Danh sách chức vụ"
         columns={columns}
@@ -345,7 +420,7 @@ export function PositionSalaryManagement() {
         addLabel="Thêm chức vụ"
         searchPlaceholder="Tìm theo chức vụ..."
         noHorizontalScroll
-        pageSize={10}
+        pageSize={5}
         emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
         rowActions={[
           {
@@ -366,16 +441,132 @@ export function PositionSalaryManagement() {
       <DataTable
         title="Lịch sử công tác"
         columns={historyColumns}
-        data={historyRows}
+        data={filteredHistoryTableData}
         defaultSortBy="effectiveDate"
         defaultSortDirection="desc"
         onAdd={openTransferModal}
         addLabel="Chuyển công tác"
-        searchPlaceholder="Tìm theo nhân viên/chức vụ/người duyệt..."
-        noHorizontalScroll
-        pageSize={10}
+        searchPlaceholder="Tìm theo..."
+        advancedFilterKeys={['employeeSearchText', 'newPositionName', 'note']}
+        externalHasActiveFilters={hasExternalHistoryDateFilters}
+        onClearExternalFilters={clearExternalHistoryDateFilters}
+        customAdvancedFilters={
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Ngày hiệu lực</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={effectiveDateRange.from}
+                  onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, from: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
+                <input
+                  type="date"
+                  value={effectiveDateRange.to}
+                  onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, to: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Ngày kết thúc</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={endDateRange.from}
+                  onChange={(e) => setEndDateRange((prev) => ({ ...prev, from: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
+                <input
+                  type="date"
+                  value={endDateRange.to}
+                  onChange={(e) => setEndDateRange((prev) => ({ ...prev, to: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
+              </div>
+            </div>
+          </div>
+        }
+        pageSize={5}
         emptyState={historyLoading ? 'Đang tải lịch sử công tác...' : 'Chưa có dữ liệu lịch sử công tác'}
+        rowActions={[
+          {
+            key: 'view',
+            label: 'Xem chi tiết',
+            onClick: openHistoryDetail,
+            className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
+          },
+        ]}
       />
+
+      <Modal isOpen={historyDetailOpen} onClose={() => setHistoryDetailOpen(false)} title="Chi tiết lịch sử chức vụ" size="lg">
+        {selectedHistoryRow ? (
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Mã lịch sử</p>
+                <p className="font-medium text-gray-900">{selectedHistoryRow.id}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Nhân viên</p>
+                <p className="font-medium text-gray-900">
+                  NV{String(selectedHistoryRow.employeeId).padStart(3, '0')} - {selectedHistoryRow.employeeName || '-'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Ngày hiệu lực</p>
+                <p className="font-medium text-gray-900">
+                  {selectedHistoryRow.effectiveDate ? new Date(selectedHistoryRow.effectiveDate).toLocaleDateString('vi-VN') : '-'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Ngày kết thúc</p>
+                <p className="font-medium text-gray-900">
+                  {selectedHistoryRow.endDate ? new Date(selectedHistoryRow.endDate).toLocaleDateString('vi-VN') : '-'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Chức vụ cũ</p>
+                <p className="font-medium text-gray-900">{selectedHistoryRow.oldPositionName || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Chức vụ mới</p>
+                <p className="font-medium text-gray-900">{selectedHistoryRow.newPositionName || 'Chưa cập nhật'}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Lương chức vụ cũ</p>
+                <p className="font-medium text-gray-900">{formatMoney(selectedHistoryRow.oldBaseSalary || 0)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-xs text-gray-500">Lương chức vụ mới</p>
+                <p className="font-medium text-gray-900">{formatMoney(selectedHistoryRow.newBaseSalary || 0)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2 sm:col-span-2">
+                <p className="text-xs text-gray-500">Người duyệt</p>
+                <p className="font-medium text-gray-900">
+                  {selectedHistoryRow.approverId
+                    ? `NV${String(selectedHistoryRow.approverId).padStart(3, '0')} - ${selectedHistoryRow.approverName || 'Chưa cập nhật'}`
+                    : 'Chưa cập nhật'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2 sm:col-span-2">
+                <p className="text-xs text-gray-500">Ghi chú</p>
+                <p className="font-medium text-gray-900">{selectedHistoryRow.note || '-'}</p>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setHistoryDetailOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={isCreating ? 'Thêm chức vụ mới' : 'Cập nhật chức vụ & lương'}>
         <div className="space-y-4">

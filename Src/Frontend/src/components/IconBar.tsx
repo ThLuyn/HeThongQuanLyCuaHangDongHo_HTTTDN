@@ -22,11 +22,12 @@ const topIcons = [
         label: 'Hệ thống',
     },
 ];
-export function IconBar({ activePage, onNavigate, onLogout }) {
+export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [] }) {
+    const allowedSet = new Set(allowedPages);
     const getGroupForPage = (page) => {
         if (page === 'dashboard')
             return 'dashboard';
-        if (['employees', 'salary-leave', 'position-salary'].includes(page))
+        if (['employees', 'my-salary', 'salary-leave', 'leave-operations', 'daily-attendance', 'my-attendance', 'my-leave-requests', 'position-salary', 'profile', 'change-password'].includes(page))
             return 'employees';
         if ([
             'watch-categories',
@@ -36,14 +37,24 @@ export function IconBar({ activePage, onNavigate, onLogout }) {
             'sales-report',
         ].includes(page))
             return 'stock-receipts';
-        if (['user-management', 'backup-restore'].includes(page))
+        if (['permission-management', 'user-management', 'backup-restore'].includes(page))
             return 'system';
         return '';
     };
+    const groupToPages = {
+        dashboard: ['dashboard'],
+        employees: ['employees', 'my-salary', 'salary-leave', 'leave-operations', 'daily-attendance', 'my-attendance', 'my-leave-requests', 'position-salary', 'profile', 'change-password'],
+        'stock-receipts': ['watch-categories', 'suppliers', 'stock-receipts', 'export-receipts', 'sales-report'],
+        system: ['permission-management', 'user-management', 'backup-restore'],
+    };
+    const visibleTopIcons = topIcons.filter((item) => {
+        const pages = groupToPages[item.id] || [];
+        return pages.some((page) => allowedSet.has(page));
+    });
     const activeGroup = getGroupForPage(activePage);
     return (<div className="w-[60px] bg-dark-900 flex flex-col items-center py-4 flex-shrink-0">
       <div className="flex-1 flex flex-col items-center gap-2 mt-2">
-        {topIcons.map((item) => {
+        {visibleTopIcons.map((item) => {
             const isActive = activeGroup === item.id;
             return (<button key={item.id} onClick={() => onNavigate(item.id)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/30' : 'text-gray-500 hover:text-gray-300 hover:bg-dark-600'}`} aria-label={item.label} title={item.label}>
               <item.icon className="w-5 h-5"/>

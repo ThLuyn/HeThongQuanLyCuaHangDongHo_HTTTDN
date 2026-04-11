@@ -7,6 +7,7 @@ const userController = require("../controllers/userController");
 const {
   authenticateToken,
   authorizeRoles,
+  authorizeRolesOrPermissions,
 } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
@@ -23,14 +24,13 @@ router.patch(
 router.get(
   "/dashboard/overview",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
   dashboardController.getOverview,
 );
 
 router.get(
   "/dashboard/notifications",
   authenticateToken,
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRoles("admin", "manager", "hr", "staff"),
   dashboardController.getHeaderNotifications,
 );
 
@@ -114,7 +114,13 @@ router.delete(
 router.get(
   "/inventory/products",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [
+      { mcn: "sanpham", actions: ["view"] },
+      { mcn: "phieunhap", actions: ["view"] },
+    ],
+  ),
   inventoryController.getProducts,
 );
 
@@ -150,35 +156,54 @@ router.delete(
 router.get(
   "/inventory/import-receipts",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "phieunhap", actions: ["view"] }],
+  ),
   inventoryController.getImportReceipts,
 );
 
 router.get(
   "/inventory/import-receipts/:id",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "phieunhap", actions: ["view"] }],
+  ),
   inventoryController.getImportReceiptDetail,
 );
 
 router.patch(
   "/inventory/import-receipts/:id/decision",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "phieunhap", actions: ["update"] }],
+  ),
   inventoryController.decideImportReceipt,
 );
 
 router.post(
   "/inventory/import-receipts",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "phieunhap", actions: ["create"] }],
+  ),
   inventoryController.createImportReceipt,
 );
 
 router.get(
   "/inventory/suppliers",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [
+      { mcn: "nhacungcap", actions: ["view"] },
+      { mcn: "sanpham", actions: ["view"] },
+      { mcn: "phieunhap", actions: ["view"] },
+    ],
+  ),
   inventoryController.getSuppliers,
 );
 
@@ -206,7 +231,10 @@ router.delete(
 router.get(
   "/inventory/display-locations",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "sanpham", actions: ["view"] }],
+  ),
   inventoryController.getDisplayLocations,
 );
 

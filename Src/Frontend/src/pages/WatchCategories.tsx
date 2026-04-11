@@ -33,6 +33,9 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     const [viewingProduct, setViewingProduct] = useState(null);
     const [editing, setEditing] = useState(null);
     const now = new Date();
+    const storeOpenYear = 2024;
+    const currentYear = now.getFullYear();
+    const yearOptions = Array.from({ length: Math.max(1, currentYear - storeOpenYear + 1) }, (_, index) => storeOpenYear + index);
     const [reportYear, setReportYear] = useState(now.getFullYear());
     const [reportMonth, setReportMonth] = useState(now.getMonth() + 1);
     const [reportData, setReportData] = useState(null);
@@ -653,7 +656,11 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
                   Tháng {month}
                 </option>))}
             </select>
-            <input type="number" value={reportYear} onChange={(e) => setReportYear(Number(e.target.value) || now.getFullYear())} className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg"/>
+            <select value={reportYear} onChange={(e) => setReportYear(Number(e.target.value))} className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg">
+              {yearOptions.map((year) => (<option key={year} value={year}>
+                  {year}
+                </option>))}
+            </select>
             <button onClick={loadReport} className="inline-flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
               <RefreshCcwIcon className="w-4 h-4"/>
               Làm mới
@@ -754,7 +761,7 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
         ]}
         emptyState={emptyState}
         addLabel="Thêm sản phẩm"
-        pageSize={10}
+        pageSize={5}
         defaultSortBy="name"
       />
 
@@ -794,7 +801,7 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             onAdd={openAddLocation}
             rowActions={locationRowActions}
             addLabel="Thêm vị trí"
-            pageSize={10}
+            pageSize={5}
           />
         ) : (
           <div className="space-y-3">
