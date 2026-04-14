@@ -28,14 +28,17 @@ async function verifyPasswordAndMigrateIfNeeded(user, plainPassword) {
   return true;
 }
 
-function normalizeRole(roleName, groupId) {
+function normalizeRole(roleName, groupId, department) {
   const value = String(roleName || "").toLowerCase();
   const mnq = Number(groupId);
+  const dept = String(department || "").toLowerCase();
 
+  // MNQ = 1 is always admin
   if (mnq === 1) {
     return "admin";
   }
 
+  // Check group name for admin
   if (
     value.includes("admin") ||
     value.includes("quản trị") ||
@@ -44,20 +47,36 @@ function normalizeRole(roleName, groupId) {
     return "admin";
   }
 
+  // Check for HR manager
+  if (
+    value.includes("nhân sự") ||
+    value.includes("nhan su") ||
+    value.includes("hr")
+  ) {
+    return "hr";
+  }
+
+  // Check department for warehouse
+  if (dept.includes("kho")) {
+    return "warehouse";
+  }
+
+  // Check department for sales
+  if (
+    dept.includes("kinh doanh") ||
+    dept.includes("kinh doanh") ||
+    dept.includes("sales")
+  ) {
+    return "sales";
+  }
+
+  // Default for other managers/staff
   if (
     value.includes("manager") ||
     value.includes("quản lý") ||
     value.includes("quan ly")
   ) {
     return "manager";
-  }
-
-  if (
-    value.includes("hr") ||
-    value.includes("nhân sự") ||
-    value.includes("nhan su")
-  ) {
-    return "hr";
   }
 
   return "staff";
@@ -93,7 +112,7 @@ async function login(req, res, next) {
       return fail(res, "Invalid credentials", 401);
     }
 
-    const role = normalizeRole(user.TENNHOMQUYEN, user.MNQ);
+    const role = normalizeRole(user.TENNHOMQUYEN, user.MNQ, user.BOPHAN);
     const permissions = await getUserPermissionsByGroup(user.MNQ);
 
     const accessToken = jwt.sign(
@@ -118,6 +137,7 @@ async function login(req, res, next) {
           hinhAnh: user.HINHANH || null,
           role,
           groupName: user.TENNHOMQUYEN,
+          department: user.BOPHAN,
           permissions,
         },
       },
@@ -180,9 +200,73 @@ async function me(req, res, next) {
   try {
     const profile = await User.findById(req.user?.mnv);
 
-    if (!profile) {
-      return fail(res, "User not found", 404);
-    }
+      if (!profile) {
+        if (process.env.NODE_ENV !== "production") {
+          // Dev fallback: return a mock profile so frontend can render without DB data.
+          const mock = {
+            MNV: Number(req.user?.mnv || 1),
+            TDN: String(req.user?.username || "dev"),
+            HOTEN: "Dev User",
+            MNQ: Number(req.user?.mnq || 1),
+            TENNHOMQUYEN: "Admin",
+            BOPHAN: "Development",
+            HINHANH: null,
+            GIOITINH: 1,
+            NGAYSINH: null,
+            SDT: null,
+            EMAIL: null,
+            TT: 1,
+            CCCD: null,
+            NGAYVAOLAM: null,
+            TENCHUCVU: null,
+            LUONGCOBAN: 0,
+          };
+
+          const permissions = await getUserPermissionsByGroup(mock.MNQ).catch(() => []);
+
+          return success(
+            res,
+            {
+              mnv: mock.MNV,
+              username: mock.TDN,
+              fullName: mock.HOTEN,
+              mnq: mock.MNQ,
+              role: normalizeRole(mock.TENNHOMQUYEN, mock.MNQ, mock.BOPHAN),
+              groupName: mock.TENNHOMQUYEN,
+              department: mock.BOPHAN,
+              permissions,
+              ngaySinh: mock.NGAYSINH,
+              gioiTinh: Number(mock.GIOITINH),
+              soDienThoai: mock.SDT,
+              email: mock.EMAIL,
+              trangThai: Number(mock.TT),
+              queQuan: null,
+              diaChi: null,
+              hinhAnh: mock.HINHANH,
+              chucVu: mock.TENCHUCVU,
+              ngayVaoLam: mock.NGAYVAOLAM,
+              cccd: mock.CCCD,
+              boPhan: mock.BOPHAN,
+              trangThaiLamViec: Number(mock.TT ?? 1),
+              luongCoBan: Number(mock.LUONGCOBAN || 0),
+              soTaiKhoanNganHang: null,
+              tenNganHang: null,
+              maSoThueCaNhan: null,
+              khauTruBaoHiem: {
+                bhxhRate: 0.08,
+                bhytRate: 0.015,
+                bhtnRate: 0.01,
+                bhxhAmount: 0,
+                bhytAmount: 0,
+                bhtnAmount: 0,
+              },
+            },
+            "Profile loaded (dev fallback)",
+          );
+        }
+
+        return fail(res, "User not found", 404);
+      }
 
     const permissions = await getUserPermissionsByGroup(profile.MNQ);
 
@@ -193,8 +277,9 @@ async function me(req, res, next) {
         username: profile.TDN,
         fullName: profile.HOTEN,
         mnq: profile.MNQ,
-        role: normalizeRole(profile.TENNHOMQUYEN, profile.MNQ),
+        role: normalizeRole(profile.TENNHOMQUYEN, profile.MNQ, profile.BOPHAN),
         groupName: profile.TENNHOMQUYEN,
+        department: profile.BOPHAN,
         permissions,
         ngaySinh: profile.NGAYSINH,
         gioiTinh: Number(profile.GIOITINH),

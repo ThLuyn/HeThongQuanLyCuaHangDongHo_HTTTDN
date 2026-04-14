@@ -1,14 +1,12 @@
 // @ts-nocheck
-import { AlertCircleIcon, CheckCircle2Icon, Clock3Icon, HistoryIcon, LogInIcon, LogOutIcon, MapPinIcon, RefreshCcwIcon, SaveIcon, WifiIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { AlertCircleIcon, CheckCircle2Icon, Clock3Icon, HistoryIcon, LogInIcon, LogOutIcon, MapPinIcon, RefreshCcwIcon, SaveIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadAuthSession } from '../utils/authStorage'
 import {
   checkInAttendanceApi,
   checkOutAttendanceApi,
-  getMyAttendanceStatusApi,
-  getTodayAttendanceApi,
-  saveTodayAttendanceApi,
   getEmployeesApi,
+  getMyAttendanceStatusApi,
   getShiftAssignmentsApi,
   saveShiftAssignmentsApi,
 } from '../utils/backendApi'
@@ -40,56 +38,42 @@ function getDelayUntilNextVietnamMidnight() {
 export function DailyAttendance({ viewMode = 'auto' }) {
   const currentSession = loadAuthSession()
   const currentRole = String(currentSession?.role || '').toLowerCase()
+  const isAdminOrHr = ['admin', 'hr'].includes(currentRole)
   const isStaffMode = viewMode === 'self' || (viewMode !== 'manage' && currentRole === 'staff')
   const [tab, setTab] = useState<'attendance' | 'shift'>('attendance')
 
-  // State for shift assignment
-  const [shiftLoading, setShiftLoading] = useState(false)
-  const [shiftSaving, setShiftSaving] = useState(false)
-  const [shiftError, setShiftError] = useState('')
-  const [shiftSuccess, setShiftSuccess] = useState('')
-  const [shiftDate, setShiftDate] = useState(getVietnamTodayString())
-  const [shiftEmployees, setShiftEmployees] = useState([])
-  const [shiftDefinitions, setShiftDefinitions] = useState([])
-  const [shiftAssignmentsByEmployee, setShiftAssignmentsByEmployee] = useState({})
-
-  // Modal notification state
-  const [modal, setModal] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+  // ── Modal ──────────────────────────────────────────────────────────────────
+  const [modal, setModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const showModal = (type: 'success' | 'error', message: string) => setModal({ type, message })
   const closeModal = () => setModal(null)
 
-  // GPS state
+  // ── GPS ────────────────────────────────────────────────────────────────────
   const STORES = [
-    { name: '273 An Dương Vương, Phường Chợ Quán, TP. Hồ Chí Minh', lat: 10.7599171, lng: 106.6822583 },
-    { name: '35A Tân Trang, Phường Tân Hòa, TP. Hồ Chí Minh',  lat: 10.7788976, lng: 106.6547478 },
-    { name: '13C Khu Bờ Hàng, Phường Phú Định, TP. Hồ Chí Minh',  lat: 10.713926, lng: 106.622889 },
-    { name: '78/9 An Dương Vương, Phường An Đông, TP. Hồ Chí Minh',  lat: 10.713926, lng: 106.622889 },
+    { name: '273 An Dương Vương, Phường Chợ Quán, TP. Hồ Chí Minh', lat: 10.759421130525608, lng: 106.6824379075026 },
+    { name: '35A Tân Trang, Phường Tân Hòa, TP. Hồ Chí Minh', lat: 10.7788976, lng: 106.6547478 },
+    { name: '13C Khu Bờ Hàng, Phường Phú Định, TP. Hồ Chí Minh', lat: 10.713926, lng: 106.622889 },
+    { name: '78/9 An Dương Vương, Phường An Đông, TP. Hồ Chí Minh', lat: 10.713926, lng: 106.622889 },
   ]
   const STORE_RADIUS_METERS = 100
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'far' | 'denied' | 'error'>('idle')
   const [gpsDistance, setGpsDistance] = useState<number | null>(null)
   const [nearestStore, setNearestStore] = useState<string | null>(null)
 
-  function calcDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  function calcDistanceMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLng = (lng2 - lng1) * Math.PI / 180
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLng = ((lng2 - lng1) * Math.PI) / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
   const checkGPS = (): Promise<boolean> => {
     return new Promise((resolve) => {
       setGpsStatus('checking')
-      if (!navigator.geolocation) {
-        setGpsStatus('error')
-        resolve(false)
-        return
-      }
+      if (!navigator.geolocation) { setGpsStatus('error'); resolve(false); return }
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords
-          // Tìm cửa hàng gần nhất
           let minDist = Infinity
           let closestStore = STORES[0]
           for (const store of STORES) {
@@ -99,407 +83,431 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           const dist = Math.round(minDist)
           setGpsDistance(dist)
           setNearestStore(closestStore.name)
-          if (dist <= STORE_RADIUS_METERS) {
-            setGpsStatus('ok')
-            resolve(true)
-          } else {
-            setGpsStatus('far')
-            resolve(false)
-          }
+          if (dist <= STORE_RADIUS_METERS) { setGpsStatus('ok'); resolve(true) }
+          else { setGpsStatus('far'); resolve(false) }
         },
-        (err) => {
-          setGpsStatus(err.code === 1 ? 'denied' : 'error')
-          resolve(false)
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
+        (err) => { setGpsStatus(err.code === 1 ? 'denied' : 'error'); resolve(false) },
+        { enableHighAccuracy: true, timeout: 10000 },
       )
     })
   }
-    // Load shift assignments
-    const loadShiftAssignments = async (dateOverride?: string) => {
-      setShiftLoading(true)
-      setShiftError('')
-      try {
-        const date = dateOverride || shiftDate
-        if (typeof getEmployeesApi !== 'function' || typeof getShiftAssignmentsApi !== 'function') {
-          throw new Error('API chưa s�ba�n sàng, vui lòng th�bb� l�ba�i sau.')
-        }
-        const [empRaw, shiftRaw] = await Promise.all([
-          getEmployeesApi(),
-          getShiftAssignmentsApi(date),
-        ])
-        // Normalize: some APIs wrap response in .data or return array directly
-        const empData = Array.isArray(empRaw) ? empRaw : (Array.isArray(empRaw?.data) ? empRaw.data : [])
-        const shiftData = (shiftRaw && typeof shiftRaw === 'object' && !Array.isArray(shiftRaw)) ? shiftRaw : {}
-        const activeEmployees = empData.filter(e => Number(e.TT) === 1).map(e => ({
-          mnv: Number(e.MNV),
-          fullName: e.HOTEN,
-          positionName: e.TENCHUCVU || '',
-        }))
-        setShiftEmployees(activeEmployees)
-        setShiftDefinitions(Array.isArray(shiftData?.shifts) ? shiftData.shifts : [])
-        // Build assignment map
-        const assignmentMap = {}
-        const assignmentList = Array.isArray(shiftData?.assignments) ? shiftData.assignments : []
-        assignmentList.forEach(item => {
-          if (!item || typeof item !== 'object') return
-          const mnv = Number(item.mnv)
-          const shiftId = Number(item.shiftId ?? item.mca)
-          if (!mnv || !shiftId) return
-          if (!assignmentMap[mnv]) assignmentMap[mnv] = []
-          assignmentMap[mnv].push(shiftId)
-        })
-        activeEmployees.forEach(e => { if (!assignmentMap[e.mnv]) assignmentMap[e.mnv] = [] })
-        setShiftAssignmentsByEmployee(assignmentMap)
-      } catch (e) {
-        setShiftError('Không thể tải dữ liệu phân ca: ' + (e?.message || JSON.stringify(e)))
-        // eslint-disable-next-line no-console
-        console.error('Lỗi tải phân ca:', e)
-      } finally {
-        setShiftLoading(false)
-      }
-    }
 
-    const handleShiftDateChange = (value) => {
-      setShiftDate(value)
-      loadShiftAssignments(value)
-    }
-
-    const handleShiftToggle = (mnv, shiftId, checked) => {
-      setShiftAssignmentsByEmployee(prev => {
-        const current = Array.isArray(prev[mnv]) ? prev[mnv] : []
-        const next = checked
-          ? Array.from(new Set([...current, shiftId]))
-          : current.filter(id => id !== shiftId)
-        return { ...prev, [mnv]: next }
-      })
-    }
-
-    const handleShiftSave = async () => {
-      setShiftSaving(true)
-      setShiftError('')
-      try {
-        if (typeof saveShiftAssignmentsApi !== 'function') {
-          throw new Error('API lưu phân ca chưa sẵn sàng.')
-        }
-        const payload = shiftEmployees.map(e => ({
-          employeeId: e.mnv,
-          shiftIds: shiftAssignmentsByEmployee[e.mnv] || [],
-        }))
-        const result = await saveShiftAssignmentsApi({
-          date: shiftDate,
-          assignments: payload,
-        })
-        setShiftSuccess(`Đã lưu phân ca (${result.assignedCount || 0} ca)`)
-        showModal('success', `Đã lưu phân ca (${result.assignedCount || 0} ca)`)
-        await loadShiftAssignments(shiftDate)
-      } catch (e) {
-        setShiftError('Không thể lưu phân ca')
-        showModal('error', 'Không thể lưu phân ca')
-      } finally {
-        setShiftSaving(false)
-        setTimeout(() => setShiftSuccess(''), 3000)
-      }
-    }
-
-    const assignedCount = useMemo(() => shiftEmployees.filter(e => (shiftAssignmentsByEmployee[e.mnv] || []).length > 0).length, [shiftEmployees, shiftAssignmentsByEmployee])
-    const totalAssignments = useMemo(() => shiftEmployees.reduce((sum, e) => sum + (shiftAssignmentsByEmployee[e.mnv]?.length || 0), 0), [shiftEmployees, shiftAssignmentsByEmployee])
-  const [loading, setLoading] = useState(false)
+  // ── Staff state ────────────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [attendanceDate, setAttendanceDate] = useState('')
-  const [selectedDate, setSelectedDate] = useState(getVietnamTodayString())
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [rows, setRows] = useState([])
-  const [presentMap, setPresentMap] = useState({})
-  const [myAttendance, setMyAttendance] = useState({
-    hasShift: false,
-    canCheckIn: false,
-    canCheckOut: false,
-    shifts: [],
-  })
+  const [selectedDate, setSelectedDate] = useState(getVietnamTodayString())
+  const [attendanceDate, setAttendanceDate] = useState('')
+  const [myAttendance, setMyAttendance] = useState({ hasShift: false, canCheckIn: false, canCheckOut: false, shifts: [] })
 
-  const loadAttendance = async (dateOverride?: string, options?: { silent?: boolean }) => {
-    const requestDate = String(dateOverride || selectedDate || '').trim()
-    const isSilent = Boolean(options?.silent)
-    if (!isSilent) {
-      setLoading(true)
-      setError('')
-    }
+  // ── Admin / manage state ───────────────────────────────────────────────────
+  // Dùng shiftData (từ getShiftAssignments) làm nguồn duy nhất cho bảng chấm công
+  const [shiftLoading, setShiftLoading] = useState(true)
+  const [shiftSaving, setShiftSaving] = useState(false)
+  const [shiftDate, setShiftDate] = useState(getVietnamTodayString())
+  const [shiftEmployees, setShiftEmployees] = useState([])      // danh sách NV (từ getEmployees)
+  const [shiftDefinitions, setShiftDefinitions] = useState([])  // danh sách ca
+  // assignment map: mnv -> shiftId[] (dùng cho tab Phân ca)
+  const [shiftAssignmentsByEmployee, setShiftAssignmentsByEmployee] = useState({})
+  // attendance rows: mỗi phần tử có mnv, fullName, positionName, shiftIds[]
+  const [attendanceRows, setAttendanceRows] = useState([])
+  // checkIn/checkOut by shift: Record<mnv, Record<shiftId, { checkIn, checkOut }>>
+  const [checkInOutByShift, setCheckInOutByShift] = useState({})
+  // Pagination
+  const [currentAttendancePage, setCurrentAttendancePage] = useState(0)
+  const [currentShiftPage, setCurrentShiftPage] = useState(0)
+  const pageSize = 5
+  // Track local changes ở tab Phân ca để không bị reset khi polling
+  const [hasLocalShiftChanges, setHasLocalShiftChanges] = useState(false)
+
+  // Ref để polling luôn đọc date mới nhất mà không cần re-create interval
+  const selectedDateRef = useRef(selectedDate)
+  const shiftDateRef = useRef(shiftDate)
+  const hasLocalShiftChangesRef = useRef(false)
+  useEffect(() => { selectedDateRef.current = selectedDate }, [selectedDate])
+  useEffect(() => { shiftDateRef.current = shiftDate }, [shiftDate])
+  useEffect(() => { hasLocalShiftChangesRef.current = hasLocalShiftChanges }, [hasLocalShiftChanges])
+
+  // ── Load functions ─────────────────────────────────────────────────────────
+
+  // Load dữ liệu cho STAFF (chấm công cá nhân)
+  const loadMyAttendance = async (dateOverride?: string, opts?: { silent?: boolean }) => {
+    const date = dateOverride || getVietnamTodayString() 
+    if (!opts?.silent) { setLoading(true); setError('') }
     try {
-      if (isStaffMode) {
-        const data = await getMyAttendanceStatusApi(requestDate || undefined)
-        const responseDate = String(data?.date || '').slice(0, 10)
-        setRows([])
-        setPresentMap({})
-        setMyAttendance({
-          hasShift: Boolean(data?.hasShift),
-          canCheckIn: Boolean(data?.canCheckIn),
-          canCheckOut: Boolean(data?.canCheckOut),
-          shifts: Array.isArray(data?.shifts) ? data.shifts : [],
-        })
+      const data = await getMyAttendanceStatusApi(date)
+      const responseDate = String(data?.date || '').slice(0, 10)
+      setMyAttendance({
+        hasShift: Boolean(data?.hasShift),
+        canCheckIn: Boolean(data?.canCheckIn),
+        canCheckOut: Boolean(data?.canCheckOut),
+        shifts: Array.isArray(data?.shifts) ? data.shifts : [],
+      })
+      if (responseDate) {
         setAttendanceDate(responseDate)
         setSelectedDate(responseDate)
       }
-      else {
-        const data = await getTodayAttendanceApi(requestDate || undefined)
-        const employees = Array.isArray(data?.employees) ? data.employees : []
-        const mapped = employees.reduce((acc, item) => {
-          acc[Number(item.mnv)] = Boolean(item.present)
-          return acc
-        }, {})
-
-        setRows(employees)
-        const responseDate = String(data?.date || '').slice(0, 10)
-        setAttendanceDate(responseDate)
-        setSelectedDate(responseDate)
-        setPresentMap(mapped)
-      }
-
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể tải dữ liệu chấm công hôm nay'
-      setError(message)
+      if (!opts?.silent) setError(e instanceof Error ? e.message : 'Không thể tải dữ liệu chấm công')
     } finally {
-      if (!isSilent) {
-        setLoading(false)
-      }
+      if (!opts?.silent) setLoading(false)
     }
   }
 
+  // Load dữ liệu cho ADMIN — gộp employees + shiftAssignments thành 1 lần gọi
+  const loadAdminAttendance = async (dateOverride?: string, opts?: { silent?: boolean }) => {
+    const date = dateOverride || shiftDateRef.current || getVietnamTodayString()
+    if (!opts?.silent) setShiftLoading(true)
+    try {
+      const [empRaw, shiftRaw] = await Promise.all([
+        getEmployeesApi(),
+        getShiftAssignmentsApi(date),
+      ])
+
+      // Normalize employees
+      const empData = Array.isArray(empRaw) ? empRaw : (Array.isArray(empRaw?.data) ? empRaw.data : [])
+      const activeEmployees = empData
+        .filter(e => Number(e.TT) === 1)
+        .map(e => ({ mnv: Number(e.MNV), fullName: e.HOTEN, positionName: e.TENCHUCVU || '' }))
+
+      // Normalize shift data
+      const shiftData = (shiftRaw && typeof shiftRaw === 'object' && !Array.isArray(shiftRaw)) ? shiftRaw : {}
+      const definitions = Array.isArray(shiftData?.shifts) ? shiftData.shifts : []
+      const assignmentList = Array.isArray(shiftData?.assignments) ? shiftData.assignments : []
+
+      setShiftEmployees(activeEmployees)
+      setShiftDefinitions(definitions)
+      setCurrentShiftPage(0)
+
+      // Build assignment map (mnv -> shiftId[]) cho tab Phân ca
+      const assignmentMap = {}
+      activeEmployees.forEach(e => { assignmentMap[e.mnv] = [] })
+      assignmentList.forEach(item => {
+        if (!item || typeof item !== 'object') return
+        const mnv = Number(item.mnv)
+        const shiftId = Number(item.shiftId ?? item.mca)
+        if (!mnv || !shiftId) return
+        if (!assignmentMap[mnv]) assignmentMap[mnv] = []
+        if (!assignmentMap[mnv].includes(shiftId)) assignmentMap[mnv].push(shiftId)
+      })
+      // Chỉ reset assignment nếu không có thay đổi local chưa save
+      if (!hasLocalShiftChangesRef.current) {
+        setShiftAssignmentsByEmployee(assignmentMap)
+      }
+
+      // Build attendance rows cho tab Chấm công
+      // Lưu checkIn/checkOut cho từng shift riêng biệt
+      const checkByShift: Record<number, Record<number, { checkIn: string | null; checkOut: string | null }>> = {}
+      assignmentList.forEach(item => {
+        const mnv = Number(item.mnv)
+        const shiftId = Number(item.shiftId ?? item.mca)
+        if (!mnv || !shiftId) return
+        if (!checkByShift[mnv]) checkByShift[mnv] = {}
+        checkByShift[mnv][shiftId] = {
+          checkIn: item.checkIn || null,
+          checkOut: item.checkOut || null,
+        }
+      })
+      setCheckInOutByShift(checkByShift)
+
+      const rows = activeEmployees.map(emp => ({
+        mnv: emp.mnv,
+        fullName: emp.fullName,
+        positionName: emp.positionName,
+        shiftIds: assignmentMap[emp.mnv] || [],
+      }))
+      // Sắp xếp theo mnv tăng dần
+      rows.sort((a, b) => a.mnv - b.mnv)
+      setAttendanceRows(rows)
+      setCurrentAttendancePage(0)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Lỗi tải dữ liệu chấm công:', e)
+    } finally {
+      if (!opts?.silent) setShiftLoading(false)
+    }
+  }
+
+  // Load shift assignments cho tab Phân ca (date có thể khác shiftDate)
+  const loadShiftAssignments = async (dateOverride?: string) => {
+    await loadAdminAttendance(dateOverride)
+  }
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Đồng hồ
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [])
 
+  // Init — load ngay khi mount với ngày hôm nay
   useEffect(() => {
-    loadAttendance()
-    if (!isStaffMode) { loadShiftAssignments() }
-  }, [])
+    const today = getVietnamTodayString()
+    setSelectedDate(today)
+    setShiftDate(today)
+    selectedDateRef.current = today
+    shiftDateRef.current = today
+    if (isStaffMode) {
+      loadMyAttendance(today)
+    } else {
+      loadAdminAttendance(today)
+    }
+  }, [isStaffMode])
 
+  // Polling 5 giây
+  useEffect(() => {
+    let interval: number | null = null
+    // Delay polling start by 1.5s to let initial load complete
+    const startPolling = window.setTimeout(() => {
+      interval = window.setInterval(() => {
+        if (saving || shiftSaving) return
+        if (isStaffMode) {
+          loadMyAttendance(selectedDateRef.current, { silent: true })
+        } else {
+          loadAdminAttendance(shiftDateRef.current, { silent: true })
+        }
+      }, 5000)
+    }, 1500)
+    
+    return () => {
+      if (interval) window.clearInterval(interval)
+      window.clearTimeout(startPolling)
+    }
+  }, [saving, shiftSaving, isStaffMode])
+
+  // Auto reload lúc nửa đêm
   useEffect(() => {
     let midnightTimer: number | null = null
-
-    const scheduleNextMidnightReload = () => {
+    const schedule = () => {
       midnightTimer = window.setTimeout(async () => {
         const nextDate = getVietnamTodayString()
         setSelectedDate(nextDate)
-        await loadAttendance(nextDate)
-        scheduleNextMidnightReload()
+        setShiftDate(nextDate)
+        selectedDateRef.current = nextDate
+        shiftDateRef.current = nextDate
+        if (isStaffMode) await loadMyAttendance(nextDate)
+        else await loadAdminAttendance(nextDate)
+        schedule()
       }, getDelayUntilNextVietnamMidnight())
     }
-
-    scheduleNextMidnightReload()
-
-    return () => {
-      if (midnightTimer) {
-        window.clearTimeout(midnightTimer)
-      }
-    }
+    schedule()
+    return () => { if (midnightTimer) window.clearTimeout(midnightTimer) }
   }, [])
 
+  // Auto clear success message
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (saving) {
-        return
-      }
-      const targetDate = selectedDate || attendanceDate || undefined
-      loadAttendance(targetDate, { silent: true })
-    }, 3000)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [selectedDate, attendanceDate, saving])
-
-  useEffect(() => {
-    if (!success) {
-      return
-    }
+    if (!success) return
     const timer = window.setTimeout(() => setSuccess(''), 5000)
     return () => window.clearTimeout(timer)
   }, [success])
 
-  const presentCount = useMemo(
-    () => rows.reduce((count, item) => count + (presentMap[Number(item.mnv)] ? 1 : 0), 0),
-    [rows, presentMap],
+  // ── Computed ───────────────────────────────────────────────────────────────
+  
+  // Pagination computed & sorting
+  const sortedAttendanceRows = useMemo(
+    () => [...attendanceRows].sort((a, b) => a.mnv - b.mnv),
+    [attendanceRows],
+  )
+  const totalAttendancePages = Math.ceil(sortedAttendanceRows.length / pageSize)
+  const paginatedAttendanceRows = sortedAttendanceRows.slice(
+    currentAttendancePage * pageSize,
+    (currentAttendancePage + 1) * pageSize,
   )
 
-  const allChecked = rows.length > 0 && rows.every((item) => presentMap[Number(item.mnv)])
+  const sortedShiftEmployees = useMemo(
+    () => [...shiftEmployees].sort((a, b) => a.mnv - b.mnv),
+    [shiftEmployees],
+  )
+  const totalShiftPages = Math.ceil(sortedShiftEmployees.length / pageSize)
+  const paginatedShiftEmployees = sortedShiftEmployees.slice(
+    currentShiftPage * pageSize,
+    (currentShiftPage + 1) * pageSize,
+  )
 
-  const handleToggleAll = (checked) => {
-    const next = {}
-    rows.forEach((item) => {
-      next[Number(item.mnv)] = checked
-    })
-    setPresentMap(next)
-  }
+  const presentCount = useMemo(
+    () => sortedAttendanceRows.filter(r => {
+      const shifts = checkInOutByShift[r.mnv] || {}
+      return Object.values(shifts).some((s: any) => Boolean(s.checkIn))
+    }).length,
+    [sortedAttendanceRows, checkInOutByShift],
+  )
 
-  const handleSave = async () => {
-    if (isStaffMode) return
-    const presentEmployeeIds = rows
-      .filter((item) => presentMap[Number(item.mnv)])
-      .map((item) => Number(item.mnv))
-    setSaving(true)
-    setError('')
-    try {
-      const result = await saveTodayAttendanceApi({
-        presentEmployeeIds,
-        date: selectedDate || attendanceDate || undefined,
-      })
-      setSuccess(`Đã lưu chấm công ngày ${new Date(result.date).toLocaleDateString('vi-VN')} (${result.presentCount} nhân viên có mặt)`)
-      showModal('success', `Đã lưu chấm công ngày ${new Date(result.date).toLocaleDateString('vi-VN')} (${result.presentCount} nhân viên có mặt)`)
-      await loadAttendance(selectedDate || attendanceDate)
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể lưu chấm công hôm nay'
-      setError(message)
-      showModal('error', message)
-    } finally {
-      setSaving(false)
-    }
-  }
+  const assignedCount = useMemo(
+    () => sortedShiftEmployees.filter(e => (shiftAssignmentsByEmployee[e.mnv] || []).length > 0).length,
+    [sortedShiftEmployees, shiftAssignmentsByEmployee],
+  )
+
+  const totalAssignments = useMemo(
+    () => sortedShiftEmployees.reduce((sum, e) => sum + (shiftAssignmentsByEmployee[e.mnv]?.length || 0), 0),
+    [sortedShiftEmployees, shiftAssignmentsByEmployee],
+  )
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleCheckIn = async () => {
-    const targetDate = selectedDate || attendanceDate || getVietnamTodayString()
+    const targetDate = selectedDateRef.current || getVietnamTodayString()
     if (!myAttendance.hasShift) {
       showModal('error', 'Bạn chưa có ca làm trong ngày. Vui lòng liên hệ quản lý để được phân ca.')
       return
     }
-    const isNearStore = await checkGPS()
-    if (!isNearStore) {
-      const dist = gpsDistance
-      const gpsMsg = gpsStatus === 'denied'
-        ? 'Bạn chưa cấp quyền vị trí. Vui lòng cho phép truy cập GPS trong trình duyệt và thử lại.'
-        : gpsStatus === 'error'
-        ? 'Không thể lấy vị trí GPS. Vui lòng kiểm tra kết nối và thử lại.'
-        : `Bạn đang cách cửa hàng gần nhất (${nearestStore ?? ''}) ${dist ?? '?'} mét. Vui lòng đến đúng địa điểm cửa hàng để chấm công (trong vòng ${STORE_RADIUS_METERS}m).`
-      showModal('error', gpsMsg)
-      return
+    if (gpsStatus !== 'ok') {
+      const isNear = await checkGPS()
+      if (!isNear) {
+        const msg =
+          gpsStatus === 'denied' ? 'Bạn chưa cấp quyền vị trí. Vui lòng cho phép truy cập GPS trong trình duyệt và thử lại.'
+          : gpsStatus === 'error' ? 'Không thể lấy vị trí GPS. Vui lòng kiểm tra kết nối và thử lại.'
+          : `Bạn đang cách cửa hàng gần nhất (${nearestStore ?? ''}) ${gpsDistance ?? '?'} mét. Vui lòng đến đúng địa điểm cửa hàng để chấm công (trong vòng ${STORE_RADIUS_METERS}m).`
+        showModal('error', msg)
+        return
+      }
     }
-    setSaving(true)
-    setError('')
+    setSaving(true); setError('')
     try {
       await checkInAttendanceApi({ date: targetDate })
-      setSuccess(`Vào ca thành công ngày ${new Date(targetDate).toLocaleDateString('vi-VN')}`)
       showModal('success', `Vào ca thành công ngày ${new Date(targetDate).toLocaleDateString('vi-VN')}`)
-      await loadAttendance(targetDate)
+      await loadMyAttendance(targetDate)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể vào ca'
-      setError(message)
-      showModal('error', message)
-    } finally {
-      setSaving(false)
-    }
+      const msg = e instanceof Error ? e.message : 'Không thể vào ca'
+      setError(msg); showModal('error', msg)
+    } finally { setSaving(false) }
   }
 
   const handleCheckOut = async () => {
-    const targetDate = selectedDate || attendanceDate || getVietnamTodayString()
-    setSaving(true)
-    setError('')
+    const targetDate = selectedDateRef.current || getVietnamTodayString()
+    setSaving(true); setError('')
     try {
       await checkOutAttendanceApi({ date: targetDate })
-      setSuccess(`Ra ca thành công ngày ${new Date(targetDate).toLocaleDateString('vi-VN')}`)
       showModal('success', `Ra ca thành công ngày ${new Date(targetDate).toLocaleDateString('vi-VN')}`)
-      await loadAttendance(targetDate)
+      await loadMyAttendance(targetDate)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể ra ca'
-      setError(message)
-      showModal('error', message)
-    } finally {
-      setSaving(false)
-    }
+      const msg = e instanceof Error ? e.message : 'Không thể ra ca'
+      setError(msg); showModal('error', msg)
+    } finally { setSaving(false) }
   }
 
   const handleDateChange = (value: string) => {
     const nextDate = String(value || '').trim()
+    if (!nextDate) return
     setSelectedDate(nextDate)
-    if (nextDate) loadAttendance(nextDate)
+    selectedDateRef.current = nextDate
+    loadMyAttendance(nextDate)
   }
 
   const handleReloadToday = () => {
     const today = getVietnamTodayString()
     setSelectedDate(today)
-    loadAttendance(today)
+    selectedDateRef.current = today
+    if (isStaffMode) loadMyAttendance(today)
+    else { 
+      setHasLocalShiftChanges(false)
+      setShiftDate(today)
+      shiftDateRef.current = today
+      loadAdminAttendance(today)
+    }
   }
 
-  if (isStaffMode) {
-    const currentDateDisplay = attendanceDate
-      ? new Date(attendanceDate).toLocaleDateString('vi-VN')
-      : 'Hôm nay'
-    const isAlreadyCheckedIn = myAttendance.shifts.some((shift) => Boolean(shift.checkIn))
+  const handleShiftDateChange = (value: string) => {
+    setHasLocalShiftChanges(false)
+    setShiftDate(value)
+    shiftDateRef.current = value
+    loadAdminAttendance(value)
+  }
 
+  const handleShiftToggle = (mnv, shiftId, checked) => {
+    setHasLocalShiftChanges(true)
+    setShiftAssignmentsByEmployee(prev => {
+      const current = Array.isArray(prev[mnv]) ? prev[mnv] : []
+      const next = checked ? Array.from(new Set([...current, shiftId])) : current.filter(id => id !== shiftId)
+      return { ...prev, [mnv]: next }
+    })
+  }
+
+  const handleShiftSave = async () => {
+    setShiftSaving(true)
+    try {
+      const payload = shiftEmployees.map(e => ({
+        employeeId: e.mnv,
+        shiftIds: shiftAssignmentsByEmployee[e.mnv] || [],
+      }))
+      const result = await saveShiftAssignmentsApi({ date: shiftDate, assignments: payload })
+      showModal('success', `Đã lưu phân ca (${result.assignedCount || 0} ca)`)
+      setHasLocalShiftChanges(false)
+      await loadAdminAttendance(shiftDate)
+    } catch (e) {
+      showModal('error', 'Không thể lưu phân ca')
+    } finally { setShiftSaving(false) }
+  }
+
+  // ── Modal component ────────────────────────────────────────────────────────
+  const ModalEl = modal ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal}>
+      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
+        <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${modal.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+          {modal.type === 'success' ? <CheckCircle2Icon className="h-7 w-7 text-green-600" /> : <AlertCircleIcon className="h-7 w-7 text-red-500" />}
+        </div>
+        <p className="text-center text-base font-semibold text-gray-900 mb-1">{modal.type === 'success' ? 'Thành công' : 'Có lỗi xảy ra'}</p>
+        <p className="text-center text-sm text-gray-500 mb-5">{modal.message}</p>
+        <button type="button" onClick={closeModal} className={`w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}>Đóng</button>
+      </div>
+    </div>
+  ) : null
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // STAFF VIEW
+  // ══════════════════════════════════════════════════════════════════════════
+  if (isStaffMode) {
+    const currentDateDisplay = attendanceDate ? new Date(attendanceDate).toLocaleDateString('vi-VN') : 'Hôm nay'
     const gpsStatusConfig = {
-      idle:     { color: 'bg-gray-100 text-gray-500',   icon: '📍', text: 'Chưa kiểm tra vị trí' },
-      checking: { color: 'bg-blue-100 text-blue-600',   icon: '⏳', text: 'Đang xác định vị trí...' },
-      ok:       { color: 'bg-green-100 text-green-600', icon: '✓',  text: `Đang ở cửa hàng ${nearestStore ?? ''} (cách ${gpsDistance ?? 0}m)` },
-      far:      { color: 'bg-red-100 text-red-600',     icon: '✗',  text: `Ngoài phạm vi — cửa hàng gần nhất: ${nearestStore ?? ''} (cách ${gpsDistance ?? '?'}m, tối đa ${STORE_RADIUS_METERS}m)` },
-      denied:   { color: 'bg-red-100 text-red-600',     icon: '✗',  text: 'Chưa cấp quyền GPS' },
-      error:    { color: 'bg-amber-100 text-amber-600', icon: '!',  text: 'Lỗi xác định vị trí' },
+      idle:     { color: 'bg-gray-100 text-gray-500',   text: 'Chưa kiểm tra vị trí' },
+      checking: { color: 'bg-blue-100 text-blue-600',   text: 'Đang xác định vị trí...' },
+      ok:       { color: 'bg-green-100 text-green-600', text: `Đang ở cửa hàng ${nearestStore ?? ''} (cách ${gpsDistance ?? 0}m)` },
+      far:      { color: 'bg-red-100 text-red-600',     text: `Ngoài phạm vi — cửa hàng gần nhất: ${nearestStore ?? ''} (cách ${gpsDistance ?? '?'}m, tối đa ${STORE_RADIUS_METERS}m)` },
+      denied:   { color: 'bg-red-100 text-red-600',     text: 'Chưa cấp quyền GPS' },
+      error:    { color: 'bg-amber-100 text-amber-600', text: 'Lỗi xác định vị trí' },
     }
     const gpsCfg = gpsStatusConfig[gpsStatus]
-    const canCheckIn = myAttendance.hasShift && gpsStatus === 'ok'
 
     return (
       <div className="space-y-6">
-        {/* Modal thông báo */}
-        {modal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal}>
-            <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
-              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${modal.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
-                {modal.type === 'success' ? <CheckCircle2Icon className="h-7 w-7 text-green-600" /> : <AlertCircleIcon className="h-7 w-7 text-red-500" />}
-              </div>
-              <p className="text-center text-base font-semibold text-gray-900 mb-1">{modal.type === 'success' ? 'Thành công' : 'Có lỗi xảy ra'}</p>
-              <p className="text-center text-sm text-gray-500 mb-5">{modal.message}</p>
-              <button type="button" onClick={closeModal} className={`w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}>Đóng</button>
-            </div>
-          </div>
-        )}
-
+        {ModalEl}
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
-            {/* Trái: đồng hồ + nút */}
+            {/* Trái */}
             <div className="space-y-6 border-b border-slate-100 p-6 lg:border-b-0 lg:border-r">
               <div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-                  <Clock3Icon className="h-3.5 w-3.5" />
-                  Trạng thái hiện tại
+                  <Clock3Icon className="h-3.5 w-3.5" />Trạng thái hiện tại
                 </span>
                 <p className="mt-4 text-4xl font-bold tracking-tight text-slate-800 lg:text-5xl">
                   {currentTime.toLocaleTimeString('vi-VN', { hour12: false })}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">Ngày chấm công: {currentDateDisplay}</p>
               </div>
-
               <div className="flex flex-wrap items-center gap-2">
-                <input type="date" value={selectedDate} onChange={(e) => handleDateChange(e.target.value)}
+                <input type="date" value={selectedDate} onChange={e => handleDateChange(e.target.value)}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/40" />
                 <button type="button" onClick={handleReloadToday}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <RefreshCcwIcon className="h-4 w-4" />Làm mới
                 </button>
               </div>
-
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button type="button" onClick={handleCheckIn}
-                  disabled={saving || loading}
+                <button type="button" onClick={handleCheckIn} disabled={saving || loading}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2ECC71] px-4 py-3 text-sm font-semibold text-white hover:bg-[#29b765] disabled:opacity-60">
-                  <LogInIcon className="h-4 w-4" />
-                  {saving ? 'Đang xử lý...' : 'Vào ca'}
+                  <LogInIcon className="h-4 w-4" />{saving ? 'Đang xử lý...' : 'Vào ca'}
                 </button>
-                <button type="button" onClick={handleCheckOut}
-                  disabled={saving || loading || !myAttendance.canCheckOut}
+                <button type="button" onClick={handleCheckOut} disabled={saving || loading || !myAttendance.canCheckOut}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#FF4D6D] px-4 py-3 text-sm font-semibold text-white hover:bg-[#e64462] disabled:opacity-60">
-                  <LogOutIcon className="h-4 w-4" />
-                  {saving ? 'Đang xử lý...' : 'Ra ca'}
+                  <LogOutIcon className="h-4 w-4" />{saving ? 'Đang xử lý...' : 'Ra ca'}
                 </button>
               </div>
             </div>
-
-            {/* Phải: xác thực điều kiện */}
+            {/* Phải */}
             <div className="space-y-4 bg-slate-50 p-6">
               <h3 className="text-sm font-semibold text-slate-800">Xác thực điều kiện</h3>
-
-              {/* Điều kiện 1: Ca làm */}
               <div className={`rounded-xl border bg-white p-3 ${myAttendance.hasShift ? 'border-slate-200' : 'border-red-200'}`}>
                 <div className="flex items-start gap-3">
                   <div className={`rounded-lg p-2 ${myAttendance.hasShift ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -516,35 +524,24 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                     : <AlertCircleIcon className="mt-0.5 h-4 w-4 text-red-400 shrink-0" />}
                 </div>
               </div>
-
-              {/* Điều kiện 2: GPS */}
-              <div className={`rounded-xl border bg-white p-3 ${gpsStatus === 'ok' ? 'border-slate-200' : gpsStatus === 'idle' || gpsStatus === 'checking' ? 'border-slate-200' : 'border-red-200'}`}>
+              <div className={`rounded-xl border bg-white p-3 ${gpsStatus === 'ok' ? 'border-slate-200' : ['far', 'denied', 'error'].includes(gpsStatus) ? 'border-red-200' : 'border-slate-200'}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`rounded-lg p-2 ${gpsCfg.color}`}>
-                    <MapPinIcon className="h-4 w-4" />
-                  </div>
+                  <div className={`rounded-lg p-2 ${gpsCfg.color}`}><MapPinIcon className="h-4 w-4" /></div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-700">Vị trí GPS</p>
                     <p className={`text-xs ${gpsStatus === 'ok' ? 'text-green-600' : gpsStatus === 'checking' ? 'text-blue-500' : gpsStatus === 'idle' ? 'text-slate-400' : 'text-red-500'}`}>
                       {gpsCfg.text}
                     </p>
                   </div>
-                  {gpsStatus === 'ok'
-                    ? <CheckCircle2Icon className="mt-0.5 h-4 w-4 text-green-500 shrink-0" />
-                    : gpsStatus === 'far' || gpsStatus === 'denied' || gpsStatus === 'error'
-                    ? <AlertCircleIcon className="mt-0.5 h-4 w-4 text-red-400 shrink-0" />
-                    : null}
+                  {gpsStatus === 'ok' ? <CheckCircle2Icon className="mt-0.5 h-4 w-4 text-green-500 shrink-0" />
+                    : ['far', 'denied', 'error'].includes(gpsStatus) ? <AlertCircleIcon className="mt-0.5 h-4 w-4 text-red-400 shrink-0" /> : null}
                 </div>
               </div>
-
-              {/* Nút kiểm tra GPS */}
               <button type="button" onClick={checkGPS} disabled={gpsStatus === 'checking'}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60 transition-colors">
                 <MapPinIcon className="h-4 w-4" />
                 {gpsStatus === 'checking' ? 'Đang xác định vị trí...' : 'Kiểm tra vị trí GPS'}
               </button>
-
-              {/* Trạng thái tổng */}
               {myAttendance.hasShift && gpsStatus === 'ok' ? (
                 <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-center">
                   <p className="text-sm font-semibold text-green-700">✓ Đủ điều kiện chấm công</p>
@@ -563,11 +560,9 @@ export function DailyAttendance({ viewMode = 'auto' }) {
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <HistoryIcon className="h-5 w-5 text-slate-600" />
-              <h3 className="text-base font-semibold text-slate-900">Lịch sử ca làm trong ngày</h3>
-            </div>
+          <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
+            <HistoryIcon className="h-5 w-5 text-slate-600" />
+            <h3 className="text-base font-semibold text-slate-900">Lịch sử ca làm trong ngày</h3>
           </div>
           {!myAttendance.hasShift ? (
             <div className="px-6 py-5 text-sm text-slate-500">Không có ca làm trong ngày đã chọn.</div>
@@ -584,7 +579,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {myAttendance.shifts.map((shift) => {
+                  {myAttendance.shifts.map(shift => {
                     const hasIn = Boolean(shift.checkIn)
                     const hasOut = Boolean(shift.checkOut)
                     const statusText = hasOut ? 'Hoàn thành' : hasIn ? 'Đang làm' : 'Chưa bắt đầu'
@@ -610,63 +605,55 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     )
   }
 
-  // Quản lý: có tabs
+  // ══════════════════════════════════════════════════════════════════════════
+  // ADMIN / HR CHECK
+  // ══════════════════════════════════════════════════════════════════════════
+  if (!isAdminOrHr) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="rounded-full bg-gray-100 p-4 mb-4">
+          <AlertCircleIcon className="h-8 w-8 text-gray-400" />
+        </div>
+        <p className="text-base font-semibold text-gray-600">Không có quyền truy cập</p>
+        <p className="mt-1 text-sm text-gray-400">Trang này chỉ dành cho tài khoản Admin và HR.</p>
+      </div>
+    )
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ADMIN / MANAGE VIEW
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-6">
-      {/* Modal thông báo */}
-      {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal}>
-          <div
-            className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 mx-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${modal.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
-              {modal.type === 'success'
-                ? <CheckCircle2Icon className="h-7 w-7 text-green-600" />
-                : <AlertCircleIcon className="h-7 w-7 text-red-500" />
-              }
-            </div>
-            <p className="text-center text-base font-semibold text-gray-900 mb-1">
-              {modal.type === 'success' ? 'Thành công' : 'Có lỗi xảy ra'}
-            </p>
-            <p className="text-center text-sm text-gray-500 mb-5">{modal.message}</p>
-            <button
-              type="button"
-              onClick={closeModal}
-              className={`w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
-      )}
+      {ModalEl}
+
+      {/* Tabs */}
       <div className="flex gap-2 border-b mb-4">
         <button
           className={`px-4 py-2 font-semibold border-b-2 transition-colors ${tab === 'attendance' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
-          onClick={() => { setTab('attendance'); loadShiftAssignments(shiftDate); }}
-        >
-          Chấm công
-        </button>
+          onClick={() => setTab('attendance')}
+        >Chấm công</button>
         <button
           className={`px-4 py-2 font-semibold border-b-2 transition-colors ${tab === 'shift' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
-          onClick={() => { setTab('shift'); loadShiftAssignments(); }}
-        >
-          Phân ca
-        </button>
+          onClick={() => setTab('shift')}
+        >Phân ca</button>
       </div>
 
       {tab === 'attendance' ? (
-        // --- CHẤM CÔNG UI ---
+        // ── CHẤM CÔNG ──────────────────────────────────────────────────────
         <section className="rounded-xl border border-gray-100 bg-white overflow-hidden shadow-sm">
-          {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Chấm công</h2>
-              <p className="mt-0.5 text-sm text-gray-400">Ngày: {formatDateVN(selectedDate)}</p>
+              <p className="mt-0.5 text-sm text-gray-400">Ngày: {formatDateVN(shiftDate)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <input type="date" value={selectedDate} onChange={e => handleDateChange(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
-              <button type="button" onClick={handleReloadToday} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"><RefreshCcwIcon className="h-4 w-4" />Hôm nay</button>
+              <input type="date" value={shiftDate} onChange={e => handleShiftDateChange(e.target.value)}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
+              <button type="button" onClick={handleReloadToday}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <RefreshCcwIcon className="h-4 w-4" />Hôm nay
+              </button>
             </div>
           </div>
 
@@ -674,7 +661,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 px-5 py-4 border-b border-gray-100">
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-xs text-gray-500">Tổng nhân viên</p>
-              <p className="mt-1 text-xl font-semibold text-gray-900">{rows.length}</p>
+              <p className="mt-1 text-xl font-semibold text-gray-900">{sortedAttendanceRows.length}</p>
             </div>
             <div className="rounded-lg border border-green-100 bg-green-50 px-4 py-3">
               <p className="text-xs text-green-700">Có mặt</p>
@@ -682,17 +669,15 @@ export function DailyAttendance({ viewMode = 'auto' }) {
             </div>
             <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
               <p className="text-xs text-red-600">Vắng</p>
-              <p className="mt-1 text-xl font-semibold text-red-700">{rows.length - presentCount}</p>
+              <p className="mt-1 text-xl font-semibold text-red-700">{sortedAttendanceRows.length - presentCount}</p>
             </div>
           </div>
 
-          {/* Thông báo hiển thị qua modal */}
-
           {/* Table */}
           <div className="overflow-x-auto">
-            {loading ? (
+            {shiftLoading ? (
               <div className="py-16 text-center text-sm text-gray-400">Đang tải dữ liệu...</div>
-            ) : rows.length === 0 ? (
+            ) : attendanceRows.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">Không có dữ liệu chấm công.</div>
             ) : (
               <table className="min-w-full text-sm">
@@ -700,66 +685,76 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                   <tr className="bg-gray-50 border-y border-gray-100">
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Nhân viên</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Chức vụ</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ca làm — bấm để chấm công</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ca làm</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Vào ca</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ra ca</th>
                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {rows.map((item) => {
-                    const mnv = Number(item.mnv)
-                    const name = item.fullName || item.HOTEN || '-'
-                    const initials = name.split(' ').filter(Boolean).slice(-2).map((w: string) => w[0]).join('').toUpperCase()
-                    const empShiftIds = shiftAssignmentsByEmployee[mnv] || []
-                    const empShifts = shiftDefinitions.filter(s => empShiftIds.includes(s.mca))
-                    const isPresent = Boolean(presentMap[mnv])
+                  {paginatedAttendanceRows.map(item => {
+                    const initials = item.fullName.split(' ').filter(Boolean).slice(-2).map(w => w[0]).join('').toUpperCase()
+                    const empShifts = shiftDefinitions.filter(s => (item.shiftIds || []).includes(s.mca))
+                    const isPresent = Object.values(checkInOutByShift[item.mnv] || {}).some((s: any) => Boolean(s.checkIn))
                     return (
-                      <tr key={mnv} className="hover:bg-gray-50/60 transition-colors align-middle">
+                      <tr key={item.mnv} className="hover:bg-gray-50/60 transition-colors align-middle">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500 shrink-0">
                               {initials}
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-800">{name}</p>
-                              <p className="text-[11px] text-gray-400">MNV-{String(mnv).padStart(3,'0')}</p>
+                              <p className="font-semibold text-gray-800">{item.fullName}</p>
+                              <p className="text-[11px] text-gray-400">MNV-{String(item.mnv).padStart(3, '0')}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-3.5 text-gray-500 text-sm">{item.positionName || item.TENCHUCVU || 'Chưa cập nhật'}</td>
+                        <td className="px-5 py-3.5 text-gray-500 text-sm">{item.positionName || 'Chưa cập nhật'}</td>
                         <td className="px-5 py-3.5">
                           {empShifts.length === 0 ? (
                             <span className="text-xs text-gray-300 italic">Chưa phân ca</span>
                           ) : (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-col gap-1">
+                              {empShifts.map(shift => (
+                                <span key={shift.mca} className="text-sm text-gray-700 font-medium">
+                                  {shift.shiftName || `Ca #${shift.mca}`}
+                                  <span className="ml-1.5 text-xs text-gray-400 font-normal">{shift.startTime || '--:--'}–{shift.endTime || '--:--'}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-gray-700">
+                          {empShifts.length === 0 ? (
+                            <span className="text-gray-300">—</span>
+                          ) : (
+                            <div className="flex flex-col gap-1">
                               {empShifts.map(shift => {
-                                const isCheckedIn = Boolean(presentMap[mnv])
+                                const shiftCheck = (checkInOutByShift[item.mnv] || {})[shift.mca] || {}
                                 return (
-                                  <button
-                                    key={shift.mca}
-                                    type="button"
-                                    disabled={saving || shiftLoading}
-                                    onClick={async () => {
-                                      setSaving(true)
-                                      setError('')
-                                      try {
-                                        await checkInAttendanceApi({ date: selectedDate, employeeId: mnv, shiftId: shift.mca })
-                                        await loadAttendance(selectedDate, { silent: true })
-                                      } catch (e) {
-                                        const msg = e?.message || 'Không thể chấm công'
-                                        setError(msg)
-                                        showModal('error', msg)
-                                      } finally { setSaving(false) }
-                                    }}
-                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-all disabled:opacity-50 ${
-                                      isCheckedIn
-                                        ? 'bg-green-500 border-green-500 text-white'
-                                        : 'bg-white border-gray-200 text-gray-600 hover:border-green-300 hover:bg-green-50 hover:text-green-700'
-                                    }`}
-                                  >
-                                    {isCheckedIn && <CheckCircle2Icon className="h-3 w-3" />}
-                                    <span>{shift.shiftName || `Ca #${shift.mca}`}</span>
-                                    <span className="opacity-60">{shift.startTime || '--:--'}–{shift.endTime || '--:--'}</span>
-                                  </button>
+                                  <span key={shift.mca} className="text-sm text-gray-700">
+                                    {shiftCheck.checkIn
+                                      ? new Date(shiftCheck.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                      : '—'}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-gray-700">
+                          {empShifts.length === 0 ? (
+                            <span className="text-gray-300">—</span>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              {empShifts.map(shift => {
+                                const shiftCheck = (checkInOutByShift[item.mnv] || {})[shift.mca] || {}
+                                return (
+                                  <span key={shift.mca} className="text-sm text-gray-700">
+                                    {shiftCheck.checkOut
+                                      ? new Date(shiftCheck.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                      : '—'}
+                                  </span>
                                 )
                               })}
                             </div>
@@ -767,10 +762,10 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                         </td>
                         <td className="px-5 py-3.5 text-right">
                           {isPresent
-                            ? <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-green-700"><CheckCircle2Icon className="h-3 w-3" />Đúng giờ</span>
+                            ? <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-green-700"><CheckCircle2Icon className="h-3 w-3" />Có mặt</span>
                             : empShifts.length === 0
                               ? <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Chưa ca</span>
-                              : <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-600">Chưa vào</span>
+                              : <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-600">Vắng</span>
                           }
                         </td>
                       </tr>
@@ -780,20 +775,60 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               </table>
             )}
           </div>
+
+          {/* Pagination for Attendance */}
+          {sortedAttendanceRows.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50">
+              <p className="text-sm text-gray-600">
+                Hiển thị {currentAttendancePage * pageSize + 1}-{Math.min((currentAttendancePage + 1) * pageSize, sortedAttendanceRows.length)} / {sortedAttendanceRows.length} bản ghi
+              </p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setCurrentAttendancePage(prev => Math.max(0, prev - 1))}
+                  disabled={currentAttendancePage === 0}
+                  className="p-1.5 text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg"
+                  title="Trang trước"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-fit">
+                  {currentAttendancePage + 1}/{totalAttendancePages}
+                </span>
+                <button
+                  onClick={() => setCurrentAttendancePage(prev => Math.min(totalAttendancePages - 1, prev + 1))}
+                  disabled={currentAttendancePage === totalAttendancePages - 1}
+                  className="p-1.5 text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg"
+                  title="Trang tiếp"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       ) : (
-        // --- PHÂN CA UI ---
+        // ── PHÂN CA ────────────────────────────────────────────────────────
         <section className="rounded-xl border border-gray-100 bg-white overflow-hidden shadow-sm">
-          {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Phân ca làm việc</h2>
               <p className="mt-0.5 text-sm text-gray-400">Ngày: {formatDateVN(shiftDate)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <input type="date" value={shiftDate} onChange={e => handleShiftDateChange(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
-              <button type="button" onClick={() => loadShiftAssignments()} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"><RefreshCcwIcon className="h-4 w-4" />Làm mới</button>
-              <button type="button" onClick={handleShiftSave} disabled={shiftSaving || shiftLoading} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"><SaveIcon className="h-4 w-4" />{shiftSaving ? 'Đang lưu...' : 'Lưu'}</button>
+              <input type="date" value={shiftDate} onChange={e => handleShiftDateChange(e.target.value)}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
+              <button type="button" onClick={() => loadAdminAttendance(shiftDate)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <RefreshCcwIcon className="h-4 w-4" />Làm mới
+              </button>
+              <button type="button" onClick={handleShiftSave} disabled={shiftSaving || shiftLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+                <SaveIcon className="h-4 w-4" />{shiftSaving ? 'Đang lưu...' : 'Lưu'}
+              </button>
             </div>
           </div>
 
@@ -801,7 +836,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 px-5 py-4 border-b border-gray-100">
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-xs text-gray-500">Tổng nhân viên</p>
-              <p className="mt-1 text-xl font-semibold text-gray-900">{shiftEmployees.length}</p>
+              <p className="mt-1 text-xl font-semibold text-gray-900">{sortedShiftEmployees.length}</p>
             </div>
             <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
               <p className="text-xs text-blue-700">Đã được phân ca</p>
@@ -812,8 +847,6 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               <p className="mt-1 text-xl font-semibold text-amber-800">{totalAssignments}</p>
             </div>
           </div>
-
-          {/* Thông báo hiển thị qua modal */}
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -836,7 +869,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {shiftEmployees.map(emp => {
+                  {paginatedShiftEmployees.map(emp => {
                     const initials = emp.fullName.split(' ').filter(Boolean).slice(-2).map(w => w[0]).join('').toUpperCase()
                     return (
                       <tr key={emp.mnv} className="hover:bg-gray-50/60 transition-colors align-middle">
@@ -866,13 +899,47 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                             </td>
                           )
                         })}
-                      </tr                >
+                      </tr>
                     )
                   })}
                 </tbody>
               </table>
-            )}                    
+            )}
           </div>
+
+          {/* Pagination for Shift */}
+          {sortedShiftEmployees.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50">
+              <p className="text-sm text-gray-600">
+                Hiển thị {currentShiftPage * pageSize + 1}-{Math.min((currentShiftPage + 1) * pageSize, sortedShiftEmployees.length)} / {sortedShiftEmployees.length} bản ghi
+              </p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setCurrentShiftPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentShiftPage === 0}
+                  className="p-1.5 text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg"
+                  title="Trang trước"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-fit">
+                  {currentShiftPage + 1}/{totalShiftPages}
+                </span>
+                <button
+                  onClick={() => setCurrentShiftPage(prev => Math.min(totalShiftPages - 1, prev + 1))}
+                  disabled={currentShiftPage === totalShiftPages - 1}
+                  className="p-1.5 text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg"
+                  title="Trang tiếp"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
     </div>

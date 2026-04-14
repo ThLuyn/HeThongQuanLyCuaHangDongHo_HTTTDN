@@ -254,22 +254,54 @@ async function getAnnualLeaveBalance(mnv, startDate) {
   const currentYear = new Date().getFullYear();
 
   if (requestYear === currentYear) {
-    const rows = await query(
-      `
-        SELECT TongQuyPhep, SoNgayDaNghi, NgayPhepConLai
-        FROM View_ThongKeNgayPhep
-        WHERE MNV = ?
-        LIMIT 1
-      `,
-      [Number(mnv)],
-    );
+    try {
+      const rows = await query(
+        `
+          SELECT TongQuyPhep, SoNgayDaNghi, NgayPhepConLai
+          FROM View_ThongKeNgayPhep
+          WHERE MNV = ?
+          LIMIT 1
+        `,
+        [Number(mnv)],
+      );
 
-    const row = rows[0] || {};
-    return {
-      quota: Number(row.TongQuyPhep || 12),
-      used: Number(row.SoNgayDaNghi || 0),
-      remaining: Math.max(0, Number(row.NgayPhepConLai ?? 12)),
-    };
+      const row = rows[0] || {};
+      return {
+        quota: Number(row.TongQuyPhep || 12),
+        used: Number(row.SoNgayDaNghi || 0),
+        remaining: Math.max(0, Number(row.NgayPhepConLai ?? 12)),
+      };
+    } catch (err) {
+      // Fallback when the view does not exist (e.g., DB schema not imported).
+      // Compute used days from DONXINNGH for the current year as a best-effort.
+      const rows = await query(
+        `
+          SELECT COALESCE(
+            SUM(
+              GREATEST(
+                DATEDIFF(COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI), dxn.NGAYNGHI) + 1,
+                1
+              )
+            ),
+            0
+          ) AS SO_NGAY_DA_NGHI
+          FROM DONXINNGH dxn
+          WHERE dxn.MNV = ?
+            AND dxn.LOAI = 0
+            AND dxn.TRANGTHAI = 1
+            AND YEAR(dxn.NGAYNGHI) = ?
+        `,
+        [Number(mnv), Number(requestYear)],
+      );
+
+      const used = Number(rows[0]?.SO_NGAY_DA_NGHI || 0);
+      const quota = 12;
+      return {
+        quota,
+        used,
+        remaining: Math.max(0, quota - used),
+      };
+    }
   }
 
   const rows = await query(

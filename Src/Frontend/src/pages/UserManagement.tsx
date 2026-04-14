@@ -18,7 +18,7 @@ const columns = [
         label: 'Vai trò',
         render: (val) => (<span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${String(val || '').toLowerCase().includes('quản lý')
                 ? 'bg-indigo-100 text-indigo-700'
-                : String(val || '').toLowerCase().includes('bán hàng')
+                : String(val || '').toLowerCase().includes('kinh doanh')
                     ? 'bg-blue-100 text-blue-700'
                     : String(val || '').toLowerCase().includes('kho')
                         ? 'bg-amber-100 text-amber-700'

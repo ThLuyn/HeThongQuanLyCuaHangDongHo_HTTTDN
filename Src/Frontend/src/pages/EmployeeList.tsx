@@ -188,56 +188,6 @@ function sortEmployeesNewestFirst(rows) {
     (a, b) => getEmployeeNumericId(b?.id) - getEmployeeNumericId(a?.id),
   );
 }
-const initialEmployees = [
-    {
-        id: 'NV001',
-        name: 'Nguyễn Văn An',
-        position: 'Quản lý',
-        phone: '0901234567',
-        email: 'an.nv@sguwatch.vn',
-        status: 'Đang làm',
-    },
-    {
-        id: 'NV002',
-        name: 'Trần Thị Bình',
-        position: 'Nhân viên bán hàng',
-        phone: '0912345678',
-        email: 'binh.tt@sguwatch.vn',
-        status: 'Đang làm',
-    },
-    {
-        id: 'NV003',
-        name: 'Lê Hoàng Cường',
-        position: 'Kế toán',
-        phone: '0923456789',
-        email: 'cuong.lh@sguwatch.vn',
-        status: 'Đang làm',
-    },
-    {
-        id: 'NV004',
-        name: 'Phạm Minh Dũng',
-        position: 'Nhân viên kho',
-        phone: '0934567890',
-        email: 'dung.pm@sguwatch.vn',
-        status: 'Nghỉ phép',
-    },
-    {
-        id: 'NV005',
-        name: 'Võ Thanh Hà',
-        position: 'Nhân viên bán hàng',
-        phone: '0945678901',
-        email: 'ha.vt@sguwatch.vn',
-        status: 'Đang làm',
-    },
-    {
-        id: 'NV006',
-        name: 'Đỗ Quang Huy',
-        position: 'Bảo vệ',
-        phone: '0956789012',
-        email: 'huy.dq@sguwatch.vn',
-        status: 'Đang làm',
-    },
-];
 const columns = [
     {
         key: 'id',
@@ -277,7 +227,7 @@ const columns = [
     },
 ];
 export function EmployeeList() {
-  const [employees, setEmployees] = useState(sortEmployeesNewestFirst(initialEmployees));
+  const [employees, setEmployees] = useState([]);
   const [positionOptions, setPositionOptions] = useState(POSITION_OPTIONS);
   const [positionProfiles, setPositionProfiles] = useState(POSITION_PROFILE_MAP);
     const [error, setError] = useState('');

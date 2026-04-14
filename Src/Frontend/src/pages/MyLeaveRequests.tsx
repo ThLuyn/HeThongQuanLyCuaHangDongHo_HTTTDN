@@ -229,7 +229,7 @@ export function MyLeaveRequests() {
             >
               <option value={0}>Phép năm</option>
               <option value={1}>Không lương</option>
-              <option value={2}>Chế độ (ốm đau/thai sản)</option>
+              <option value={2}>Chế độ</option>
               <option value={3}>Nghỉ việc</option>
             </select>
           </div>

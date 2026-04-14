@@ -450,7 +450,7 @@ export type ExportReceiptItem = {
   TG: string
   TT: number
   LYDOHUY?: string | null
-  SO_DONG_SANPHAM?: number
+  SO_DONG_sanPHAM?: number
   TONG_SO_LUONG?: number
 }
 
@@ -464,7 +464,7 @@ export type ExportReceiptDetail = {
   TG: string
   TT: number
   LYDOHUY?: string | null
-  SO_DONG_SANPHAM: number
+  SO_DONG_sanPHAM: number
   TONG_SO_LUONG: number
   ITEMS: Array<{
     MSP: number
@@ -1123,4 +1123,20 @@ export async function uploadProductImageApi(file: File): Promise<{ imageUrl: str
     },
   )
   return response.data
+}
+
+export type ViolationPenaltyItem = {
+  id: number
+  mnv: number
+  month: number
+  year: number
+  violationType: string // 'Đi trễ', 'Về sớm', 'Đi trễ và về sớm'
+  violationCount: number
+  penaltyAmount: number
+  description?: string | null
+}
+
+export async function getViolationPenaltiesApi(mnv: number, month: number, year: number): Promise<ViolationPenaltyItem[]> {
+  const response = await apiRequest<ApiEnvelope<ViolationPenaltyItem[]>>(`/api/hr/violations?mnv=${mnv}&month=${month}&year=${year}`)
+  return Array.isArray(response.data) ? response.data : []
 }

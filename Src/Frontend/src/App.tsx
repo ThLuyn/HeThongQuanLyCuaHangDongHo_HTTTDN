@@ -33,9 +33,9 @@ const pageTitles = {
     'my-salary': 'Lương cá nhân',
     'salary-leave': 'Quản lý lương',
     'leave-operations': 'Điều hành Nghỉ phép',
-    'daily-attendance': 'Chấm công hằng ngày',
+    'daily-attendance': 'Chấm công và Phân ca',
     'my-leave-requests': 'Đơn xin nghỉ của tôi',
-    'position-salary': 'Chức vụ & Lương',
+    'position-salary': 'Chức vụ và Lương',
     'watch-categories': 'Sản phẩm',
     suppliers: 'Nhà cung cấp',
     'stock-receipts': 'Phiếu nhập kho',
@@ -57,34 +57,59 @@ export function App() {
     const [currentUsername, setCurrentUsername] = useState(initialSession?.username || '');
     const [currentAvatar, setCurrentAvatar] = useState(initialSession?.avatar || '');
     const [currentRole, setCurrentRole] = useState(initialSession?.role || '');
+    const [currentDepartment, setCurrentDepartment] = useState(initialSession?.department || '');
     const [currentPermissions, setCurrentPermissions] = useState(initialSession?.permissions || []);
     const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
     const [targetLowStockProductId, setTargetLowStockProductId] = useState(null);
 
     const hasPermission = (mcn, action = 'view') => currentPermissions.some((item) => String(item?.mcn || '').toLowerCase() === String(mcn).toLowerCase() && String(item?.hanhDong || '').toLowerCase() === String(action).toLowerCase());
     const isAdminOrHr = ['admin', 'hr'].includes(String(currentRole || '').toLowerCase());
+    const isAdmin = String(currentRole || '').toLowerCase() === 'admin';
+    const isHr = String(currentRole || '').toLowerCase() === 'hr';
+    const isSales = String(currentRole || '').toLowerCase() === 'sales';
+    const isWarehouse = String(currentRole || '').toLowerCase() === 'warehouse';
 
     const canAccessPage = (pageId) => {
+        // Everyone can access these pages
+        if (['dashboard', 'profile', 'change-password', 'my-attendance', 'my-leave-requests', 'my-salary'].includes(pageId)) {
+            return true;
+        }
+
+        // Admin can access everything
+        if (isAdmin) {
+            return true;
+        }
+
+        // HR managers can access HR management pages
+        if (isHr) {
+            const hrPages = ['employees', 'position-salary', 'leave-operations', 'daily-attendance', 'salary-leave'];
+            return hrPages.includes(pageId);
+        }
+
+        // Sales staff can access business management pages
+        if (isSales) {
+            const businessPages = ['export-receipts', 'sales-report'];
+            return businessPages.includes(pageId);
+        }
+
+        // Warehouse staff can access warehouse management pages
+        if (isWarehouse) {
+            const warehousePages = ['watch-categories', 'suppliers', 'stock-receipts'];
+            return warehousePages.includes(pageId);
+        }
+
+        // For other roles (manager, staff), fall back to permission-based access
         switch (pageId) {
-            case 'dashboard':
-            case 'profile':
-            case 'change-password':
-            case 'my-attendance':
-                return true;
             case 'employees':
                 return hasPermission('nhanvien', 'view');
             case 'position-salary':
                 return hasPermission('chucvu', 'view');
             case 'salary-leave':
-                return isAdminOrHr;
+                return false;
             case 'leave-operations':
-                return isAdminOrHr || hasPermission('donxinngh', 'view');
+                return hasPermission('donxinngh', 'view');
             case 'daily-attendance':
-                return ['admin', 'manager'].includes(String(currentRole || '').toLowerCase()) || hasPermission('chamcong', 'view') || hasPermission('chamcong', 'create');
-            case 'my-leave-requests':
-                return hasPermission('donxinngh', 'create') || hasPermission('donxinngh', 'view');
-            case 'my-salary':
-                return hasPermission('bangluong', 'view');
+                return hasPermission('chamcong', 'view') || hasPermission('chamcong', 'create');
             case 'watch-categories':
                 return hasPermission('sanpham', 'view');
             case 'suppliers':
@@ -155,6 +180,7 @@ export function App() {
             setCurrentUsername(loginData.user.username);
             setCurrentAvatar(loginData.user.hinhAnh || '');
             setCurrentRole(loginData.user.role || '');
+            setCurrentDepartment(loginData.user.department || '');
             setCurrentPermissions(loginData.user.permissions || []);
             return { ok: true };
         }
@@ -173,6 +199,7 @@ export function App() {
         setCurrentUsername('');
         setCurrentAvatar('');
         setCurrentRole('');
+        setCurrentDepartment('');
         setCurrentPermissions([]);
         setActivePage('dashboard');
     };
@@ -213,6 +240,7 @@ export function App() {
             ...session,
             fullName: nextName || session.fullName,
             avatar: avatar || '',
+            department: session.department || '',
         });
     };
     useEffect(() => {
@@ -234,8 +262,10 @@ export function App() {
                     avatar: nextAvatar,
                     permissions: profile.permissions || session.permissions || [],
                     role: profile.role || session.role,
+                    department: profile.department || session.department || '',
                 });
                 setCurrentRole(profile.role || '');
+                setCurrentDepartment(profile.department || '');
                 setCurrentPermissions(profile.permissions || []);
             }
             catch (_error) {

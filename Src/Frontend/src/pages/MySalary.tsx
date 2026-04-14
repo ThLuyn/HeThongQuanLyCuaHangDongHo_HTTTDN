@@ -2,7 +2,7 @@
 import { PrinterIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { loadAuthSession } from '../utils/authStorage';
-import { getMySalaryApi } from '../utils/backendApi';
+import { getMySalaryApi, getViolationPenaltiesApi } from '../utils/backendApi';
 import { buildMonthlyPayslipHtml, openPrintWindow } from '../utils/payrollPrintTemplates';
 
 const VND = new Intl.NumberFormat('vi-VN');
@@ -83,6 +83,8 @@ export function MySalary() {
   const [error, setError] = useState('');
   const [record, setRecord] = useState(null);
   const [historyRows, setHistoryRows] = useState([]);
+  const [violations, setViolations] = useState([]);
+  const [violationsLoading, setViolationsLoading] = useState(false);
 
   const selectedMonth = Number(month);
   const selectedYear = Number(year);
@@ -117,6 +119,27 @@ export function MySalary() {
     };
 
     loadSalary();
+  }, [selectedMonth, selectedYear, session?.mnv]);
+
+  useEffect(() => {
+    const loadViolations = async () => {
+      if (!session?.mnv || !Number.isInteger(selectedMonth) || !Number.isInteger(selectedYear)) {
+        setViolations([]);
+        return;
+      }
+
+      setViolationsLoading(true);
+      try {
+        const viol = await getViolationPenaltiesApi(session.mnv, selectedMonth, selectedYear);
+        setViolations(Array.isArray(viol) ? viol : []);
+      } catch (_error) {
+        setViolations([]);
+      } finally {
+        setViolationsLoading(false);
+      }
+    };
+
+    loadViolations();
   }, [selectedMonth, selectedYear, session?.mnv]);
 
   useEffect(() => {
@@ -172,6 +195,11 @@ export function MySalary() {
       return;
     }
 
+    const violationPenaltyTotal = violations.reduce(
+      (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
+      0,
+    );
+
     const employee = {
       id: personalSalary.employeeCode,
       name: String(record?.HOTEN || session?.fullName || session?.username || 'Nhân viên'),
@@ -183,9 +211,9 @@ export function MySalary() {
       bhxh: Number(record?.BHXH || personalSalary.deductions.find((item) => item.key === 'bhxh')?.value || 0),
       bhyt: Number(record?.BHYT || personalSalary.deductions.find((item) => item.key === 'bhyt')?.value || 0),
       bhtn: Number(record?.BHTN || personalSalary.deductions.find((item) => item.key === 'bhtn')?.value || 0),
-      khauTruKhac: Number(record?.KHAUTRU_KHAC || 0),
-      deduction: Number(record?.KHAUTRU ?? personalSalary.deductionTotal ?? 0),
-      takeHome: Number(record?.LUONGTHUCLANH ?? personalSalary.netSalary ?? 0),
+      khauTruKhac: Number(record?.KHAUTRU_KHAC || 0) + violationPenaltyTotal,
+      deduction: Number(record?.KHAUTRU ?? personalSalary.deductionTotal ?? 0) + violationPenaltyTotal,
+      takeHome: Number(record?.LUONGTHUCLANH ?? personalSalary.netSalary ?? 0) - violationPenaltyTotal,
     };
 
     const html = buildMonthlyPayslipHtml({
@@ -209,7 +237,6 @@ export function MySalary() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Lương cá nhân</h2>
-            <p className="text-sm text-gray-500">Phiếu lương của chính bạn theo từng kỳ.</p>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -305,9 +332,30 @@ export function MySalary() {
                     <span className="font-medium text-rose-800">{formatMoney(item.value)}</span>
                   </div>
                 ))}
+                {violations.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2 text-sm">
+                    <span className="text-orange-700">Khấu trừ khác (Vi phạm)</span>
+                    <span className="font-medium text-orange-800">
+                      {formatMoney(
+                        violations.reduce(
+                          (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
+                          0,
+                        ),
+                      )}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-100 px-3 py-2 text-sm">
                   <span className="font-semibold text-rose-800">Tổng khấu trừ</span>
-                  <span className="font-semibold text-rose-900">{formatMoney(personalSalary.deductionTotal)}</span>
+                  <span className="font-semibold text-rose-900">
+                    {formatMoney(
+                      personalSalary.deductionTotal +
+                        violations.reduce(
+                          (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
+                          0,
+                        ),
+                    )}
+                  </span>
                 </div>
               </div>
             </div>

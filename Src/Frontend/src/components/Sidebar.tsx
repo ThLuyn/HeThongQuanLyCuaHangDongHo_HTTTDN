@@ -25,14 +25,6 @@ const menuItems = [
                 id: 'my-salary',
                 label: 'Lương cá nhân',
             },
-            {
-                id: 'profile',
-                label: 'Hồ sơ cá nhân',
-            },
-            {
-                id: 'change-password',
-                label: 'Đổi mật khẩu',
-            },
         ],
     },
     {

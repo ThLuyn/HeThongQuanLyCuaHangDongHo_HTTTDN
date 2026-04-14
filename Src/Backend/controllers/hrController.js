@@ -1,5 +1,6 @@
 const Employee = require("../models/Employee");
 const Position = require("../models/Position");
+const Violation = require("../models/Violation");
 const { success, fail } = require("../utils/response");
 const fs = require("fs");
 const path = require("path");
@@ -706,10 +707,26 @@ async function getTodayAttendance(req, res, next) {
       return fail(res, "date must be in YYYY-MM-DD format", 400);
     }
 
-    const [employees, presentEmployeeIds] = await Promise.all([
+    const [employees, presentEmployeeIds, assignmentRows] = await Promise.all([
       Employee.listActiveEmployeesForAttendance(attendanceDate),
       Employee.listTodayAttendanceEmployeeIds(attendanceDate),
+      Employee.listShiftAssignmentsByDate(attendanceDate), // thêm dòng này
     ]);
+
+    // Build map checkIn/checkOut theo mnv
+    const checkInOutMap = {};
+    for (const row of assignmentRows || []) {
+      const mnv = Number(row.MNV);
+      if (!checkInOutMap[mnv]) {
+        checkInOutMap[mnv] = { checkIn: null, checkOut: null };
+      }
+      if (row.GIO_CHECKIN && !checkInOutMap[mnv].checkIn) {
+        checkInOutMap[mnv].checkIn = row.GIO_CHECKIN;
+      }
+      if (row.GIO_CHECKOUT && !checkInOutMap[mnv].checkOut) {
+        checkInOutMap[mnv].checkOut = row.GIO_CHECKOUT;
+      }
+    }
 
     return success(
       res,
@@ -721,6 +738,8 @@ async function getTodayAttendance(req, res, next) {
           positionName: row.TENCHUCVU || null,
           status: Number(row.TT || 0),
           present: presentEmployeeIds.includes(Number(row.MNV)),
+          checkIn: checkInOutMap[Number(row.MNV)]?.checkIn || null, // thêm
+          checkOut: checkInOutMap[Number(row.MNV)]?.checkOut || null, // thêm
         })),
       },
       "Today attendance loaded",
@@ -1094,6 +1113,59 @@ async function deleteHoliday(req, res, next) {
   }
 }
 
+/**
+ * API: GET /api/hr/violations?mnv=...&month=...&year=...
+ * Trả về danh sách vi phạm của nhân viên trong tháng/năm
+ */
+async function getViolationPenalties(req, res, next) {
+  try {
+    const mnv = Number(req.query.mnv);
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+
+    if (!mnv || !month || !year) {
+      return fail(res, "Missing mnv, month, or year", 400);
+    }
+
+    if (month < 1 || month > 12) {
+      return fail(res, "Month must be 1-12", 400);
+    }
+
+    const violations = await Violation.getViolationsByEmployeeAndMonth(
+      mnv,
+      month,
+      year,
+    );
+
+    // Consolidate violations by type
+    const consolidated = {};
+    (violations || []).forEach((v) => {
+      const key = v.violationType;
+      if (!consolidated[key]) {
+        consolidated[key] = {
+          id: v.id,
+          mnv: v.mnv,
+          month: v.month,
+          year: v.year,
+          violationType: v.violationType,
+          violationCount: 0,
+          penaltyAmount: v.penaltyAmount,
+          description: null,
+        };
+      }
+      consolidated[key].violationCount += 1;
+    });
+
+    return success(
+      res,
+      Object.values(consolidated),
+      "Violation penalties loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   uploadLeaveEvidenceMiddleware,
   getEmployees,
@@ -1122,4 +1194,5 @@ module.exports = {
   getMyAttendanceStatus,
   checkInAttendance,
   checkOutAttendance,
+  getViolationPenalties,
 };

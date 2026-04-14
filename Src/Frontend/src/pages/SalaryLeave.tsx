@@ -8,6 +8,7 @@ import {
   deleteHolidayMultiplierApi,
   getHolidayMultipliersApi,
   getSalaryApi,
+  getViolationPenaltiesApi,
   updateHolidayMultiplierApi,
 } from '../utils/backendApi';
 import {
@@ -58,6 +59,8 @@ const columns = [
 ];
 
 export function SalaryLeave() {
+  const [violations, setViolations] = useState([]);
+  const [violationsLoading, setViolationsLoading] = useState(false);
   const now = new Date();
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
@@ -238,6 +241,18 @@ export function SalaryLeave() {
 
     setSelectedEmployee(detailRow);
     setDetailOpen(true);
+
+    // Lấy danh sách vi phạm khi mở chi tiết
+    setViolationsLoading(true);
+    setViolations([]);
+    try {
+      const viol = await getViolationPenaltiesApi(detailRow.mnv, selectedMonth, selectedYear);
+      setViolations(Array.isArray(viol) ? viol : []);
+    } catch {
+      setViolations([]);
+    } finally {
+      setViolationsLoading(false);
+    }
   };
 
   const openCreateHolidayModal = () => {
@@ -592,7 +607,7 @@ export function SalaryLeave() {
           Ngày công quy đổi = Ngày công thực tế + Tổng (Hệ số ngày lễ - 1) cho các ngày lễ đi làm
         </p>
         <p className="mt-1 text-sm text-gold-900">
-          Lương thực lãnh = (Lương cơ bản / 26) x Ngày công quy đổi + Hoa hồng - (BHXH + BHYT + BHTN)
+          Lương thực lãnh = (Lương cơ bản / 26) x Ngày công quy đổi + Hoa hồng - (BHXH + BHYT + BHTN + Khấu trừ khác)
         </p>
       </div>
 
@@ -686,6 +701,7 @@ export function SalaryLeave() {
               </div>
             </div>
 
+
             <div className="rounded-xl border border-gray-100 p-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-700">Chi tiết tiền lương</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -724,6 +740,42 @@ export function SalaryLeave() {
                 <p className="mt-2 text-sm font-semibold text-rose-800">
                   Tổng khấu trừ: {formatMoney(selectedEmployee.deduction)}
                 </p>
+              </div>
+              {/* Bảng vi phạm đi trễ/về sớm */}
+              <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Bảng vi phạm (Khấu trừ khác)</p>
+                {violationsLoading ? (
+                  <p className="text-xs text-gray-500">Đang tải dữ liệu vi phạm...</p>
+                ) : violations.length === 0 ? (
+                  <p className="text-xs text-gray-500">Không có vi phạm trong kỳ này.</p>
+                ) : (
+                  <table className="min-w-full text-xs border border-rose-200 bg-white rounded-lg">
+                    <thead>
+                      <tr className="bg-rose-50">
+                        <th className="px-2 py-1 border-b border-rose-100 text-left">Loại vi phạm</th>
+                        <th className="px-2 py-1 border-b border-rose-100 text-right">Số lần</th>
+                        <th className="px-2 py-1 border-b border-rose-100 text-right">Mức phạt/lần</th>
+                        <th className="px-2 py-1 border-b border-rose-100 text-right">Tổng phạt</th>
+                        <th className="px-2 py-1 border-b border-rose-100 text-left">Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {violations.map((v, idx) => (
+                        <tr key={idx}>
+                          <td className="px-2 py-1">{v.violationType}</td>
+                          <td className="px-2 py-1 text-right">{v.violationCount}</td>
+                          <td className="px-2 py-1 text-right">{formatMoney(v.penaltyAmount)}</td>
+                          <td className="px-2 py-1 text-right">{formatMoney(Number(v.penaltyAmount) * Number(v.violationCount))}</td>
+                          <td className="px-2 py-1">{v.description || ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-2 text-right text-sm font-semibold text-rose-800">
+                  Tổng phạt: {formatMoney(violations.reduce((sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0), 0))}
+                </div>
+                <div className="mt-1 text-xs text-gray-500">Mức phạt: Quản lý 50.000đ/lần, Bán hàng 25.000đ/lần, Kho 30.000đ/lần, Quản lý NS 40.000đ/lần. Ngưỡng tha thứ: ≤ 10 phút không phạt.</div>
               </div>
             </div>
 

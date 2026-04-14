@@ -16,21 +16,18 @@ CREATE TABLE `DANHMUCCHUCNANG` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái (1: hoạt động, 0: ẩn)',
     PRIMARY KEY (MCN)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `NHOMQUYEN` (
     `MNQ` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Mã nhóm quyền',
     `TEN` VARCHAR(255) NOT NULL COMMENT 'Tên nhóm quyền',
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MNQ)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `CTQUYEN` (
     `MNQ` INT(11) NOT NULL COMMENT 'Mã nhóm quyền',
     `MCN` VARCHAR(50) NOT NULL COMMENT 'Mã chức năng',
     `HANHDONG` VARCHAR(255) NOT NULL COMMENT 'Hành động (create/view/update/delete/export/cancel/approve)',
     PRIMARY KEY (MNQ, MCN, HANHDONG)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.2 NHÂN SỰ
 -- ------------------------------------------------------------
@@ -42,7 +39,6 @@ CREATE TABLE `CHUCVU` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MCV)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `NHANVIEN` (
     `MNV` INT(11) NOT NULL AUTO_INCREMENT,
     `HOTEN` VARCHAR(255) NOT NULL,
@@ -65,7 +61,6 @@ CREATE TABLE `NHANVIEN` (
     -- Định nghĩa khóa ngoại ngay tại đây, đặt tên rõ ràng để tránh trùng
     CONSTRAINT FK_NHANVIEN_CHUCVU FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `TAIKHOAN` (
     `MNV` INT(11) NOT NULL COMMENT 'Mã nhân viên',
     `TDN` VARCHAR(255) NOT NULL UNIQUE COMMENT 'Tên đăng nhập',
@@ -75,7 +70,6 @@ CREATE TABLE `TAIKHOAN` (
     `OTP` VARCHAR(50) DEFAULT NULL COMMENT 'Mã OTP đặt lại mật khẩu',
     PRIMARY KEY (MNV, TDN)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.3 LỊCH SỬ THAY ĐỔI CHỨC VỤ
 --      (Yêu cầu đề tài: "khi thay đổi chức vụ phải có thời điểm cụ thể và lương sẽ thay đổi theo")
@@ -86,11 +80,11 @@ CREATE TABLE `LICHSUCHUCVU` (
     `MCV_CU` INT(11) DEFAULT NULL COMMENT 'Mã chức vụ cũ (NULL nếu là lần đầu)',
     `MCV_MOI` INT(11) NOT NULL COMMENT 'Mã chức vụ mới',
     `NGAY_HIEULUC` DATE NOT NULL COMMENT 'Ngày bắt đầu có hiệu lực',
+    `NGAY_KETTHUC` DATE DEFAULT NULL COMMENT 'Ngày kết thúc chức vụ (NULL nếu đang giữ)',
     `GHICHU` TEXT COMMENT 'Ghi chú lý do thay đổi',
     `MNV_DUYET` INT(11) NOT NULL COMMENT 'Người duyệt (quản lý)',
     PRIMARY KEY (MLS)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.4 CA LÀM & PHÂN CA
 -- ------------------------------------------------------------
@@ -102,7 +96,6 @@ CREATE TABLE `CALAM` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MCA)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `PHANCALAM` (
     `MPCL` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Mã phân ca',
     `MNV` INT(11) NOT NULL COMMENT 'Mã nhân viên',
@@ -114,31 +107,29 @@ CREATE TABLE `PHANCALAM` (
     PRIMARY KEY (MPCL),
     UNIQUE KEY uq_nv_ngay_ca (MNV, MCA, NGAY)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.5 ĐƠN XIN NGHỈ
 --      (Yêu cầu: nghỉ phép, nghỉ ốm/đau/thai sản, nghỉ việc)
 -- ------------------------------------------------------------
 CREATE TABLE `DONXINNGH` (
-    `MDN`           INT             NOT NULL AUTO_INCREMENT,
-    `MNV`           INT             NOT NULL,
-    `LOAI`          TINYINT         NOT NULL COMMENT '0=Phép năm, 1=Không lương, 2=Chế độ, 3=Nghỉ việc',
-    `NGAYNGHI`      DATE            NOT NULL COMMENT 'Ngày bắt đầu nghỉ',
-    `NGAYKETTHUC`   DATE            DEFAULT NULL COMMENT 'Ngày kết thúc nghỉ (NULL nếu là nghỉ việc)',
-    `NGAY_NGHIVIEC` DATE            DEFAULT NULL COMMENT 'Ngày nghỉ việc chính thức (chỉ dùng khi LOAI=3)',
-    `LYDO`          NVARCHAR(255)   NOT NULL,
-    `MINHCHUNG`     VARCHAR(500)    DEFAULT NULL,
-    `TRANGTHAI`     TINYINT         NOT NULL DEFAULT 0 COMMENT '0=Chờ duyệt, 1=Đã duyệt, 2=Từ chối',
-    `NGUOIDUYET`    INT             DEFAULT NULL,
-    `NGAYTAO`       DATE            NOT NULL DEFAULT (CURRENT_DATE),
-    `GHICHU`        NVARCHAR(255)   DEFAULT NULL,
+    `MDN` INT NOT NULL AUTO_INCREMENT,
+    `MNV` INT NOT NULL,
+    `LOAI` TINYINT NOT NULL COMMENT '0=Phép năm, 1=Không lương, 2=Chế độ, 3=Nghỉ việc',
+    `NGAYNGHI` DATE NOT NULL COMMENT 'Ngày bắt đầu nghỉ',
+    `NGAYKETTHUC` DATE DEFAULT NULL COMMENT 'Ngày kết thúc nghỉ (NULL nếu là nghỉ việc)',
+    `NGAY_NGHIVIEC` DATE DEFAULT NULL COMMENT 'Ngày nghỉ việc chính thức (chỉ dùng khi LOAI=3)',
+    `LYDO` NVARCHAR(255) NOT NULL,
+    `MINHCHUNG` VARCHAR(500) DEFAULT NULL,
+    `TRANGTHAI` TINYINT NOT NULL DEFAULT 0 COMMENT '0=Chờ duyệt, 1=Đã duyệt, 2=Từ chối',
+    `NGUOIDUYET` INT DEFAULT NULL,
+    `NGAYTAO` DATE NOT NULL DEFAULT (CURRENT_DATE),
+    `GHICHU` NVARCHAR(255) DEFAULT NULL,
     PRIMARY KEY (`MDN`),
-    CONSTRAINT `fk_donxinngh_mnv`      FOREIGN KEY (`MNV`)        REFERENCES `NHANVIEN`(`MNV`),
-    CONSTRAINT `fk_donxinngh_duyet`    FOREIGN KEY (`NGUOIDUYET`) REFERENCES `NHANVIEN`(`MNV`),
-    CONSTRAINT `chk_loainghi`          CHECK (`LOAI` IN (0, 1, 2, 3)),
-    CONSTRAINT `chk_trangthai`         CHECK (`TRANGTHAI` IN (0, 1, 2))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT `fk_donxinngh_mnv` FOREIGN KEY (`MNV`) REFERENCES `NHANVIEN`(`MNV`),
+    CONSTRAINT `fk_donxinngh_duyet` FOREIGN KEY (`NGUOIDUYET`) REFERENCES `NHANVIEN`(`MNV`),
+    CONSTRAINT `chk_loainghi` CHECK (`LOAI` IN (0, 1, 2, 3)),
+    CONSTRAINT `chk_trangthai` CHECK (`TRANGTHAI` IN (0, 1, 2))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- ------------------------------------------------------------
 --  1.6 BẢNG CHẤM CÔNG
 -- ------------------------------------------------------------
@@ -154,7 +145,6 @@ CREATE TABLE `BANGCHAMCONG` (
     PRIMARY KEY (MCC),
     UNIQUE KEY uq_nv_thang_nam (MNV, THANG, NAM)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.7 BẢNG LƯƠNG
 --      (Yêu cầu: tính lương = lương cơ bản + hoa hồng doanh số + thưởng + phụ cấp - khấu trừ)
@@ -178,7 +168,6 @@ CREATE TABLE `BANGLUONG` (
     PRIMARY KEY (MBL),
     UNIQUE KEY uq_nv_thang_nam (MNV, THANG, NAM)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.8 KHÁCH HÀNG & NHÀ CUNG CẤP
 -- ------------------------------------------------------------
@@ -192,7 +181,6 @@ CREATE TABLE `KHACHHANG` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MKH)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `NHACUNGCAP` (
     `MNCC` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Mã nhà cung cấp',
     `TEN` VARCHAR(255) NOT NULL COMMENT 'Tên nhà cung cấp',
@@ -202,7 +190,6 @@ CREATE TABLE `NHACUNGCAP` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MNCC)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.9 SẢN PHẨM & VỊ TRÍ TRƯNG BÀY
 -- ------------------------------------------------------------
@@ -212,7 +199,6 @@ CREATE TABLE `VITRITRUNGBAY` (
     `GHICHU` TEXT COMMENT 'Ghi chú (loại đồng hồ trưng bày)',
     PRIMARY KEY (MVT)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `SANPHAM` (
     `MSP` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Mã sản phẩm',
     `TEN` VARCHAR(255) NOT NULL COMMENT 'Tên sản phẩm',
@@ -228,7 +214,6 @@ CREATE TABLE `SANPHAM` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.10 KHUYẾN MÃI
 -- ------------------------------------------------------------
@@ -239,14 +224,12 @@ CREATE TABLE `MAKHUYENMAI` (
     `TT` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái',
     PRIMARY KEY (MKM)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `CTMAKHUYENMAI` (
     `MKM` VARCHAR(255) NOT NULL COMMENT 'Mã khuyến mãi',
     `MSP` INT(11) NOT NULL COMMENT 'Mã sản phẩm áp dụng',
     `PTG` INT(11) NOT NULL COMMENT 'Phần trăm giảm giá (%)',
     PRIMARY KEY (MKM, MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.11 PHIẾU NHẬP
 -- ------------------------------------------------------------
@@ -260,7 +243,6 @@ CREATE TABLE `PHIEUNHAP` (
     `LYDOHUY` VARCHAR(255) NULL COMMENT 'Lý do hủy phiếu',
     PRIMARY KEY (MPN)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `CTPHIEUNHAP` (
     `MPN` INT(11) NOT NULL COMMENT 'Mã phiếu nhập',
     `MSP` INT(11) NOT NULL COMMENT 'Mã sản phẩm',
@@ -269,7 +251,6 @@ CREATE TABLE `CTPHIEUNHAP` (
     `HINHTHUC` INT(11) NOT NULL DEFAULT 0 COMMENT 'Hình thức thanh toán (0: tiền mặt, 1: chuyển khoản)',
     PRIMARY KEY (MPN, MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.12 PHIẾU XUẤT (BÁN HÀNG)
 -- ------------------------------------------------------------
@@ -283,7 +264,6 @@ CREATE TABLE `PHIEUXUAT` (
     `LYDOHUY` VARCHAR(255) NULL COMMENT 'Lý do hủy phiếu',
     PRIMARY KEY (MPX)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `CTPHIEUXUAT` (
     `MPX` INT(11) NOT NULL COMMENT 'Mã phiếu xuất',
     `MSP` INT(11) NOT NULL COMMENT 'Mã sản phẩm',
@@ -292,7 +272,6 @@ CREATE TABLE `CTPHIEUXUAT` (
     `TIENXUAT` DECIMAL(15, 2) NOT NULL COMMENT 'Đơn giá bán thực tế (đã giảm)',
     PRIMARY KEY (MPX, MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 -- ------------------------------------------------------------
 --  1.13 BẢO HÀNH & SỬA CHỮA
 -- ------------------------------------------------------------
@@ -306,7 +285,6 @@ CREATE TABLE `PHIEUBAOHANH` (
     `TRANGTHAI` INT(11) NOT NULL DEFAULT 1 COMMENT 'Trạng thái (1: còn hạn, 0: hết hạn, 2: đã hủy)',
     PRIMARY KEY (MPB)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `PHIEUSUACHUA` (
     `MSC` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Mã phiếu sửa chữa',
     `MPB` INT(11) NOT NULL COMMENT 'Mã phiếu bảo hành liên quan',
@@ -319,7 +297,6 @@ CREATE TABLE `PHIEUSUACHUA` (
     `GHICHU` TEXT COMMENT 'Ghi chú thêm',
     PRIMARY KEY (MSC)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
 CREATE TABLE `NGAYLE` (
     `ID` INT(11) NOT NULL AUTO_INCREMENT,
     `TENLE` VARCHAR(255) NOT NULL COMMENT 'Tên ngày lễ',
@@ -328,185 +305,166 @@ CREATE TABLE `NGAYLE` (
     `GHICHU` VARCHAR(255) NULL COMMENT 'Ghi chú thêm',
     PRIMARY KEY (ID)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
+CREATE TABLE `VIPHAM` (
+    `MVP` INT NOT NULL AUTO_INCREMENT,
+    `MNV` INT NOT NULL,
+    `MPCL` INT NOT NULL COMMENT 'Ca làm bị vi phạm',
+    `LOAI` TINYINT NOT NULL COMMENT '1=Đi trễ, 2=Về sớm',
+    `PHUT_VIPHAM` INT NOT NULL COMMENT 'Số phút trễ/sớm',
+    `TIEN_PHAT` DECIMAL(10, 2) NOT NULL COMMENT 'Tiền phạt cố định',
+    `THANG` INT NOT NULL,
+    `NAM` INT NOT NULL,
+    `GHICHU` VARCHAR(255),
+    PRIMARY KEY (MVP),
+    FOREIGN KEY (MNV) REFERENCES NHANVIEN(MNV),
+    FOREIGN KEY (MPCL) REFERENCES PHANCALAM(MPCL)
+);
 -- ============================================================
 --  PHẦN 2: TẠO QUAN HỆ (FOREIGN KEY)
 -- ============================================================
 -- Phân quyền
 ALTER TABLE `CTQUYEN`
-	ADD CONSTRAINT FK_MNQ_CTQUYEN FOREIGN KEY (MNQ) REFERENCES `NHOMQUYEN`(MNQ) ON DELETE NO ACTION ON UPDATE CASCADE,
+ADD CONSTRAINT FK_MNQ_CTQUYEN FOREIGN KEY (MNQ) REFERENCES `NHOMQUYEN`(MNQ) ON DELETE NO ACTION ON UPDATE CASCADE,
     ADD CONSTRAINT FK_MCN_CTQUYEN FOREIGN KEY (MCN) REFERENCES `DANHMUCCHUCNANG`(MCN) ON DELETE NO ACTION ON UPDATE CASCADE;
-    
 -- Nhân viên
-	-- ALTER TABLE `NHANVIEN`
-	-- ADD CONSTRAINT FK_MCV_NHANVIEN FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-    
+-- ALTER TABLE `NHANVIEN`
+-- ADD CONSTRAINT FK_MCV_NHANVIEN FOREIGN KEY (MCV) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION;
 ALTER TABLE `TAIKHOAN`
-	ADD CONSTRAINT FK_MNV_TAIKHOAN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_TAIKHOAN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MNQ_TAIKHOAN FOREIGN KEY (MNQ) REFERENCES `NHOMQUYEN`(MNQ) ON DELETE NO ACTION ON UPDATE NO ACTION;
-    
 ALTER TABLE `LICHSUCHUCVU`
-	ADD CONSTRAINT FK_MNV_LSCV FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_LSCV FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MCV_CU_LSCV FOREIGN KEY (MCV_CU) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MCV_MOI_LSCV FOREIGN KEY (MCV_MOI) REFERENCES `CHUCVU`(MCV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_DUYET_LSCV FOREIGN KEY (MNV_DUYET) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `PHANCALAM`
-	ADD CONSTRAINT FK_MNV_PCL FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_PCL FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MCA_PCL FOREIGN KEY (MCA) REFERENCES `CALAM`(MCA) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `DONXINNGH`
-	ADD CONSTRAINT FK_MNV_DXN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_DXN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_DUYET_DXN FOREIGN KEY (NGUOIDUYET) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `BANGCHAMCONG`
-	ADD CONSTRAINT FK_MNV_BCC FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
+ADD CONSTRAINT FK_MNV_BCC FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
 ALTER TABLE `BANGLUONG`
-	ADD CONSTRAINT FK_MNV_BL FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
+ADD CONSTRAINT FK_MNV_BL FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
 ALTER TABLE `SANPHAM`
-	ADD CONSTRAINT FK_MNCC_SANPHAM FOREIGN KEY (MNCC) REFERENCES `NHACUNGCAP`(MNCC) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNCC_SANPHAM FOREIGN KEY (MNCC) REFERENCES `NHACUNGCAP`(MNCC) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MVT_SANPHAM FOREIGN KEY (MVT) REFERENCES `VITRITRUNGBAY`(MVT) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `PHIEUNHAP`
-	ADD CONSTRAINT FK_MNV_PN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_PN FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MNCC_PN FOREIGN KEY (MNCC) REFERENCES `NHACUNGCAP`(MNCC) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `CTPHIEUNHAP`
-	ADD CONSTRAINT FK_MPN_CTPN FOREIGN KEY (MPN) REFERENCES `PHIEUNHAP`(MPN) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MPN_CTPN FOREIGN KEY (MPN) REFERENCES `PHIEUNHAP`(MPN) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MSP_CTPN FOREIGN KEY (MSP) REFERENCES `SANPHAM`(MSP) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `CTMAKHUYENMAI`
-	ADD CONSTRAINT FK_MKM_CTMKM FOREIGN KEY (MKM) REFERENCES `MAKHUYENMAI`(MKM) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MKM_CTMKM FOREIGN KEY (MKM) REFERENCES `MAKHUYENMAI`(MKM) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MSP_CTMKM FOREIGN KEY (MSP) REFERENCES `SANPHAM`(MSP) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `PHIEUXUAT`
-	ADD CONSTRAINT FK_MNV_PX FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MNV_PX FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MKH_PX FOREIGN KEY (MKH) REFERENCES `KHACHHANG`(MKH) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `CTPHIEUXUAT`
-	ADD CONSTRAINT FK_MPX_CTPX FOREIGN KEY (MPX) REFERENCES `PHIEUXUAT`(MPX) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MPX_CTPX FOREIGN KEY (MPX) REFERENCES `PHIEUXUAT`(MPX) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MSP_CTPX FOREIGN KEY (MSP) REFERENCES `SANPHAM`(MSP) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MKM_CTPX FOREIGN KEY (MKM) REFERENCES `MAKHUYENMAI`(MKM) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `PHIEUBAOHANH`
-	ADD CONSTRAINT FK_MPX_PBH FOREIGN KEY (MPX) REFERENCES `PHIEUXUAT`(MPX) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MPX_PBH FOREIGN KEY (MPX) REFERENCES `PHIEUXUAT`(MPX) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MSP_PBH FOREIGN KEY (MSP) REFERENCES `SANPHAM`(MSP) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MKH_PBH FOREIGN KEY (MKH) REFERENCES `KHACHHANG`(MKH) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 ALTER TABLE `PHIEUSUACHUA`
-	ADD CONSTRAINT FK_MPB_PSC FOREIGN KEY (MPB) REFERENCES `PHIEUBAOHANH`(MPB) ON DELETE NO ACTION ON UPDATE NO ACTION,
+ADD CONSTRAINT FK_MPB_PSC FOREIGN KEY (MPB) REFERENCES `PHIEUBAOHANH`(MPB) ON DELETE NO ACTION ON UPDATE NO ACTION,
     ADD CONSTRAINT FK_MNV_PSC FOREIGN KEY (MNV) REFERENCES `NHANVIEN`(MNV) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
 -- ============================================================
 --  PHẦN 3: TRIGGER & PROCEDURE 
 -- ============================================================
-DELIMITER //
-
-CREATE PROCEDURE sp_TinhHoaHongVaLuong (
-    IN p_Thang INT, 
-    IN p_Nam INT
-)
-BEGIN
-    DECLARE v_TongDoanhThuThang DECIMAL(18, 2) DEFAULT 0;
-
-    -- 1. Tính tổng doanh thu của cả cửa hàng trong tháng/năm đó
-    SELECT SUM(TIEN) INTO v_TongDoanhThuThang
-    FROM PHIEUXUAT 
-    WHERE MONTH(NGAYXUAT) = p_Thang 
-      AND YEAR(NGAYXUAT) = p_Nam 
-      AND TT = 1; -- Chỉ tính hóa đơn hợp lệ
-
-    -- 2. Cập nhật hoa hồng dựa trên chức vụ (Quản lý vs Nhân viên)
-    UPDATE BANGLUONG bl
-    JOIN NHANVIEN nv ON bl.MNV = nv.MNV
-    JOIN CHUCVU cv ON nv.MCV = cv.MCV
-    SET bl.HOA_HONG = CASE 
-        -- Trường hợp là Quản lý: Hoa hồng = Tổng doanh thu cửa hàng * % hoa hồng chức vụ
-        WHEN nv.MCV = 'CV001' THEN (v_TongDoanhThuThang * cv.PHANTRAMHOAHONG / 100)
-        
-        -- Trường hợp là Nhân viên: Hoa hồng = Tổng doanh thu cá nhân * % hoa hồng chức vụ
-        ELSE (
-            SELECT COALESCE(SUM(px.TIEN), 0) 
-            FROM (SELECT * FROM PHIEUXUAT) AS px -- Tránh lỗi 'Reopening table' của MySQL
-            WHERE px.MNV = nv.MNV 
-              AND MONTH(px.NGAYXUAT) = p_Thang 
-              AND YEAR(px.NGAYXUAT) = p_Nam 
-              AND px.TT = 1
-        ) * cv.PHANTRAMHOAHONG / 100
-    END
-    WHERE bl.THANG = p_Thang AND bl.NAM = p_Nam;
-
-    -- 3. Cập nhật Lương Thực Lãnh cuối cùng
-    UPDATE BANGLUONG
-    SET LUONGTHUCLANH = (LUONGCOBAN / 26 * NGAYCONG) + HOA_HONG - (BHYT + BHXH + BHTN)
-    WHERE THANG = p_Thang AND NAM = p_Nam;
-
-END //
-
-DELIMITER ;
-
-
+-- Cập nhật tồn kho khi nhập hàng
 DELIMITER $$
 
--- 1. Trigger: Tự động cộng tồn kho khi nhập hàng
 DROP TRIGGER IF EXISTS tg_CapNhatTonKhiNhap $$
+
 CREATE TRIGGER tg_CapNhatTonKhiNhap
 AFTER INSERT ON CTPHIEUNHAP
 FOR EACH ROW
 BEGIN
-    UPDATE SANPHAM SET SOLUONG = SOLUONG + NEW.SL WHERE MSP = NEW.MSP;
+    UPDATE SANPHAM
+    SET SOLUONG = SOLUONG + NEW.SL
+    WHERE MSP = NEW.MSP;
 END $$
 
--- 2. Trigger: Tự động trừ tồn kho khi bán & Chặn nếu không đủ hàng
+DELIMITER ;
+
+-- Trừ tồn kho khi bán & kiểm tra tồn kho
+DELIMITER $$
+
 DROP TRIGGER IF EXISTS tg_CapNhatTonKhiXuat $$
+
 CREATE TRIGGER tg_CapNhatTonKhiXuat
 BEFORE INSERT ON CTPHIEUXUAT
 FOR EACH ROW
 BEGIN
     DECLARE v_ton_kho INT;
-    SELECT SOLUONG INTO v_ton_kho FROM SANPHAM WHERE MSP = NEW.MSP;
+
+    SELECT SOLUONG INTO v_ton_kho
+    FROM SANPHAM
+    WHERE MSP = NEW.MSP;
+
     IF v_ton_kho < NEW.SL THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Lỗi nghiệp vụ: Số lượng hàng trong kho không đủ để thực hiện xuất phiếu!';
+        SET MESSAGE_TEXT = 'Lỗi nghiệp vụ: Số lượng hàng trong kho không đủ!';
     ELSE
-        UPDATE SANPHAM SET SOLUONG = SOLUONG - NEW.SL WHERE MSP = NEW.MSP;
-    END IF;
-END $$
-
-DELIMITER $$
-
--- 1) Set ngày nghỉ việc ngay trong NEW row (an toàn, không tự update lại NHANVIEN)
-DROP TRIGGER IF EXISTS tg_SetNgayNghiViec_BeforeUpdate $$
-CREATE TRIGGER tg_SetNgayNghiViec_BeforeUpdate
-BEFORE UPDATE ON NHANVIEN
-FOR EACH ROW
-BEGIN
-    IF NEW.TT = 0 AND OLD.TT = 1 AND NEW.NGAYNGHIVIEC IS NULL THEN
-        SET NEW.NGAYNGHIVIEC = CURRENT_DATE;
-    END IF;
-END $$
-
--- 2) Khóa tài khoản khi nhân viên chuyển sang đã nghỉ
-DROP TRIGGER IF EXISTS tg_KhoaTaiKhoanKhiNghiviec $$
-CREATE TRIGGER tg_KhoaTaiKhoanKhiNghiviec
-AFTER UPDATE ON NHANVIEN
-FOR EACH ROW
-BEGIN
-    IF NEW.TT = 0 AND OLD.TT = 1 THEN
-        UPDATE TAIKHOAN
-        SET TRANGTHAI = 0
-        WHERE MNV = NEW.MNV;
+        UPDATE SANPHAM
+        SET SOLUONG = SOLUONG - NEW.SL
+        WHERE MSP = NEW.MSP;
     END IF;
 END $$
 
 DELIMITER ;
 
+-- Tự động set ngày nghỉ việc
 DELIMITER $$
 
--- 4. Trigger: Chặn phân ca ngày Chủ Nhật
+DROP TRIGGER IF EXISTS tg_SetNgayNghiViec_BeforeUpdate $$
+
+CREATE TRIGGER tg_SetNgayNghiViec_BeforeUpdate
+BEFORE UPDATE ON NHANVIEN
+FOR EACH ROW
+BEGIN
+    IF NEW.TT = 0 
+       AND OLD.TT = 1 
+       AND NEW.NGAYNGHIVIEC IS NULL THEN
+
+        SET NEW.NGAYNGHIVIEC = CURRENT_DATE;
+
+    END IF;
+END $$
+
+DELIMITER ;
+
+-- Khóa tài khoản khi nghỉ việc
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS tg_KhoaTaiKhoanKhiNghiviec $$
+
+CREATE TRIGGER tg_KhoaTaiKhoanKhiNghiviec
+AFTER UPDATE ON NHANVIEN
+FOR EACH ROW
+BEGIN
+    IF NEW.TT = 0 
+       AND OLD.TT = 1 THEN
+
+        UPDATE TAIKHOAN
+        SET TRANGTHAI = 0
+        WHERE MNV = NEW.MNV;
+
+    END IF;
+END $$
+
+DELIMITER ;
+
+-- Chặn phân ca vào Chủ Nhật
+DELIMITER $$
+
 DROP TRIGGER IF EXISTS tg_KiemTraPhanCa $$
+
 CREATE TRIGGER tg_KiemTraPhanCa
 BEFORE INSERT ON PHANCALAM
 FOR EACH ROW
@@ -519,206 +477,550 @@ END $$
 
 DELIMITER ;
 
-CREATE OR REPLACE VIEW View_ThongKeNgayPhep AS 
-SELECT 
-    nv.MNV, 
-    nv.HOTEN, 
-    12 AS TongQuyPhep, 
-    IFNULL(SUM(
-        CASE 
-            WHEN d.LOAI = 0 AND d.TRANGTHAI = 1 AND YEAR(d.NGAYNGHI) = YEAR(CURDATE()) 
-            THEN (DATEDIFF(d.NGAYKETTHUC, d.NGAYNGHI) + 1) 
-            ELSE 0 
-        END
-    ), 0) AS SoNgayDaNghi,
-    (12 - IFNULL(SUM(
-        CASE 
-            WHEN d.LOAI = 0 AND d.TRANGTHAI = 1 AND YEAR(d.NGAYNGHI) = YEAR(CURDATE()) 
-            THEN (DATEDIFF(d.NGAYKETTHUC, d.NGAYNGHI) + 1) 
-            ELSE 0 
-        END
-    ), 0)) AS NgayPhepConLai 
-FROM NHANVIEN nv 
-LEFT JOIN DONXINNGH d ON nv.MNV = d.MNV 
-GROUP BY nv.MNV, nv.HOTEN;
-
+-- Xử lý duyệt đơn nghỉ
 DELIMITER //
 
-DELIMITER //
+DROP TRIGGER IF EXISTS tg_XuLyDuyetNghi //
 
-CREATE TRIGGER tg_XuLyDuyetNghi 
-AFTER UPDATE ON DONXINNGH 
-FOR EACH ROW 
+CREATE TRIGGER tg_XuLyDuyetNghi
+AFTER UPDATE ON DONXINNGH
+FOR EACH ROW
 BEGIN
-    -- Chỉ xử lý khi trạng thái chuyển sang 'Đã duyệt' (1)
+    -- Khi đơn được duyệt
     IF NEW.TRANGTHAI = 1 AND OLD.TRANGTHAI = 0 THEN
         
-        -- Nếu là nghỉ phép năm (LOAI = 0)
-        IF NEW.LOAI = 0 THEN
-            UPDATE NHANVIEN 
-            SET NGAYPHEP_CONLAI = NGAYPHEP_CONLAI - (DATEDIFF(NEW.NGAYKETTHUC, NEW.NGAYNGHI) + 1)
-            WHERE MNV = NEW.MNV;
-        END IF;
-
-        -- Nếu là nghỉ việc (LOAI = 3)
+        -- Nếu là nghỉ việc
         IF NEW.LOAI = 3 THEN
-            UPDATE NHANVIEN 
+            UPDATE NHANVIEN
             SET NGAYNGHIVIEC = NEW.NGAY_NGHIVIEC
             WHERE MNV = NEW.MNV;
         END IF;
-        
+
     END IF;
 END //
 
 DELIMITER ;
 
-
-USE QuanLyCuaHangDongHo;
-
 --  PHẦN 4: DỮ LIỆU MẪU
 -- ------------------------------------------------------------
 --  4.1 Danh mục chức năng
 -- ------------------------------------------------------------
-INSERT INTO `DANHMUCCHUCNANG` (`MCN`, `TEN`, `TT`) VALUES 
-	( 'sanpham', 'Quản lý sản phẩm', 1),
-    ( 'khachhang', 'Quản lý khách hàng', 1),
-    ( 'nhacungcap', 'Quản lý nhà cung cấp', 1),
-    ( 'nhanvien', 'Quản lý nhân viên', 1),
-    ( 'chucvu', 'Quản lý chức vụ', 1),
-    ( 'calam', 'Quản lý ca làm', 1),
-    ( 'phancalam', 'Phân ca làm việc', 1),
-    ( 'donxinngh', 'Xin nghỉ', 1),
-    ( 'chamcong', 'Quản lý chấm công', 1),
-    ( 'bangluong','Quản lý bảng lương', 1),
-    ( 'phieunhap', 'Quản lý nhập hàng', 1),
-    ( 'phieuxuat', 'Quản lý phiếu xuất', 1),
-    ( 'baohanh', 'Quản lý phiếu bảo hành', 1),
-    ( 'suachua', 'Quản lý phiếu sửa chữa', 1),
-    ( 'vitritrungbay', 'Quản lý vị trí trưng bày', 1),
-    ( 'nhomquyen', 'Quản lý nhóm quyền', 1),
-    ( 'taikhoan', 'Quản lý tài khoản', 1),
-    ( 'makhuyenmai', 'Quản lý mã khuyến mãi', 1),
-    ( 'thongke', 'Thống kê & báo cáo', 1);
-    
+INSERT INTO `DANHMUCCHUCNANG` (`MCN`, `TEN`, `TT`)
+VALUES ('sanpham', 'Quản lý sản phẩm', 1),
+    ('khachhang', 'Quản lý khách hàng', 1),
+    ('nhacungcap', 'Quản lý nhà cung cấp', 1),
+    ('nhanvien', 'Quản lý nhân viên', 1),
+    ('chucvu', 'Quản lý chức vụ', 1),
+    ('calam', 'Quản lý ca làm', 1),
+    ('phancalam', 'Phân ca làm việc', 1),
+    ('donxinngh', 'Xin nghỉ', 1),
+    ('chamcong', 'Quản lý chấm công', 1),
+    ('bangluong', 'Quản lý bảng lương', 1),
+    ('phieunhap', 'Quản lý nhập hàng', 1),
+    ('phieuxuat', 'Quản lý phiếu xuất', 1),
+    ('baohanh', 'Quản lý phiếu bảo hành', 1),
+    ('suachua', 'Quản lý phiếu sửa chữa', 1),
+    ('vitritrungbay', 'Quản lý vị trí trưng bày', 1),
+    ('nhomquyen', 'Quản lý nhóm quyền', 1),
+    ('taikhoan', 'Quản lý tài khoản', 1),
+    ('makhuyenmai', 'Quản lý mã khuyến mãi', 1),
+    ('thongke', 'Thống kê & báo cáo', 1);
 -- ------------------------------------------------------------
 --  4.2 Nhóm quyền
 -- ------------------------------------------------------------
-INSERT INTO `NHOMQUYEN` (`TEN`, `TT`) VALUES 
-	('Quản lý cửa hàng', 1),
+INSERT INTO `NHOMQUYEN` (`TEN`, `TT`)
+VALUES ('Quản lý cửa hàng', 1),
     ('Nhân viên bán hàng', 1),
     ('Nhân viên kho', 1),
-    ('Nhân viên kỹ thuật', 1);
-    
+    ('Quản lý nhân sự', 1);
 -- ------------------------------------------------------------
 --  4.3 Chi tiết quyền
 -- ------------------------------------------------------------
 -- Quản lý cửa hàng (MNQ = 1): toàn quyền
-INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-	(1, 'sanpham', 'create'), (1, 'sanpham', 'view'), (1, 'sanpham', 'update'), (1, 'sanpham', 'delete'),
-    (1, 'khachhang', 'create'), (1, 'khachhang', 'view'), (1, 'khachhang', 'update'), (1, 'khachhang', 'delete'),
-    (1, 'nhacungcap', 'create'), (1, 'nhacungcap', 'view'), (1, 'nhacungcap', 'update'), (1, 'nhacungcap', 'delete'),
-    (1, 'nhanvien', 'create'), (1, 'nhanvien', 'view'), (1, 'nhanvien', 'update'), (1, 'nhanvien', 'delete'),
-	(1, 'chucvu', 'create'), (1, 'chucvu', 'view'), (1, 'chucvu', 'update'), (1, 'chucvu', 'delete'),
-    (1, 'calam', 'create'), (1, 'calam', 'view'), (1, 'calam', 'update'), (1, 'calam', 'delete'),
-    (1, 'phancalam', 'create'), (1, 'phancalam', 'view'), (1, 'phancalam', 'update'), (1, 'phancalam', 'delete'),
-    (1, 'donxinngh', 'view'), (1, 'donxinngh', 'approve'), 
-    (1, 'chamcong', 'create'), (1, 'chamcong', 'view'), (1, 'chamcong', 'update'), (1, 'chamcong', 'export'),
-    (1, 'bangluong', 'create'), (1, 'bangluong', 'view'), (1, 'bangluong', 'update'), (1, 'bangluong', 'export'),
-    (1, 'phieunhap', 'create'), (1, 'phieunhap', 'view'), (1, 'phieunhap', 'cancel'), (1, 'phieunhap', 'export'),
-    (1, 'phieuxuat', 'create'), (1, 'phieuxuat', 'view'), (1, 'phieuxuat', 'cancel'), (1, 'phieuxuat', 'export'),
-    (1, 'baohanh', 'view'), (1, 'baohanh', 'update'), (1, 'baohanh', 'export'), 
-    (1, 'suachua', 'create'), (1, 'suachua', 'view'), (1, 'suachua', 'update'), (1, 'suachua', 'delete'), (1, 'suachua', 'export'),
-    (1, 'vitritrungbay', 'create'), (1, 'vitritrungbay', 'view'), (1, 'vitritrungbay', 'update'), (1, 'vitritrungbay', 'delete'),
-    (1, 'nhomquyen', 'create'), (1, 'nhomquyen', 'view'), (1, 'nhomquyen', 'update'), (1, 'nhomquyen', 'delete'),
-    (1, 'taikhoan', 'create'), (1, 'taikhoan', 'view'), (1, 'taikhoan', 'update'), (1, 'taikhoan', 'delete'),
-    (1, 'makhuyenmai', 'create'), (1, 'makhuyenmai', 'view'), (1, 'makhuyenmai', 'update'), (1, 'makhuyenmai', 'delete'),
-    (1, 'thongke', 'view'), (1, 'thongke', 'export');
-    
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`)
+VALUES (1, 'sanpham', 'create'),
+    (1, 'sanpham', 'view'),
+    (1, 'sanpham', 'update'),
+    (1, 'sanpham', 'delete'),
+    (1, 'khachhang', 'create'),
+    (1, 'khachhang', 'view'),
+    (1, 'khachhang', 'update'),
+    (1, 'khachhang', 'delete'),
+    (1, 'nhacungcap', 'create'),
+    (1, 'nhacungcap', 'view'),
+    (1, 'nhacungcap', 'update'),
+    (1, 'nhacungcap', 'delete'),
+    (1, 'nhanvien', 'create'),
+    (1, 'nhanvien', 'view'),
+    (1, 'nhanvien', 'update'),
+    (1, 'nhanvien', 'delete'),
+    (1, 'chucvu', 'create'),
+    (1, 'chucvu', 'view'),
+    (1, 'chucvu', 'update'),
+    (1, 'chucvu', 'delete'),
+    (1, 'calam', 'create'),
+    (1, 'calam', 'view'),
+    (1, 'calam', 'update'),
+    (1, 'calam', 'delete'),
+    (1, 'phancalam', 'create'),
+    (1, 'phancalam', 'view'),
+    (1, 'phancalam', 'update'),
+    (1, 'phancalam', 'delete'),
+    (1, 'donxinngh', 'view'),
+    (1, 'donxinngh', 'approve'),
+    (1, 'chamcong', 'create'),
+    (1, 'chamcong', 'view'),
+    (1, 'chamcong', 'update'),
+    (1, 'chamcong', 'export'),
+    (1, 'bangluong', 'create'),
+    (1, 'bangluong', 'view'),
+    (1, 'bangluong', 'update'),
+    (1, 'bangluong', 'export'),
+    (1, 'phieunhap', 'create'),
+    (1, 'phieunhap', 'view'),
+    (1, 'phieunhap', 'cancel'),
+    (1, 'phieunhap', 'export'),
+    (1, 'phieuxuat', 'create'),
+    (1, 'phieuxuat', 'view'),
+    (1, 'phieuxuat', 'cancel'),
+    (1, 'phieuxuat', 'export'),
+    (1, 'baohanh', 'view'),
+    (1, 'baohanh', 'update'),
+    (1, 'baohanh', 'export'),
+    (1, 'suachua', 'create'),
+    (1, 'suachua', 'view'),
+    (1, 'suachua', 'update'),
+    (1, 'suachua', 'delete'),
+    (1, 'suachua', 'export'),
+    (1, 'vitritrungbay', 'create'),
+    (1, 'vitritrungbay', 'view'),
+    (1, 'vitritrungbay', 'update'),
+    (1, 'vitritrungbay', 'delete'),
+    (1, 'nhomquyen', 'create'),
+    (1, 'nhomquyen', 'view'),
+    (1, 'nhomquyen', 'update'),
+    (1, 'nhomquyen', 'delete'),
+    (1, 'taikhoan', 'create'),
+    (1, 'taikhoan', 'view'),
+    (1, 'taikhoan', 'update'),
+    (1, 'taikhoan', 'delete'),
+    (1, 'makhuyenmai', 'create'),
+    (1, 'makhuyenmai', 'view'),
+    (1, 'makhuyenmai', 'update'),
+    (1, 'makhuyenmai', 'delete'),
+    (1, 'thongke', 'view'),
+    (1, 'thongke', 'export');
 -- Nhân viên bán hàng (MNQ = 2): hạn chế
-INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-	(2, 'sanpham', 'view'), 
-    (2, 'khachhang', 'create'), (2, 'khachhang', 'view'), (2, 'khachhang', 'update'), 
-    (2, 'phieuxuat', 'create'), (2, 'phieuxuat', 'view'), (2, 'phieuxuat', 'cancel'), (2, 'phieuxuat', 'export'),
-    (2, 'baohanh', 'view'), (2, 'baohanh', 'export'), (2, 'suachua', 'create'), (2, 'suachua', 'view'), (2, 'suachua', 'update'),
-    (2, 'vitritrungbay', 'view'), 
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`)
+VALUES (2, 'sanpham', 'view'),
+    (2, 'khachhang', 'create'),
+    (2, 'khachhang', 'view'),
+    (2, 'khachhang', 'update'),
+    (2, 'phieuxuat', 'create'),
+    (2, 'phieuxuat', 'view'),
+    (2, 'phieuxuat', 'cancel'),
+    (2, 'phieuxuat', 'export'),
+    (2, 'baohanh', 'view'),
+    (2, 'baohanh', 'export'),
+    (2, 'suachua', 'create'),
+    (2, 'suachua', 'view'),
+    (2, 'suachua', 'update'),
+    (2, 'vitritrungbay', 'view'),
     (2, 'makhuyenmai', 'view'),
-    (2, 'donxinngh', 'create'), (2, 'donxinngh', 'view'),
+    (2, 'donxinngh', 'create'),
+    (2, 'donxinngh', 'view'),
     (2, 'phancalam', 'view'),
     (2, 'bangluong', 'view'),
     (2, 'chamcong', 'view');
-    
-INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-    (3, 'donxinngh', 'create'),
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`)
+VALUES (3, 'donxinngh', 'create'),
     (3, 'bangluong', 'view'),
-	(3, 'sanpham', 'view'), (3, 'sanpham', 'create'), (3, 'sanpham', 'update'),
-    (3, 'nhacungcap', 'view'), (3, 'nhacungcap', 'create'), (3, 'nhacungcap', 'update'),
-    (3, 'phieunhap', 'view'), (3, 'phieunhap', 'create'), 
-    (3, 'vitritrungbay', 'view'), 
+    (3, 'sanpham', 'view'),
+    (3, 'sanpham', 'create'),
+    (3, 'sanpham', 'update'),
+    (3, 'nhacungcap', 'view'),
+    (3, 'nhacungcap', 'create'),
+    (3, 'nhacungcap', 'update'),
+    (3, 'phieunhap', 'view'),
+    (3, 'phieunhap', 'create'),
+    (3, 'vitritrungbay', 'view'),
     (3, 'thongke', 'view');
-    
-INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-    (4, 'nhanvien', 'view'),
+INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`)
+VALUES (4, 'nhanvien', 'view'),
     (4, 'donxinngh', 'create'),
     (4, 'bangluong', 'view'),
-	(4, 'baohanh', 'view'),
-    (4, 'suachua', 'view'), (4, 'suachua', 'create'), (4, 'suachua', 'update'),
+    (4, 'baohanh', 'view'),
+    (4, 'suachua', 'view'),
+    (4, 'suachua', 'create'),
+    (4, 'suachua', 'update'),
     (4, 'sanpham', 'view');
-    
 -- ------------------------------------------------------------
 --  4.4 Chức vụ
 -- ------------------------------------------------------------
-INSERT INTO `CHUCVU` (`TEN`, `LUONGCOBAN`, `TY_LE_HOA_HONG`, `TT`) VALUES 
-	('Quản lý cửa hàng', 15000000.00, 1.00, 1), -- Lương 15tr, hoa hồng 1% (tổng doanh thu)
-    ('Nhân viên bán hàng', 7000000.00, 2.00, 1), -- Lương 7tr, hoa hồng 3% (doanh số cá nhân)
+INSERT INTO `CHUCVU` (`TEN`, `LUONGCOBAN`, `TY_LE_HOA_HONG`, `TT`)
+VALUES ('Quản lý cửa hàng', 15000000.00, 1.00, 1),
+    -- Lương 15tr, hoa hồng 1% (tổng doanh thu)
+    ('Nhân viên bán hàng', 7000000.00, 2.00, 1),
+    -- Lương 7tr, hoa hồng 3% (doanh số cá nhân)
     ('Nhân viên kho', 8000000.00, 0.00, 1),
-    ('Nhân viên kỹ thuật', 10000000.00, 0.00, 1);
-    
+    ('Quản lý nhân sự', 10000000.00, 0.00, 1);
 -- ------------------------------------------------------------
 --  4.5 Ca làm
 -- ------------------------------------------------------------
-INSERT INTO `CALAM` (`TENCA`, `GIO_BATDAU`, `GIO_KETTHUC`, `TT`) VALUES 
-	('Ca 1', '08:00:00', '16:00:00', 1),
+INSERT INTO `CALAM` (`TENCA`, `GIO_BATDAU`, `GIO_KETTHUC`, `TT`)
+VALUES ('Ca 1', '08:00:00', '16:00:00', 1),
     ('Ca 2', '14:00:00', '22:00:00', 1);
-    
 -- ------------------------------------------------------------
 --  4.6 Nhân viên
 -- ------------------------------------------------------------
-INSERT INTO `NHANVIEN` (`HOTEN`, `GIOITINH`, `NGAYSINH`, `SDT`, `EMAIL`, `MCV`, `TT`, `QUEQUAN`, `NGAYVAOLAM`, `NGAYNGHIVIEC`, `CCCD`, `BOPHAN`) VALUES 
-	( 'Võ Thị Thu Luyện', 0, '2005-05-01', '0865172517', 'thuluyen234@gmail.com', 1, 1, 'Quảng Ngãi', '2024-01-10', NULL, '079205001234', 'Quản lý'),
-    ( 'Nguyễn Thị Ngọc Tú', 0, '2005-01-28', '0396532145', 'ngoctu@gmail.com', 2, 1,'Thái Bình', '2024-02-15', NULL, '080205005678', 'Bán hàng'),
-    ( 'Trần Thị Xuân Thanh', 0, '2005-01-22', '0387913347', 'xuanthanh@gmail.com', 3, 1, 'Gia Lai', '2024-02-15', NULL, '082205009101', 'Kho'),
-    ( 'Đỗ Hữu Lộc', 1, '2005-01-26', '0355374322', 'huuloc@gmail.com', 4, 0, 'Gia Lai', '2024-03-01', '2024-06-01', '075205001122', 'Kỹ thuật'),
-    ( 'Đỗ Nam Anh', 1, '2003-04-11', '0123456781', 'chinchin@gmail.com', 2, 1, 'Bình Dương', '2024-03-01', NULL, '074203003344', 'Bán hàng'),
-    ( 'Đinh Ngọc Ánh',01, '2003-04-03', '0123456782', 'ngocan@gmail.com', 2, 0, 'Cần Thơ', '2024-04-10', '2024-08-01', '092203005566', 'Bán hàng'),
-    ( 'Phạm Thị Ánh Tuyết', 0, '2004-12-10', '0912345678', 'minhkhang@gmail.com', 3, 1, 'Vũng Tàu', '2025-04-10', NULL, '077204007788', 'Kho'),
-    ( 'Lê Thảo Nhi', 0, '2005-03-15', '0945123789', 'thaonhi@gmail.com', 2, 1, 'Tây Ninh', '2025-05-20', NULL, '070205009900', 'Bán hàng'),
-    ( 'Nguyễn Hoàng Phúc', 1, '2003-09-21', '0987654321', 'hoangphuc@gmail.com', 4, 0, 'An Giang', '2026-05-20', '2026-07-01', '089203001133', 'Kỹ thuật'),
-    ( 'Trần Mỹ Hạnh', 0, '2004-07-19', '0938475621', 'myhanh@gmail.com', 2, 1, 'Kiên Giang', '2026-06-05', NULL, '091204002244','Bán hàng');
-    
+INSERT INTO `NHANVIEN` (
+        `HOTEN`,
+        `GIOITINH`,
+        `NGAYSINH`,
+        `SDT`,
+        `EMAIL`,
+        `MCV`,
+        `TT`,
+        `QUEQUAN`,
+        `NGAYVAOLAM`,
+        `NGAYNGHIVIEC`,
+        `CCCD`,
+        `BOPHAN`
+    )
+VALUES (
+        'Võ Thị Thu Luyện',
+        0,
+        '2005-05-01',
+        '0865172517',
+        'thuluyen234@gmail.com',
+        1,
+        1,
+        'Quảng Ngãi',
+        '2024-01-10',
+        NULL,
+        '079205001234',
+        'Quản lý'
+    ),
+    (
+        'Nguyễn Thị Ngọc Tú',
+        0,
+        '2005-01-28',
+        '0396532145',
+        'ngoctu@gmail.com',
+        4,
+        1,
+        'Thái Bình',
+        '2024-02-15',
+        NULL,
+        '080205005678',
+        'Quản lý'
+    ),
+    (
+        'Trần Thị Xuân Thanh',
+        0,
+        '2005-01-22',
+        '0387913347',
+        'xuanthanh@gmail.com',
+        3,
+        1,
+        'Gia Lai',
+        '2024-02-15',
+        NULL,
+        '082205009101',
+        'Kho'
+    ),
+    (
+        'Trần Thị Lan',
+        0,
+        '1992-08-21',
+        '0912345678',
+        'lantran@gmail.com',
+        2,
+        1,
+        'Đà Nẵng',
+        '2024-06-15',
+        NULL,
+        '012345678902',
+        'Kinh doanh'
+    ),
+    (
+        'Đỗ Nam Anh',
+        1,
+        '2003-04-11',
+        '0123456781',
+        'chinchin@gmail.com',
+        2,
+        0,
+        'Bình Dương',
+        '2024-03-01',
+        2024 -12 -01,
+        '074203003344',
+        'Kinh doanh'
+    ),
+    (
+        'Đinh Ngọc Ánh',
+        01,
+        '2003-04-03',
+        '0123456782',
+        'ngocan@gmail.com',
+        2,
+        0,
+        'Cần Thơ',
+        '2024-04-10',
+        '2024-08-01',
+        '092203005566',
+        'Kinh doanh'
+    ),
+    (
+        'Phạm Thị Ánh Tuyết',
+        0,
+        '2004-12-10',
+        '0912345680',
+        'minhkhang@gmail.com',
+        3,
+        1,
+        'Vũng Tàu',
+        '2025-04-10',
+        NULL,
+        '077204007788',
+        'Kho'
+    ),
+    (
+        'Lê Thảo Nhi',
+        0,
+        '2005-03-15',
+        '0945123789',
+        'thaonhi@gmail.com',
+        2,
+        1,
+        'Tây Ninh',
+        '2025-05-20',
+        NULL,
+        '070205009900',
+        'Kinh doanh'
+    ),
+    (
+        'Nguyễn Hoàng Phúc',
+        1,
+        '2003-09-21',
+        '0912345679',
+        'hoangphuc@gmail.com',
+        3,
+        0,
+        'An Giang',
+        '2026-05-20',
+        '2026-07-01',
+        '089203001133',
+        'Kho'
+    ),
+    (
+        'Trần Mỹ Hạnh',
+        0,
+        '2004-07-19',
+        '0938475621',
+        'myhanh@gmail.com',
+        2,
+        1,
+        'Kiên Giang',
+        '2026-06-05',
+        NULL,
+        '091204002244',
+        'Kinh doanh'
+    ),
+    (
+        'Lê Văn Minh',
+        1,
+        '1995-11-10',
+        '0987654321',
+        'minh.le@gmail.com',
+        3,
+        1,
+        'TP.HCM',
+        '2022-01-10',
+        NULL,
+        '012345678903',
+        'Kho'
+    ),
+    (
+        'Hoàng Văn Nam',
+        1,
+        '1990-07-30',
+        '0966234567',
+        'nam.hoang@gmail.com',
+        2,
+        1,
+        'Bình Dương',
+        '2025-09-20',
+        NULL,
+        '012345678905',
+        'Kinh doanh'
+    ),
+    (
+        'Đỗ Thị Mai',
+        0,
+        '1996-12-25',
+        '0933345678',
+        'mai.do@gmail.com',
+        2,
+        1,
+        'Đồng Nai',
+        '2025-11-11',
+        NULL,
+        '012345678906',
+        'Kinh doanh'
+    ),
+    (
+        'Phạm Thị Hoa',
+        0,
+        '1998-02-14',
+        '0977123456',
+        'hoa.pham@gmail.com',
+        3,
+        1,
+        'Cần Thơ',
+        '2026-04-05',
+        NULL,
+        '012345678904',
+        'Kho'
+    );
 -- ------------------------------------------------------------
 --  4.7 Lịch sử chức vụ
 -- ------------------------------------------------------------
-INSERT INTO `LICHSUCHUCVU` ( `MNV`, `MCV_CU`, `MCV_MOI`, `NGAY_HIEULUC`, `GHICHU`, `MNV_DUYET`) VALUES 
-	(1, NULL, 1, '2024-01-01', 'Ký hợp đồng quản lý', 1),
-    (2, NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
-    (3, NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
-    (4, NULL, 2, '2024-01-01', 'Ký hợp đồng nhân viên', 1),
-    (5, NULL, 2, '2024-02-01', 'Ký hợp đồng nhân viên', 1),
-    (6, NULL, 2, '2024-02-01', 'Ký hợp đồng nhân viên', 1),
-    (7, NULL, 2, '2024-03-01', 'Ký hợp đồng nhân viên', 1),
-    (8, NULL, 2, '2024-03-01', 'Ký hợp đồng nhân viên', 1),
-    (9, NULL, 2, '2024-04-01', 'Ký hợp đồng nhân viên', 1),
-    (10, NULL, 2, '2024-04-01', 'Ký hợp đồng nhân viên', 1);
-    
+INSERT INTO `LICHSUCHUCVU` (
+        `MNV`,
+        `MCV_CU`,
+        `MCV_MOI`,
+        `NGAY_HIEULUC`,
+        `NGAY_KETTHUC`,
+        `GHICHU`,
+        `MNV_DUYET`
+    )
+VALUES (
+        1,
+        NULL,
+        1,
+        '2024-01-01',
+        NULL,
+        'Ký hợp đồng quản lý',
+        1
+    ),
+    (
+        2,
+        NULL,
+        2,
+        '2024-01-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        3,
+        NULL,
+        2,
+        '2024-01-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        4,
+        NULL,
+        2,
+        '2024-01-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        5,
+        NULL,
+        2,
+        '2024-02-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        6,
+        NULL,
+        2,
+        '2024-02-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        7,
+        NULL,
+        2,
+        '2024-03-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        8,
+        NULL,
+        2,
+        '2024-03-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        9,
+        NULL,
+        2,
+        '2024-04-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    ),
+    (
+        10,
+        NULL,
+        2,
+        '2024-04-01',
+        NULL,
+        'Ký hợp đồng nhân viên',
+        1
+    );
 -- ------------------------------------------------------------
 --  3.8 Tài khoản
 -- ------------------------------------------------------------
-INSERT INTO `TAIKHOAN` (`MNV`, `TDN`, `MK`, `MNQ`, `TRANGTHAI`, `OTP`) VALUES 
-	(1, 'admin', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 1, 1, NULL),
-    (2, 'nhanvien02', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 2, 1, NULL),
-    (3, 'nhanvien03', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 3, 1, NULL),
-    (4, 'nhanvien04', '$2a$12$6GSkiQ05XjTRvCW9MB6MNuf7hOJEbbeQx11Eb8oELil1OrCq6uBXm', 4, 0, NULL);
-    
+INSERT INTO `TAIKHOAN` (`MNV`, `TDN`, `MK`, `MNQ`, `TRANGTHAI`, `OTP`)
+VALUES (
+        1,
+        'admin',
+        '$2b$12$MRXbUMeuxkSFYYixMz/RoujEl48JC6BtB90sF34gUviuqYvZa1Miy',
+        1,
+        1,
+        NULL
+    ),
+    (
+        2,
+        'nhanvien02',
+        '$2b$12$VzUsF3R18.uyNHYjXj8vFuY3yvo3K1SNjpv1elZieWLYo80y7vOjy',
+        4,
+        1,
+        NULL
+    ),
+    (
+        3,
+        'nhanvien03',
+        '$2b$12$Br9kbXk2zEprVm3eWH8jOOYbpcRgPkpozWgZ4Ez2S9COcY4g8F/d.',
+        3,
+        1,
+        NULL
+    ),
+    (
+        4,
+        'nhanvien04',
+        '$2b$12$ksjWwF6TN51h3gzrba5CtODJ2FxZz05isFjXzN0XbJEYUsBx4P3vi',
+        2,
+        1,
+        NULL
+    );
 -- ------------------------------------------------------------
 --  3.9 Phân ca mẫu
 -- ------------------------------------------------------------
@@ -731,3791 +1033,33743 @@ INSERT INTO `TAIKHOAN` (`MNV`, `TDN`, `MK`, `MNQ`, `TRANGTHAI`, `OTP`) VALUES
 -- ============================================================
 -- PHÂN CA LÀM VIỆC
 -- ============================================================
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1, 1, 1, '2024-01-10', '2024-01-10 08:02:00', '2024-01-10 16:01:00', 2),
-  (2, 1, 1, '2024-01-11', '2024-01-11 08:02:00', '2024-01-11 16:01:00', 2),
-  (3, 1, 1, '2024-01-12', '2024-01-12 08:02:00', '2024-01-12 16:01:00', 2),
-  (4, 1, 1, '2024-01-13', '2024-01-13 08:02:00', '2024-01-13 16:01:00', 2),
-  (5, 1, 1, '2024-01-15', '2024-01-15 08:02:00', '2024-01-15 16:01:00', 2),
-  (6, 1, 1, '2024-01-16', '2024-01-16 08:02:00', '2024-01-16 16:01:00', 2),
-  (7, 1, 1, '2024-01-17', '2024-01-17 08:02:00', '2024-01-17 16:01:00', 2),
-  (8, 1, 1, '2024-01-18', '2024-01-18 08:02:00', '2024-01-18 16:01:00', 2),
-  (9, 1, 1, '2024-01-19', '2024-01-19 08:02:00', '2024-01-19 16:01:00', 2),
-  (10, 1, 1, '2024-01-20', '2024-01-20 08:02:00', '2024-01-20 16:01:00', 2),
-  (11, 1, 1, '2024-01-22', '2024-01-22 08:02:00', '2024-01-22 16:01:00', 2),
-  (12, 1, 1, '2024-01-23', '2024-01-23 08:02:00', '2024-01-23 16:01:00', 2),
-  (13, 1, 1, '2024-01-24', '2024-01-24 08:02:00', '2024-01-24 16:01:00', 2),
-  (14, 1, 1, '2024-01-25', '2024-01-25 08:02:00', '2024-01-25 16:01:00', 2),
-  (15, 1, 1, '2024-01-26', '2024-01-26 08:02:00', '2024-01-26 16:01:00', 2),
-  (16, 1, 1, '2024-01-27', '2024-01-27 08:02:00', '2024-01-27 16:01:00', 2),
-  (17, 1, 1, '2024-01-29', '2024-01-29 08:02:00', '2024-01-29 16:01:00', 2),
-  (18, 1, 1, '2024-01-30', '2024-01-30 08:02:00', '2024-01-30 16:01:00', 2),
-  (19, 1, 1, '2024-01-31', '2024-01-31 08:02:00', '2024-01-31 16:01:00', 2),
-  (20, 1, 1, '2024-02-01', '2024-02-01 08:02:00', '2024-02-01 16:01:00', 2),
-  (21, 1, 1, '2024-02-02', '2024-02-02 08:02:00', '2024-02-02 16:01:00', 2),
-  (22, 1, 1, '2024-02-03', '2024-02-03 08:02:00', '2024-02-03 16:01:00', 2),
-  (23, 1, 1, '2024-02-05', '2024-02-05 08:02:00', '2024-02-05 16:01:00', 2),
-  (24, 1, 1, '2024-02-06', '2024-02-06 08:02:00', '2024-02-06 16:01:00', 2),
-  (25, 1, 1, '2024-02-07', '2024-02-07 08:02:00', '2024-02-07 16:01:00', 2),
-  (26, 1, 1, '2024-02-08', '2024-02-08 08:02:00', '2024-02-08 16:01:00', 2),
-  (27, 1, 1, '2024-02-09', '2024-02-09 08:02:00', '2024-02-09 16:01:00', 2),
-  (28, 1, 1, '2024-02-10', '2024-02-10 08:02:00', '2024-02-10 16:01:00', 2),
-  (29, 1, 1, '2024-02-12', '2024-02-12 08:02:00', '2024-02-12 16:01:00', 2),
-  (30, 1, 1, '2024-02-13', '2024-02-13 08:02:00', '2024-02-13 16:01:00', 2),
-  (31, 1, 1, '2024-02-14', '2024-02-14 08:02:00', '2024-02-14 16:01:00', 2),
-  (32, 1, 1, '2024-02-15', '2024-02-15 08:02:00', '2024-02-15 16:01:00', 2),
-  (33, 1, 1, '2024-02-16', '2024-02-16 08:02:00', '2024-02-16 16:01:00', 2),
-  (34, 1, 1, '2024-02-17', '2024-02-17 08:02:00', '2024-02-17 16:01:00', 2),
-  (35, 1, 1, '2024-02-19', '2024-02-19 08:02:00', '2024-02-19 16:01:00', 2),
-  (36, 1, 1, '2024-02-20', '2024-02-20 08:02:00', '2024-02-20 16:01:00', 2),
-  (37, 1, 1, '2024-02-21', '2024-02-21 08:02:00', '2024-02-21 16:01:00', 2),
-  (38, 1, 1, '2024-02-22', '2024-02-22 08:02:00', '2024-02-22 16:01:00', 2),
-  (39, 1, 1, '2024-02-23', '2024-02-23 08:02:00', '2024-02-23 16:01:00', 2),
-  (40, 1, 1, '2024-02-24', '2024-02-24 08:02:00', '2024-02-24 16:01:00', 2),
-  (41, 1, 1, '2024-02-26', '2024-02-26 08:02:00', '2024-02-26 16:01:00', 2),
-  (42, 1, 1, '2024-02-27', '2024-02-27 08:02:00', '2024-02-27 16:01:00', 2),
-  (43, 1, 1, '2024-02-28', '2024-02-28 08:02:00', '2024-02-28 16:01:00', 2),
-  (44, 1, 1, '2024-02-29', '2024-02-29 08:02:00', '2024-02-29 16:01:00', 2),
-  (45, 1, 1, '2024-03-01', '2024-03-01 08:02:00', '2024-03-01 16:01:00', 2),
-  (46, 1, 1, '2024-03-02', '2024-03-02 08:02:00', '2024-03-02 16:01:00', 2),
-  (47, 1, 1, '2024-03-04', '2024-03-04 08:02:00', '2024-03-04 16:01:00', 2),
-  (48, 1, 1, '2024-03-05', '2024-03-05 08:02:00', '2024-03-05 16:01:00', 2),
-  (49, 1, 1, '2024-03-06', '2024-03-06 08:02:00', '2024-03-06 16:01:00', 2),
-  (50, 1, 1, '2024-03-07', '2024-03-07 08:02:00', '2024-03-07 16:01:00', 2),
-  (51, 1, 1, '2024-03-08', '2024-03-08 08:02:00', '2024-03-08 16:01:00', 2),
-  (52, 1, 1, '2024-03-09', '2024-03-09 08:02:00', '2024-03-09 16:01:00', 2),
-  (53, 1, 1, '2024-03-11', '2024-03-11 08:02:00', '2024-03-11 16:01:00', 2),
-  (54, 1, 1, '2024-03-12', '2024-03-12 08:02:00', '2024-03-12 16:01:00', 2),
-  (55, 1, 1, '2024-03-13', '2024-03-13 08:02:00', '2024-03-13 16:01:00', 2),
-  (56, 1, 1, '2024-03-14', '2024-03-14 08:02:00', '2024-03-14 16:01:00', 2),
-  (57, 1, 1, '2024-03-15', '2024-03-15 08:02:00', '2024-03-15 16:01:00', 2),
-  (58, 1, 1, '2024-03-16', '2024-03-16 08:02:00', '2024-03-16 16:01:00', 2),
-  (59, 1, 1, '2024-03-18', '2024-03-18 08:02:00', '2024-03-18 16:01:00', 2),
-  (60, 1, 1, '2024-03-19', '2024-03-19 08:02:00', '2024-03-19 16:01:00', 2),
-  (61, 1, 1, '2024-03-20', '2024-03-20 08:02:00', '2024-03-20 16:01:00', 2),
-  (62, 1, 1, '2024-03-21', '2024-03-21 08:02:00', '2024-03-21 16:01:00', 2),
-  (63, 1, 1, '2024-03-22', '2024-03-22 08:02:00', '2024-03-22 16:01:00', 2),
-  (64, 1, 1, '2024-03-23', '2024-03-23 08:02:00', '2024-03-23 16:01:00', 2),
-  (65, 1, 1, '2024-03-25', '2024-03-25 08:02:00', '2024-03-25 16:01:00', 2),
-  (66, 1, 1, '2024-03-26', '2024-03-26 08:02:00', '2024-03-26 16:01:00', 2),
-  (67, 1, 1, '2024-03-27', '2024-03-27 08:02:00', '2024-03-27 16:01:00', 2),
-  (68, 1, 1, '2024-03-28', '2024-03-28 08:02:00', '2024-03-28 16:01:00', 2),
-  (69, 1, 1, '2024-03-29', '2024-03-29 08:02:00', '2024-03-29 16:01:00', 2),
-  (70, 1, 1, '2024-03-30', '2024-03-30 08:02:00', '2024-03-30 16:01:00', 2),
-  (71, 1, 1, '2024-04-01', '2024-04-01 08:02:00', '2024-04-01 16:01:00', 2),
-  (72, 1, 1, '2024-04-02', '2024-04-02 08:02:00', '2024-04-02 16:01:00', 2),
-  (73, 1, 1, '2024-04-03', '2024-04-03 08:02:00', '2024-04-03 16:01:00', 2),
-  (74, 1, 1, '2024-04-04', '2024-04-04 08:02:00', '2024-04-04 16:01:00', 2),
-  (75, 1, 1, '2024-04-05', '2024-04-05 08:02:00', '2024-04-05 16:01:00', 2),
-  (76, 1, 1, '2024-04-06', '2024-04-06 08:02:00', '2024-04-06 16:01:00', 2),
-  (77, 1, 1, '2024-04-08', '2024-04-08 08:02:00', '2024-04-08 16:01:00', 2),g
-  (78, 1, 1, '2024-04-09', '2024-04-09 08:02:00', '2024-04-09 16:01:00', 2),
-  (79, 1, 1, '2024-04-10', '2024-04-10 08:02:00', '2024-04-10 16:01:00', 2),
-  (80, 1, 1, '2024-04-11', '2024-04-11 08:02:00', '2024-04-11 16:01:00', 2),
-  (81, 1, 1, '2024-04-12', '2024-04-12 08:02:00', '2024-04-12 16:01:00', 2),
-  (82, 1, 1, '2024-04-13', '2024-04-13 08:02:00', '2024-04-13 16:01:00', 2),
-  (83, 1, 1, '2024-04-15', '2024-04-15 08:02:00', '2024-04-15 16:01:00', 2),
-  (84, 1, 1, '2024-04-16', '2024-04-16 08:02:00', '2024-04-16 16:01:00', 2),
-  (85, 1, 1, '2024-04-17', '2024-04-17 08:02:00', '2024-04-17 16:01:00', 2),
-  (86, 1, 1, '2024-04-18', '2024-04-18 08:02:00', '2024-04-18 16:01:00', 2),
-  (87, 1, 1, '2024-04-19', '2024-04-19 08:02:00', '2024-04-19 16:01:00', 2),
-  (88, 1, 1, '2024-04-20', '2024-04-20 08:02:00', '2024-04-20 16:01:00', 2),
-  (89, 1, 1, '2024-04-22', '2024-04-22 08:02:00', '2024-04-22 16:01:00', 2),
-  (90, 1, 1, '2024-04-23', '2024-04-23 08:02:00', '2024-04-23 16:01:00', 2),
-  (91, 1, 1, '2024-04-24', '2024-04-24 08:02:00', '2024-04-24 16:01:00', 2),
-  (92, 1, 1, '2024-04-25', '2024-04-25 08:02:00', '2024-04-25 16:01:00', 2),
-  (93, 1, 1, '2024-04-26', '2024-04-26 08:02:00', '2024-04-26 16:01:00', 2),
-  (94, 1, 1, '2024-04-27', '2024-04-27 08:02:00', '2024-04-27 16:01:00', 2),
-  (95, 1, 1, '2024-04-29', '2024-04-29 08:02:00', '2024-04-29 16:01:00', 2),
-  (96, 1, 1, '2024-04-30', '2024-04-30 08:02:00', '2024-04-30 16:01:00', 2),
-  (97, 1, 1, '2024-05-01', '2024-05-01 08:02:00', '2024-05-01 16:01:00', 2),
-  (98, 1, 1, '2024-05-02', '2024-05-02 08:02:00', '2024-05-02 16:01:00', 2),
-  (99, 1, 1, '2024-05-03', '2024-05-03 08:02:00', '2024-05-03 16:01:00', 2),
-  (100, 1, 1, '2024-05-04', '2024-05-04 08:02:00', '2024-05-04 16:01:00', 2),
-  (101, 1, 1, '2024-05-06', '2024-05-06 08:02:00', '2024-05-06 16:01:00', 2),
-  (102, 1, 1, '2024-05-07', '2024-05-07 08:02:00', '2024-05-07 16:01:00', 2),
-  (103, 1, 1, '2024-05-08', '2024-05-08 08:02:00', '2024-05-08 16:01:00', 2),
-  (104, 1, 1, '2024-05-09', '2024-05-09 08:02:00', '2024-05-09 16:01:00', 2),
-  (105, 1, 1, '2024-05-10', '2024-05-10 08:02:00', '2024-05-10 16:01:00', 2),
-  (106, 1, 1, '2024-05-11', '2024-05-11 08:02:00', '2024-05-11 16:01:00', 2),
-  (107, 1, 1, '2024-05-13', '2024-05-13 08:02:00', '2024-05-13 16:01:00', 2),
-  (108, 1, 1, '2024-05-14', '2024-05-14 08:02:00', '2024-05-14 16:01:00', 2),
-  (109, 1, 1, '2024-05-15', '2024-05-15 08:02:00', '2024-05-15 16:01:00', 2),
-  (110, 1, 1, '2024-05-16', '2024-05-16 08:02:00', '2024-05-16 16:01:00', 2),
-  (111, 1, 1, '2024-05-17', '2024-05-17 08:02:00', '2024-05-17 16:01:00', 2),
-  (112, 1, 1, '2024-05-18', '2024-05-18 08:02:00', '2024-05-18 16:01:00', 2),
-  (113, 1, 1, '2024-05-20', '2024-05-20 08:02:00', '2024-05-20 16:01:00', 2),
-  (114, 1, 1, '2024-05-21', '2024-05-21 08:02:00', '2024-05-21 16:01:00', 2),
-  (115, 1, 1, '2024-05-22', '2024-05-22 08:02:00', '2024-05-22 16:01:00', 2),
-  (116, 1, 1, '2024-05-23', '2024-05-23 08:02:00', '2024-05-23 16:01:00', 2),
-  (117, 1, 1, '2024-05-24', '2024-05-24 08:02:00', '2024-05-24 16:01:00', 2),
-  (118, 1, 1, '2024-05-25', '2024-05-25 08:02:00', '2024-05-25 16:01:00', 2),
-  (119, 1, 1, '2024-05-27', '2024-05-27 08:02:00', '2024-05-27 16:01:00', 2),
-  (120, 1, 1, '2024-05-28', '2024-05-28 08:02:00', '2024-05-28 16:01:00', 2),
-  (121, 1, 1, '2024-05-29', '2024-05-29 08:02:00', '2024-05-29 16:01:00', 2),
-  (122, 1, 1, '2024-05-30', '2024-05-30 08:02:00', '2024-05-30 16:01:00', 2),
-  (123, 1, 1, '2024-05-31', '2024-05-31 08:02:00', '2024-05-31 16:01:00', 2),
-  (124, 1, 1, '2024-06-01', '2024-06-01 08:02:00', '2024-06-01 16:01:00', 2),
-  (125, 1, 1, '2024-06-03', '2024-06-03 08:02:00', '2024-06-03 16:01:00', 2),
-  (126, 1, 1, '2024-06-04', '2024-06-04 08:02:00', '2024-06-04 16:01:00', 2),
-  (127, 1, 1, '2024-06-05', '2024-06-05 08:02:00', '2024-06-05 16:01:00', 2),
-  (128, 1, 1, '2024-06-06', '2024-06-06 08:02:00', '2024-06-06 16:01:00', 2),
-  (129, 1, 1, '2024-06-07', '2024-06-07 08:02:00', '2024-06-07 16:01:00', 2),
-  (130, 1, 1, '2024-06-08', '2024-06-08 08:02:00', '2024-06-08 16:01:00', 2),
-  (131, 1, 1, '2024-06-10', '2024-06-10 08:02:00', '2024-06-10 16:01:00', 2),
-  (132, 1, 1, '2024-06-11', '2024-06-11 08:02:00', '2024-06-11 16:01:00', 2),
-  (133, 1, 1, '2024-06-12', '2024-06-12 08:02:00', '2024-06-12 16:01:00', 2),
-  (134, 1, 1, '2024-06-13', '2024-06-13 08:02:00', '2024-06-13 16:01:00', 2),
-  (135, 1, 1, '2024-06-14', '2024-06-14 08:02:00', '2024-06-14 16:01:00', 2),
-  (136, 1, 1, '2024-06-15', '2024-06-15 08:02:00', '2024-06-15 16:01:00', 2),
-  (137, 1, 1, '2024-06-17', '2024-06-17 08:02:00', '2024-06-17 16:01:00', 2),
-  (138, 1, 1, '2024-06-18', '2024-06-18 08:02:00', '2024-06-18 16:01:00', 2),
-  (139, 1, 1, '2024-06-19', '2024-06-19 08:02:00', '2024-06-19 16:01:00', 2),
-  (140, 1, 1, '2024-06-20', '2024-06-20 08:02:00', '2024-06-20 16:01:00', 2),
-  (141, 1, 1, '2024-06-21', '2024-06-21 08:02:00', '2024-06-21 16:01:00', 2),
-  (142, 1, 1, '2024-06-22', '2024-06-22 08:02:00', '2024-06-22 16:01:00', 2),
-  (143, 1, 1, '2024-06-24', '2024-06-24 08:02:00', '2024-06-24 16:01:00', 2),
-  (144, 1, 1, '2024-06-25', '2024-06-25 08:02:00', '2024-06-25 16:01:00', 2),
-  (145, 1, 1, '2024-06-26', '2024-06-26 08:02:00', '2024-06-26 16:01:00', 2),
-  (146, 1, 1, '2024-06-27', '2024-06-27 08:02:00', '2024-06-27 16:01:00', 2),
-  (147, 1, 1, '2024-06-28', '2024-06-28 08:02:00', '2024-06-28 16:01:00', 2),
-  (148, 1, 1, '2024-06-29', '2024-06-29 08:02:00', '2024-06-29 16:01:00', 2),
-  (149, 1, 1, '2024-07-01', '2024-07-01 08:02:00', '2024-07-01 16:01:00', 2),
-  (150, 1, 1, '2024-07-02', '2024-07-02 08:02:00', '2024-07-02 16:01:00', 2),
-  (151, 1, 1, '2024-07-03', '2024-07-03 08:02:00', '2024-07-03 16:01:00', 2),
-  (152, 1, 1, '2024-07-04', '2024-07-04 08:02:00', '2024-07-04 16:01:00', 2),
-  (153, 1, 1, '2024-07-05', '2024-07-05 08:02:00', '2024-07-05 16:01:00', 2),
-  (154, 1, 1, '2024-07-06', '2024-07-06 08:02:00', '2024-07-06 16:01:00', 2),
-  (155, 1, 1, '2024-07-08', '2024-07-08 08:02:00', '2024-07-08 16:01:00', 2),
-  (156, 1, 1, '2024-07-09', '2024-07-09 08:02:00', '2024-07-09 16:01:00', 2),
-  (157, 1, 1, '2024-07-10', '2024-07-10 08:02:00', '2024-07-10 16:01:00', 2),
-  (158, 1, 1, '2024-07-11', '2024-07-11 08:02:00', '2024-07-11 16:01:00', 2),
-  (159, 1, 1, '2024-07-12', '2024-07-12 08:02:00', '2024-07-12 16:01:00', 2),
-  (160, 1, 1, '2024-07-13', '2024-07-13 08:02:00', '2024-07-13 16:01:00', 2),
-  (161, 1, 1, '2024-07-15', '2024-07-15 08:02:00', '2024-07-15 16:01:00', 2),
-  (162, 1, 1, '2024-07-16', '2024-07-16 08:02:00', '2024-07-16 16:01:00', 2),
-  (163, 1, 1, '2024-07-17', '2024-07-17 08:02:00', '2024-07-17 16:01:00', 2),
-  (164, 1, 1, '2024-07-18', '2024-07-18 08:02:00', '2024-07-18 16:01:00', 2),
-  (165, 1, 1, '2024-07-19', '2024-07-19 08:02:00', '2024-07-19 16:01:00', 2),
-  (166, 1, 1, '2024-07-20', '2024-07-20 08:02:00', '2024-07-20 16:01:00', 2),
-  (167, 1, 1, '2024-07-22', '2024-07-22 08:02:00', '2024-07-22 16:01:00', 2),
-  (168, 1, 1, '2024-07-23', '2024-07-23 08:02:00', '2024-07-23 16:01:00', 2),
-  (169, 1, 1, '2024-07-24', '2024-07-24 08:02:00', '2024-07-24 16:01:00', 2),
-  (170, 1, 1, '2024-07-25', '2024-07-25 08:02:00', '2024-07-25 16:01:00', 2),
-  (171, 1, 1, '2024-07-26', '2024-07-26 08:02:00', '2024-07-26 16:01:00', 2),
-  (172, 1, 1, '2024-07-27', '2024-07-27 08:02:00', '2024-07-27 16:01:00', 2),
-  (173, 1, 1, '2024-07-29', '2024-07-29 08:02:00', '2024-07-29 16:01:00', 2),
-  (174, 1, 1, '2024-07-30', '2024-07-30 08:02:00', '2024-07-30 16:01:00', 2),
-  (175, 1, 1, '2024-07-31', '2024-07-31 08:02:00', '2024-07-31 16:01:00', 2),
-  (176, 1, 1, '2024-08-01', '2024-08-01 08:02:00', '2024-08-01 16:01:00', 2),
-  (177, 1, 1, '2024-08-02', '2024-08-02 08:02:00', '2024-08-02 16:01:00', 2),
-  (178, 1, 1, '2024-08-03', '2024-08-03 08:02:00', '2024-08-03 16:01:00', 2),
-  (179, 1, 1, '2024-08-05', '2024-08-05 08:02:00', '2024-08-05 16:01:00', 2),
-  (180, 1, 1, '2024-08-06', '2024-08-06 08:02:00', '2024-08-06 16:01:00', 2),
-  (181, 1, 1, '2024-08-07', '2024-08-07 08:02:00', '2024-08-07 16:01:00', 2),
-  (182, 1, 1, '2024-08-08', '2024-08-08 08:02:00', '2024-08-08 16:01:00', 2),
-  (183, 1, 1, '2024-08-09', '2024-08-09 08:02:00', '2024-08-09 16:01:00', 2),
-  (184, 1, 1, '2024-08-10', '2024-08-10 08:02:00', '2024-08-10 16:01:00', 2),
-  (185, 1, 1, '2024-08-12', '2024-08-12 08:02:00', '2024-08-12 16:01:00', 2),
-  (186, 1, 1, '2024-08-13', '2024-08-13 08:02:00', '2024-08-13 16:01:00', 2),
-  (187, 1, 1, '2024-08-14', '2024-08-14 08:02:00', '2024-08-14 16:01:00', 2),
-  (188, 1, 1, '2024-08-15', '2024-08-15 08:02:00', '2024-08-15 16:01:00', 2),
-  (189, 1, 1, '2024-08-16', '2024-08-16 08:02:00', '2024-08-16 16:01:00', 2),
-  (190, 1, 1, '2024-08-17', '2024-08-17 08:02:00', '2024-08-17 16:01:00', 2),
-  (191, 1, 1, '2024-08-19', '2024-08-19 08:02:00', '2024-08-19 16:01:00', 2),
-  (192, 1, 1, '2024-08-20', '2024-08-20 08:02:00', '2024-08-20 16:01:00', 2),
-  (193, 1, 1, '2024-08-21', '2024-08-21 08:02:00', '2024-08-21 16:01:00', 2),
-  (194, 1, 1, '2024-08-22', '2024-08-22 08:02:00', '2024-08-22 16:01:00', 2),
-  (195, 1, 1, '2024-08-23', '2024-08-23 08:02:00', '2024-08-23 16:01:00', 2),
-  (196, 1, 1, '2024-08-24', '2024-08-24 08:02:00', '2024-08-24 16:01:00', 2),
-  (197, 1, 1, '2024-08-26', '2024-08-26 08:02:00', '2024-08-26 16:01:00', 2),
-  (198, 1, 1, '2024-08-27', '2024-08-27 08:02:00', '2024-08-27 16:01:00', 2),
-  (199, 1, 1, '2024-08-28', '2024-08-28 08:02:00', '2024-08-28 16:01:00', 2),
-  (200, 1, 1, '2024-08-29', '2024-08-29 08:02:00', '2024-08-29 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (201, 1, 1, '2024-08-30', '2024-08-30 08:02:00', '2024-08-30 16:01:00', 2),
-  (202, 1, 1, '2024-08-31', '2024-08-31 08:02:00', '2024-08-31 16:01:00', 2),
-  (203, 1, 1, '2024-09-02', '2024-09-02 08:02:00', '2024-09-02 16:01:00', 2),
-  (204, 1, 1, '2024-09-03', '2024-09-03 08:02:00', '2024-09-03 16:01:00', 2),
-  (205, 1, 1, '2024-09-04', '2024-09-04 08:02:00', '2024-09-04 16:01:00', 2),
-  (206, 1, 1, '2024-09-05', '2024-09-05 08:02:00', '2024-09-05 16:01:00', 2),
-  (207, 1, 1, '2024-09-06', '2024-09-06 08:02:00', '2024-09-06 16:01:00', 2),
-  (208, 1, 1, '2024-09-07', '2024-09-07 08:02:00', '2024-09-07 16:01:00', 2),
-  (209, 1, 1, '2024-09-09', '2024-09-09 08:02:00', '2024-09-09 16:01:00', 2),
-  (210, 1, 1, '2024-09-10', '2024-09-10 08:02:00', '2024-09-10 16:01:00', 2),
-  (211, 1, 1, '2024-09-11', '2024-09-11 08:02:00', '2024-09-11 16:01:00', 2),
-  (212, 1, 1, '2024-09-12', '2024-09-12 08:02:00', '2024-09-12 16:01:00', 2),
-  (213, 1, 1, '2024-09-13', '2024-09-13 08:02:00', '2024-09-13 16:01:00', 2),
-  (214, 1, 1, '2024-09-14', '2024-09-14 08:02:00', '2024-09-14 16:01:00', 2),
-  (215, 1, 1, '2024-09-16', '2024-09-16 08:02:00', '2024-09-16 16:01:00', 2),
-  (216, 1, 1, '2024-09-17', '2024-09-17 08:02:00', '2024-09-17 16:01:00', 2),
-  (217, 1, 1, '2024-09-18', '2024-09-18 08:02:00', '2024-09-18 16:01:00', 2),
-  (218, 1, 1, '2024-09-19', '2024-09-19 08:02:00', '2024-09-19 16:01:00', 2),
-  (219, 1, 1, '2024-09-20', '2024-09-20 08:02:00', '2024-09-20 16:01:00', 2),
-  (220, 1, 1, '2024-09-21', '2024-09-21 08:02:00', '2024-09-21 16:01:00', 2),
-  (221, 1, 1, '2024-09-23', '2024-09-23 08:02:00', '2024-09-23 16:01:00', 2),
-  (222, 1, 1, '2024-09-24', '2024-09-24 08:02:00', '2024-09-24 16:01:00', 2),
-  (223, 1, 1, '2024-09-25', '2024-09-25 08:02:00', '2024-09-25 16:01:00', 2),
-  (224, 1, 1, '2024-09-26', '2024-09-26 08:02:00', '2024-09-26 16:01:00', 2),
-  (225, 1, 1, '2024-09-27', '2024-09-27 08:02:00', '2024-09-27 16:01:00', 2),
-  (226, 1, 1, '2024-09-28', '2024-09-28 08:02:00', '2024-09-28 16:01:00', 2),
-  (227, 1, 1, '2024-09-30', '2024-09-30 08:02:00', '2024-09-30 16:01:00', 2),
-  (228, 1, 1, '2024-10-01', '2024-10-01 08:02:00', '2024-10-01 16:01:00', 2),
-  (229, 1, 1, '2024-10-02', '2024-10-02 08:02:00', '2024-10-02 16:01:00', 2),
-  (230, 1, 1, '2024-10-03', '2024-10-03 08:02:00', '2024-10-03 16:01:00', 2),
-  (231, 1, 1, '2024-10-04', '2024-10-04 08:02:00', '2024-10-04 16:01:00', 2),
-  (232, 1, 1, '2024-10-05', '2024-10-05 08:02:00', '2024-10-05 16:01:00', 2),
-  (233, 1, 1, '2024-10-07', '2024-10-07 08:02:00', '2024-10-07 16:01:00', 2),
-  (234, 1, 1, '2024-10-08', '2024-10-08 08:02:00', '2024-10-08 16:01:00', 2),
-  (235, 1, 1, '2024-10-09', '2024-10-09 08:02:00', '2024-10-09 16:01:00', 2),
-  (236, 1, 1, '2024-10-10', '2024-10-10 08:02:00', '2024-10-10 16:01:00', 2),
-  (237, 1, 1, '2024-10-11', '2024-10-11 08:02:00', '2024-10-11 16:01:00', 2),
-  (238, 1, 1, '2024-10-12', '2024-10-12 08:02:00', '2024-10-12 16:01:00', 2),
-  (239, 1, 1, '2024-10-14', '2024-10-14 08:02:00', '2024-10-14 16:01:00', 2),
-  (240, 1, 1, '2024-10-15', '2024-10-15 08:02:00', '2024-10-15 16:01:00', 2),
-  (241, 1, 1, '2024-10-16', '2024-10-16 08:02:00', '2024-10-16 16:01:00', 2),
-  (242, 1, 1, '2024-10-17', '2024-10-17 08:02:00', '2024-10-17 16:01:00', 2),
-  (243, 1, 1, '2024-10-18', '2024-10-18 08:02:00', '2024-10-18 16:01:00', 2),
-  (244, 1, 1, '2024-10-19', '2024-10-19 08:02:00', '2024-10-19 16:01:00', 2),
-  (245, 1, 1, '2024-10-21', '2024-10-21 08:02:00', '2024-10-21 16:01:00', 2),
-  (246, 1, 1, '2024-10-22', '2024-10-22 08:02:00', '2024-10-22 16:01:00', 2),
-  (247, 1, 1, '2024-10-23', '2024-10-23 08:02:00', '2024-10-23 16:01:00', 2),
-  (248, 1, 1, '2024-10-24', '2024-10-24 08:02:00', '2024-10-24 16:01:00', 2),
-  (249, 1, 1, '2024-10-25', '2024-10-25 08:02:00', '2024-10-25 16:01:00', 2),
-  (250, 1, 1, '2024-10-26', '2024-10-26 08:02:00', '2024-10-26 16:01:00', 2),
-  (251, 1, 1, '2024-10-28', '2024-10-28 08:02:00', '2024-10-28 16:01:00', 2),
-  (252, 1, 1, '2024-10-29', '2024-10-29 08:02:00', '2024-10-29 16:01:00', 2),
-  (253, 1, 1, '2024-10-30', '2024-10-30 08:02:00', '2024-10-30 16:01:00', 2),
-  (254, 1, 1, '2024-10-31', '2024-10-31 08:02:00', '2024-10-31 16:01:00', 2),
-  (255, 1, 1, '2024-11-01', '2024-11-01 08:02:00', '2024-11-01 16:01:00', 2),
-  (256, 1, 1, '2024-11-02', '2024-11-02 08:02:00', '2024-11-02 16:01:00', 2),
-  (257, 1, 1, '2024-11-04', '2024-11-04 08:02:00', '2024-11-04 16:01:00', 2),
-  (258, 1, 1, '2024-11-05', '2024-11-05 08:02:00', '2024-11-05 16:01:00', 2),
-  (259, 1, 1, '2024-11-06', '2024-11-06 08:02:00', '2024-11-06 16:01:00', 2),
-  (260, 1, 1, '2024-11-07', '2024-11-07 08:02:00', '2024-11-07 16:01:00', 2),
-  (261, 1, 1, '2024-11-08', '2024-11-08 08:02:00', '2024-11-08 16:01:00', 2),
-  (262, 1, 1, '2024-11-09', '2024-11-09 08:02:00', '2024-11-09 16:01:00', 2),
-  (263, 1, 1, '2024-11-11', '2024-11-11 08:02:00', '2024-11-11 16:01:00', 2),
-  (264, 1, 1, '2024-11-12', '2024-11-12 08:02:00', '2024-11-12 16:01:00', 2),
-  (265, 1, 1, '2024-11-13', '2024-11-13 08:02:00', '2024-11-13 16:01:00', 2),
-  (266, 1, 1, '2024-11-14', '2024-11-14 08:02:00', '2024-11-14 16:01:00', 2),
-  (267, 1, 1, '2024-11-15', '2024-11-15 08:02:00', '2024-11-15 16:01:00', 2),
-  (268, 1, 1, '2024-11-16', '2024-11-16 08:02:00', '2024-11-16 16:01:00', 2),
-  (269, 1, 1, '2024-11-18', '2024-11-18 08:02:00', '2024-11-18 16:01:00', 2),
-  (270, 1, 1, '2024-11-19', '2024-11-19 08:02:00', '2024-11-19 16:01:00', 2),
-  (271, 1, 1, '2024-11-20', '2024-11-20 08:02:00', '2024-11-20 16:01:00', 2),
-  (272, 1, 1, '2024-11-21', '2024-11-21 08:02:00', '2024-11-21 16:01:00', 2),
-  (273, 1, 1, '2024-11-22', '2024-11-22 08:02:00', '2024-11-22 16:01:00', 2),
-  (274, 1, 1, '2024-11-23', '2024-11-23 08:02:00', '2024-11-23 16:01:00', 2),
-  (275, 1, 1, '2024-11-25', '2024-11-25 08:02:00', '2024-11-25 16:01:00', 2),
-  (276, 1, 1, '2024-11-26', '2024-11-26 08:02:00', '2024-11-26 16:01:00', 2),
-  (277, 1, 1, '2024-11-27', '2024-11-27 08:02:00', '2024-11-27 16:01:00', 2),
-  (278, 1, 1, '2024-11-28', '2024-11-28 08:02:00', '2024-11-28 16:01:00', 2),
-  (279, 1, 1, '2024-11-29', '2024-11-29 08:02:00', '2024-11-29 16:01:00', 2),
-  (280, 1, 1, '2024-11-30', '2024-11-30 08:02:00', '2024-11-30 16:01:00', 2),
-  (281, 1, 1, '2024-12-02', '2024-12-02 08:02:00', '2024-12-02 16:01:00', 2),
-  (282, 1, 1, '2024-12-03', '2024-12-03 08:02:00', '2024-12-03 16:01:00', 2),
-  (283, 1, 1, '2024-12-04', '2024-12-04 08:02:00', '2024-12-04 16:01:00', 2),
-  (284, 1, 1, '2024-12-05', '2024-12-05 08:02:00', '2024-12-05 16:01:00', 2),
-  (285, 1, 1, '2024-12-06', '2024-12-06 08:02:00', '2024-12-06 16:01:00', 2),
-  (286, 1, 1, '2024-12-07', '2024-12-07 08:02:00', '2024-12-07 16:01:00', 2),
-  (287, 1, 1, '2024-12-09', '2024-12-09 08:02:00', '2024-12-09 16:01:00', 2),
-  (288, 1, 1, '2024-12-10', '2024-12-10 08:02:00', '2024-12-10 16:01:00', 2),
-  (289, 1, 1, '2024-12-11', '2024-12-11 08:02:00', '2024-12-11 16:01:00', 2),
-  (290, 1, 1, '2024-12-12', '2024-12-12 08:02:00', '2024-12-12 16:01:00', 2),
-  (291, 1, 1, '2024-12-13', '2024-12-13 08:02:00', '2024-12-13 16:01:00', 2),
-  (292, 1, 1, '2024-12-14', '2024-12-14 08:02:00', '2024-12-14 16:01:00', 2),
-  (293, 1, 1, '2024-12-16', '2024-12-16 08:02:00', '2024-12-16 16:01:00', 2),
-  (294, 1, 1, '2024-12-17', '2024-12-17 08:02:00', '2024-12-17 16:01:00', 2),
-  (295, 1, 1, '2024-12-18', '2024-12-18 08:02:00', '2024-12-18 16:01:00', 2),
-  (296, 1, 1, '2024-12-19', '2024-12-19 08:02:00', '2024-12-19 16:01:00', 2),
-  (297, 1, 1, '2024-12-20', '2024-12-20 08:02:00', '2024-12-20 16:01:00', 2),
-  (298, 1, 1, '2024-12-21', '2024-12-21 08:02:00', '2024-12-21 16:01:00', 2),
-  (299, 1, 1, '2024-12-23', '2024-12-23 08:02:00', '2024-12-23 16:01:00', 2),
-  (300, 1, 1, '2024-12-24', '2024-12-24 08:02:00', '2024-12-24 16:01:00', 2),
-  (301, 1, 1, '2024-12-25', '2024-12-25 08:02:00', '2024-12-25 16:01:00', 2),
-  (302, 1, 1, '2024-12-26', '2024-12-26 08:02:00', '2024-12-26 16:01:00', 2),
-  (303, 1, 1, '2024-12-27', '2024-12-27 08:02:00', '2024-12-27 16:01:00', 2),
-  (304, 1, 1, '2024-12-28', '2024-12-28 08:02:00', '2024-12-28 16:01:00', 2),
-  (305, 1, 1, '2024-12-30', '2024-12-30 08:02:00', '2024-12-30 16:01:00', 2),
-  (306, 1, 1, '2024-12-31', '2024-12-31 08:02:00', '2024-12-31 16:01:00', 2),
-  (307, 1, 1, '2025-01-01', '2025-01-01 08:02:00', '2025-01-01 16:01:00', 2),
-  (308, 1, 1, '2025-01-02', '2025-01-02 08:02:00', '2025-01-02 16:01:00', 2),
-  (309, 1, 1, '2025-01-03', '2025-01-03 08:02:00', '2025-01-03 16:01:00', 2),
-  (310, 1, 1, '2025-01-04', '2025-01-04 08:02:00', '2025-01-04 16:01:00', 2),
-  (311, 1, 1, '2025-01-06', '2025-01-06 08:02:00', '2025-01-06 16:01:00', 2),
-  (312, 1, 1, '2025-01-07', '2025-01-07 08:02:00', '2025-01-07 16:01:00', 2),
-  (313, 1, 1, '2025-01-08', '2025-01-08 08:02:00', '2025-01-08 16:01:00', 2),
-  (314, 1, 1, '2025-01-09', '2025-01-09 08:02:00', '2025-01-09 16:01:00', 2),
-  (315, 1, 1, '2025-01-10', '2025-01-10 08:02:00', '2025-01-10 16:01:00', 2),
-  (316, 1, 1, '2025-01-11', '2025-01-11 08:02:00', '2025-01-11 16:01:00', 2),
-  (317, 1, 1, '2025-01-13', '2025-01-13 08:02:00', '2025-01-13 16:01:00', 2),
-  (318, 1, 1, '2025-01-14', '2025-01-14 08:02:00', '2025-01-14 16:01:00', 2),
-  (319, 1, 1, '2025-01-15', '2025-01-15 08:02:00', '2025-01-15 16:01:00', 2),
-  (320, 1, 1, '2025-01-16', '2025-01-16 08:02:00', '2025-01-16 16:01:00', 2),
-  (321, 1, 1, '2025-01-17', '2025-01-17 08:02:00', '2025-01-17 16:01:00', 2),
-  (322, 1, 1, '2025-01-18', '2025-01-18 08:02:00', '2025-01-18 16:01:00', 2),
-  (323, 1, 1, '2025-01-20', '2025-01-20 08:02:00', '2025-01-20 16:01:00', 2),
-  (324, 1, 1, '2025-01-21', '2025-01-21 08:02:00', '2025-01-21 16:01:00', 2),
-  (325, 1, 1, '2025-01-22', '2025-01-22 08:02:00', '2025-01-22 16:01:00', 2),
-  (326, 1, 1, '2025-01-23', '2025-01-23 08:02:00', '2025-01-23 16:01:00', 2),
-  (327, 1, 1, '2025-01-24', '2025-01-24 08:02:00', '2025-01-24 16:01:00', 2),
-  (328, 1, 1, '2025-01-25', '2025-01-25 08:02:00', '2025-01-25 16:01:00', 2),
-  (329, 1, 1, '2025-01-27', '2025-01-27 08:02:00', '2025-01-27 16:01:00', 2),
-  (330, 1, 1, '2025-01-28', '2025-01-28 08:02:00', '2025-01-28 16:01:00', 2),
-  (331, 1, 1, '2025-01-29', '2025-01-29 08:02:00', '2025-01-29 16:01:00', 2),
-  (332, 1, 1, '2025-01-30', '2025-01-30 08:02:00', '2025-01-30 16:01:00', 2),
-  (333, 1, 1, '2025-01-31', '2025-01-31 08:02:00', '2025-01-31 16:01:00', 2),
-  (334, 1, 1, '2025-02-01', '2025-02-01 08:02:00', '2025-02-01 16:01:00', 2),
-  (335, 1, 1, '2025-02-03', '2025-02-03 08:02:00', '2025-02-03 16:01:00', 2),
-  (336, 1, 1, '2025-02-04', '2025-02-04 08:02:00', '2025-02-04 16:01:00', 2),
-  (337, 1, 1, '2025-02-05', '2025-02-05 08:02:00', '2025-02-05 16:01:00', 2),
-  (338, 1, 1, '2025-02-06', '2025-02-06 08:02:00', '2025-02-06 16:01:00', 2),
-  (339, 1, 1, '2025-02-07', '2025-02-07 08:02:00', '2025-02-07 16:01:00', 2),
-  (340, 1, 1, '2025-02-08', '2025-02-08 08:02:00', '2025-02-08 16:01:00', 2),
-  (341, 1, 1, '2025-02-10', '2025-02-10 08:02:00', '2025-02-10 16:01:00', 2),
-  (342, 1, 1, '2025-02-11', '2025-02-11 08:02:00', '2025-02-11 16:01:00', 2),
-  (343, 1, 1, '2025-02-12', '2025-02-12 08:02:00', '2025-02-12 16:01:00', 2),
-  (344, 1, 1, '2025-02-13', '2025-02-13 08:02:00', '2025-02-13 16:01:00', 2),
-  (345, 1, 1, '2025-02-14', '2025-02-14 08:02:00', '2025-02-14 16:01:00', 2),
-  (346, 1, 1, '2025-02-15', '2025-02-15 08:02:00', '2025-02-15 16:01:00', 2),
-  (347, 1, 1, '2025-02-17', '2025-02-17 08:02:00', '2025-02-17 16:01:00', 2),
-  (348, 1, 1, '2025-02-18', '2025-02-18 08:02:00', '2025-02-18 16:01:00', 2),
-  (349, 1, 1, '2025-02-19', '2025-02-19 08:02:00', '2025-02-19 16:01:00', 2),
-  (350, 1, 1, '2025-02-20', '2025-02-20 08:02:00', '2025-02-20 16:01:00', 2),
-  (351, 1, 1, '2025-02-21', '2025-02-21 08:02:00', '2025-02-21 16:01:00', 2),
-  (352, 1, 1, '2025-02-22', '2025-02-22 08:02:00', '2025-02-22 16:01:00', 2),
-  (353, 1, 1, '2025-02-24', '2025-02-24 08:02:00', '2025-02-24 16:01:00', 2),
-  (354, 1, 1, '2025-02-25', '2025-02-25 08:02:00', '2025-02-25 16:01:00', 2),
-  (355, 1, 1, '2025-02-26', '2025-02-26 08:02:00', '2025-02-26 16:01:00', 2),
-  (356, 1, 1, '2025-02-27', '2025-02-27 08:02:00', '2025-02-27 16:01:00', 2),
-  (357, 1, 1, '2025-02-28', '2025-02-28 08:02:00', '2025-02-28 16:01:00', 2),
-  (358, 1, 1, '2025-03-01', '2025-03-01 08:02:00', '2025-03-01 16:01:00', 2),
-  (359, 1, 1, '2025-03-03', '2025-03-03 08:02:00', '2025-03-03 16:01:00', 2),
-  (360, 1, 1, '2025-03-04', '2025-03-04 08:02:00', '2025-03-04 16:01:00', 2),
-  (361, 1, 1, '2025-03-05', '2025-03-05 08:02:00', '2025-03-05 16:01:00', 2),
-  (362, 1, 1, '2025-03-06', '2025-03-06 08:02:00', '2025-03-06 16:01:00', 2),
-  (363, 1, 1, '2025-03-07', '2025-03-07 08:02:00', '2025-03-07 16:01:00', 2),
-  (364, 1, 1, '2025-03-08', '2025-03-08 08:02:00', '2025-03-08 16:01:00', 2),
-  (365, 1, 1, '2025-03-10', '2025-03-10 08:02:00', '2025-03-10 16:01:00', 2),
-  (366, 1, 1, '2025-03-11', '2025-03-11 08:02:00', '2025-03-11 16:01:00', 2),
-  (367, 1, 1, '2025-03-12', '2025-03-12 08:02:00', '2025-03-12 16:01:00', 2),
-  (368, 1, 1, '2025-03-13', '2025-03-13 08:02:00', '2025-03-13 16:01:00', 2),
-  (369, 1, 1, '2025-03-14', '2025-03-14 08:02:00', '2025-03-14 16:01:00', 2),
-  (370, 1, 1, '2025-03-15', '2025-03-15 08:02:00', '2025-03-15 16:01:00', 2),
-  (371, 1, 1, '2025-03-17', '2025-03-17 08:02:00', '2025-03-17 16:01:00', 2),
-  (372, 1, 1, '2025-03-18', '2025-03-18 08:02:00', '2025-03-18 16:01:00', 2),
-  (373, 1, 1, '2025-03-19', '2025-03-19 08:02:00', '2025-03-19 16:01:00', 2),
-  (374, 1, 1, '2025-03-20', '2025-03-20 08:02:00', '2025-03-20 16:01:00', 2),
-  (375, 1, 1, '2025-03-21', '2025-03-21 08:02:00', '2025-03-21 16:01:00', 2),
-  (376, 1, 1, '2025-03-22', '2025-03-22 08:02:00', '2025-03-22 16:01:00', 2),
-  (377, 1, 1, '2025-03-24', '2025-03-24 08:02:00', '2025-03-24 16:01:00', 2),
-  (378, 1, 1, '2025-03-25', '2025-03-25 08:02:00', '2025-03-25 16:01:00', 2),
-  (379, 1, 1, '2025-03-26', '2025-03-26 08:02:00', '2025-03-26 16:01:00', 2),
-  (380, 1, 1, '2025-03-27', '2025-03-27 08:02:00', '2025-03-27 16:01:00', 2),
-  (381, 1, 1, '2025-03-28', '2025-03-28 08:02:00', '2025-03-28 16:01:00', 2),
-  (382, 1, 1, '2025-03-29', '2025-03-29 08:02:00', '2025-03-29 16:01:00', 2),
-  (383, 1, 1, '2025-03-31', '2025-03-31 08:02:00', '2025-03-31 16:01:00', 2),
-  (384, 1, 1, '2025-04-01', '2025-04-01 08:02:00', '2025-04-01 16:01:00', 2),
-  (385, 1, 1, '2025-04-02', '2025-04-02 08:02:00', '2025-04-02 16:01:00', 2),
-  (386, 1, 1, '2025-04-03', '2025-04-03 08:02:00', '2025-04-03 16:01:00', 2),
-  (387, 1, 1, '2025-04-04', '2025-04-04 08:02:00', '2025-04-04 16:01:00', 2),
-  (388, 1, 1, '2025-04-05', '2025-04-05 08:02:00', '2025-04-05 16:01:00', 2),
-  (389, 1, 1, '2025-04-07', '2025-04-07 08:02:00', '2025-04-07 16:01:00', 2),
-  (390, 1, 1, '2025-04-08', '2025-04-08 08:02:00', '2025-04-08 16:01:00', 2),
-  (391, 1, 1, '2025-04-09', '2025-04-09 08:02:00', '2025-04-09 16:01:00', 2),
-  (392, 1, 1, '2025-04-10', '2025-04-10 08:02:00', '2025-04-10 16:01:00', 2),
-  (393, 1, 1, '2025-04-11', '2025-04-11 08:02:00', '2025-04-11 16:01:00', 2),
-  (394, 1, 1, '2025-04-12', '2025-04-12 08:02:00', '2025-04-12 16:01:00', 2),
-  (395, 1, 1, '2025-04-14', '2025-04-14 08:02:00', '2025-04-14 16:01:00', 2),
-  (396, 1, 1, '2025-04-15', '2025-04-15 08:02:00', '2025-04-15 16:01:00', 2),
-  (397, 1, 1, '2025-04-16', '2025-04-16 08:02:00', '2025-04-16 16:01:00', 2),
-  (398, 1, 1, '2025-04-17', '2025-04-17 08:02:00', '2025-04-17 16:01:00', 2),
-  (399, 1, 1, '2025-04-18', '2025-04-18 08:02:00', '2025-04-18 16:01:00', 2),
-  (400, 1, 1, '2025-04-19', '2025-04-19 08:02:00', '2025-04-19 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (401, 1, 1, '2025-04-21', '2025-04-21 08:02:00', '2025-04-21 16:01:00', 2),
-  (402, 1, 1, '2025-04-22', '2025-04-22 08:02:00', '2025-04-22 16:01:00', 2),
-  (403, 1, 1, '2025-04-23', '2025-04-23 08:02:00', '2025-04-23 16:01:00', 2),
-  (404, 1, 1, '2025-04-24', '2025-04-24 08:02:00', '2025-04-24 16:01:00', 2),
-  (405, 1, 1, '2025-04-25', '2025-04-25 08:02:00', '2025-04-25 16:01:00', 2),
-  (406, 1, 1, '2025-04-26', '2025-04-26 08:02:00', '2025-04-26 16:01:00', 2),
-  (407, 1, 1, '2025-04-28', '2025-04-28 08:02:00', '2025-04-28 16:01:00', 2),
-  (408, 1, 1, '2025-04-29', '2025-04-29 08:02:00', '2025-04-29 16:01:00', 2),
-  (409, 1, 1, '2025-04-30', '2025-04-30 08:02:00', '2025-04-30 16:01:00', 2),
-  (410, 1, 1, '2025-05-01', '2025-05-01 08:02:00', '2025-05-01 16:01:00', 2),
-  (411, 1, 1, '2025-05-02', '2025-05-02 08:02:00', '2025-05-02 16:01:00', 2),
-  (412, 1, 1, '2025-05-03', '2025-05-03 08:02:00', '2025-05-03 16:01:00', 2),
-  (413, 1, 1, '2025-05-05', '2025-05-05 08:02:00', '2025-05-05 16:01:00', 2),
-  (414, 1, 1, '2025-05-06', '2025-05-06 08:02:00', '2025-05-06 16:01:00', 2),
-  (415, 1, 1, '2025-05-07', '2025-05-07 08:02:00', '2025-05-07 16:01:00', 2),
-  (416, 1, 1, '2025-05-08', '2025-05-08 08:02:00', '2025-05-08 16:01:00', 2),
-  (417, 1, 1, '2025-05-09', '2025-05-09 08:02:00', '2025-05-09 16:01:00', 2),
-  (418, 1, 1, '2025-05-10', '2025-05-10 08:02:00', '2025-05-10 16:01:00', 2),
-  (419, 1, 1, '2025-05-12', '2025-05-12 08:02:00', '2025-05-12 16:01:00', 2),
-  (420, 1, 1, '2025-05-13', '2025-05-13 08:02:00', '2025-05-13 16:01:00', 2),
-  (421, 1, 1, '2025-05-14', '2025-05-14 08:02:00', '2025-05-14 16:01:00', 2),
-  (422, 1, 1, '2025-05-15', '2025-05-15 08:02:00', '2025-05-15 16:01:00', 2),
-  (423, 1, 1, '2025-05-16', '2025-05-16 08:02:00', '2025-05-16 16:01:00', 2),
-  (424, 1, 1, '2025-05-17', '2025-05-17 08:02:00', '2025-05-17 16:01:00', 2),
-  (425, 1, 1, '2025-05-19', '2025-05-19 08:02:00', '2025-05-19 16:01:00', 2),
-  (426, 1, 1, '2025-05-20', '2025-05-20 08:02:00', '2025-05-20 16:01:00', 2),
-  (427, 1, 1, '2025-05-21', '2025-05-21 08:02:00', '2025-05-21 16:01:00', 2),
-  (428, 1, 1, '2025-05-22', '2025-05-22 08:02:00', '2025-05-22 16:01:00', 2),
-  (429, 1, 1, '2025-05-23', '2025-05-23 08:02:00', '2025-05-23 16:01:00', 2),
-  (430, 1, 1, '2025-05-24', '2025-05-24 08:02:00', '2025-05-24 16:01:00', 2),
-  (431, 1, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (432, 1, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (433, 1, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (434, 1, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (435, 1, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (436, 1, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (437, 1, 1, '2025-06-02', '2025-06-02 08:02:00', '2025-06-02 16:01:00', 2),
-  (438, 1, 1, '2025-06-03', '2025-06-03 08:02:00', '2025-06-03 16:01:00', 2),
-  (439, 1, 1, '2025-06-04', '2025-06-04 08:02:00', '2025-06-04 16:01:00', 2),
-  (440, 1, 1, '2025-06-05', '2025-06-05 08:02:00', '2025-06-05 16:01:00', 2),
-  (441, 1, 1, '2025-06-06', '2025-06-06 08:02:00', '2025-06-06 16:01:00', 2),
-  (442, 1, 1, '2025-06-07', '2025-06-07 08:02:00', '2025-06-07 16:01:00', 2),
-  (443, 1, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (444, 1, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (445, 1, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (446, 1, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (447, 1, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (448, 1, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (449, 1, 1, '2025-06-16', '2025-06-16 08:02:00', '2025-06-16 16:01:00', 2),
-  (450, 1, 1, '2025-06-17', '2025-06-17 08:02:00', '2025-06-17 16:01:00', 2),
-  (451, 1, 1, '2025-06-18', '2025-06-18 08:02:00', '2025-06-18 16:01:00', 2),
-  (452, 1, 1, '2025-06-19', '2025-06-19 08:02:00', '2025-06-19 16:01:00', 2),
-  (453, 1, 1, '2025-06-20', '2025-06-20 08:02:00', '2025-06-20 16:01:00', 2),
-  (454, 1, 1, '2025-06-21', '2025-06-21 08:02:00', '2025-06-21 16:01:00', 2),
-  (455, 1, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (456, 1, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (457, 1, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (458, 1, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2),
-  (459, 1, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (460, 1, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (461, 1, 1, '2025-06-30', '2025-06-30 08:02:00', '2025-06-30 16:01:00', 2),
-  (462, 1, 1, '2025-07-01', '2025-07-01 08:02:00', '2025-07-01 16:01:00', 2),
-  (463, 1, 1, '2025-07-02', '2025-07-02 08:02:00', '2025-07-02 16:01:00', 2),
-  (464, 1, 1, '2025-07-03', '2025-07-03 08:02:00', '2025-07-03 16:01:00', 2),
-  (465, 1, 1, '2025-07-04', '2025-07-04 08:02:00', '2025-07-04 16:01:00', 2),
-  (466, 1, 1, '2025-07-05', '2025-07-05 08:02:00', '2025-07-05 16:01:00', 2),
-  (467, 1, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (468, 1, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (469, 1, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (470, 1, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (471, 1, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (472, 1, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (473, 1, 1, '2025-07-14', '2025-07-14 08:02:00', '2025-07-14 16:01:00', 2),
-  (474, 1, 1, '2025-07-15', '2025-07-15 08:02:00', '2025-07-15 16:01:00', 2),
-  (475, 1, 1, '2025-07-16', '2025-07-16 08:02:00', '2025-07-16 16:01:00', 2),
-  (476, 1, 1, '2025-07-17', '2025-07-17 08:02:00', '2025-07-17 16:01:00', 2),
-  (477, 1, 1, '2025-07-18', '2025-07-18 08:02:00', '2025-07-18 16:01:00', 2),
-  (478, 1, 1, '2025-07-19', '2025-07-19 08:02:00', '2025-07-19 16:01:00', 2),
-  (479, 1, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (480, 1, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (481, 1, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (482, 1, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (483, 1, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (484, 1, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (485, 1, 1, '2025-07-28', '2025-07-28 08:02:00', '2025-07-28 16:01:00', 2),
-  (486, 1, 1, '2025-07-29', '2025-07-29 08:02:00', '2025-07-29 16:01:00', 2),
-  (487, 1, 1, '2025-07-30', '2025-07-30 08:02:00', '2025-07-30 16:01:00', 2),
-  (488, 1, 1, '2025-07-31', '2025-07-31 08:02:00', '2025-07-31 16:01:00', 2),
-  (489, 1, 1, '2025-08-01', '2025-08-01 08:02:00', '2025-08-01 16:01:00', 2),
-  (490, 1, 1, '2025-08-02', '2025-08-02 08:02:00', '2025-08-02 16:01:00', 2),
-  (491, 1, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (492, 1, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (493, 1, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (494, 1, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (495, 1, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (496, 1, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (497, 1, 1, '2025-08-11', '2025-08-11 08:02:00', '2025-08-11 16:01:00', 2),
-  (498, 1, 1, '2025-08-12', '2025-08-12 08:02:00', '2025-08-12 16:01:00', 2),
-  (499, 1, 1, '2025-08-13', '2025-08-13 08:02:00', '2025-08-13 16:01:00', 2),
-  (500, 1, 1, '2025-08-14', '2025-08-14 08:02:00', '2025-08-14 16:01:00', 2),
-  (501, 1, 1, '2025-08-15', '2025-08-15 08:02:00', '2025-08-15 16:01:00', 2),
-  (502, 1, 1, '2025-08-16', '2025-08-16 08:02:00', '2025-08-16 16:01:00', 2),
-  (503, 1, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (504, 1, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (505, 1, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (506, 1, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (507, 1, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (508, 1, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (509, 1, 1, '2025-08-25', '2025-08-25 08:02:00', '2025-08-25 16:01:00', 2),
-  (510, 1, 1, '2025-08-26', '2025-08-26 08:02:00', '2025-08-26 16:01:00', 2),
-  (511, 1, 1, '2025-08-27', '2025-08-27 08:02:00', '2025-08-27 16:01:00', 2),
-  (512, 1, 1, '2025-08-28', '2025-08-28 08:02:00', '2025-08-28 16:01:00', 2),
-  (513, 1, 1, '2025-08-29', '2025-08-29 08:02:00', '2025-08-29 16:01:00', 2),
-  (514, 1, 1, '2025-08-30', '2025-08-30 08:02:00', '2025-08-30 16:01:00', 2),
-  (515, 1, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (516, 1, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (517, 1, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (518, 1, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (519, 1, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (520, 1, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (521, 1, 1, '2025-09-08', '2025-09-08 08:02:00', '2025-09-08 16:01:00', 2),
-  (522, 1, 1, '2025-09-09', '2025-09-09 08:02:00', '2025-09-09 16:01:00', 2),
-  (523, 1, 1, '2025-09-10', '2025-09-10 08:02:00', '2025-09-10 16:01:00', 2),
-  (524, 1, 1, '2025-09-11', '2025-09-11 08:02:00', '2025-09-11 16:01:00', 2),
-  (525, 1, 1, '2025-09-12', '2025-09-12 08:02:00', '2025-09-12 16:01:00', 2),
-  (526, 1, 1, '2025-09-13', '2025-09-13 08:02:00', '2025-09-13 16:01:00', 2),
-  (527, 1, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (528, 1, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (529, 1, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2),
-  (530, 1, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (531, 1, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (532, 1, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (533, 1, 1, '2025-09-22', '2025-09-22 08:02:00', '2025-09-22 16:01:00', 2),
-  (534, 1, 1, '2025-09-23', '2025-09-23 08:02:00', '2025-09-23 16:01:00', 2),
-  (535, 1, 1, '2025-09-24', '2025-09-24 08:02:00', '2025-09-24 16:01:00', 2),
-  (536, 1, 1, '2025-09-25', '2025-09-25 08:02:00', '2025-09-25 16:01:00', 2),
-  (537, 1, 1, '2025-09-26', '2025-09-26 08:02:00', '2025-09-26 16:01:00', 2),
-  (538, 1, 1, '2025-09-27', '2025-09-27 08:02:00', '2025-09-27 16:01:00', 2),
-  (539, 1, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (540, 1, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (541, 1, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (542, 1, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (543, 1, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (544, 1, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (545, 1, 1, '2025-10-06', '2025-10-06 08:02:00', '2025-10-06 16:01:00', 2),
-  (546, 1, 1, '2025-10-07', '2025-10-07 08:02:00', '2025-10-07 16:01:00', 2),
-  (547, 1, 1, '2025-10-08', '2025-10-08 08:02:00', '2025-10-08 16:01:00', 2),
-  (548, 1, 1, '2025-10-09', '2025-10-09 08:02:00', '2025-10-09 16:01:00', 2),
-  (549, 1, 1, '2025-10-10', '2025-10-10 08:02:00', '2025-10-10 16:01:00', 2),
-  (550, 1, 1, '2025-10-11', '2025-10-11 08:02:00', '2025-10-11 16:01:00', 2),
-  (551, 1, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (552, 1, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (553, 1, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (554, 1, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (555, 1, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (556, 1, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (557, 1, 1, '2025-10-20', '2025-10-20 08:02:00', '2025-10-20 16:01:00', 2),
-  (558, 1, 1, '2025-10-21', '2025-10-21 08:02:00', '2025-10-21 16:01:00', 2),
-  (559, 1, 1, '2025-10-22', '2025-10-22 08:02:00', '2025-10-22 16:01:00', 2),
-  (560, 1, 1, '2025-10-23', '2025-10-23 08:02:00', '2025-10-23 16:01:00', 2),
-  (561, 1, 1, '2025-10-24', '2025-10-24 08:02:00', '2025-10-24 16:01:00', 2),
-  (562, 1, 1, '2025-10-25', '2025-10-25 08:02:00', '2025-10-25 16:01:00', 2),
-  (563, 1, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (564, 1, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (565, 1, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (566, 1, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (567, 1, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (568, 1, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (569, 1, 1, '2025-11-03', '2025-11-03 08:02:00', '2025-11-03 16:01:00', 2),
-  (570, 1, 1, '2025-11-04', '2025-11-04 08:02:00', '2025-11-04 16:01:00', 2),
-  (571, 1, 1, '2025-11-05', '2025-11-05 08:02:00', '2025-11-05 16:01:00', 2),
-  (572, 1, 1, '2025-11-06', '2025-11-06 08:02:00', '2025-11-06 16:01:00', 2),
-  (573, 1, 1, '2025-11-07', '2025-11-07 08:02:00', '2025-11-07 16:01:00', 2),
-  (574, 1, 1, '2025-11-08', '2025-11-08 08:02:00', '2025-11-08 16:01:00', 2),
-  (575, 1, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (576, 1, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (577, 1, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (578, 1, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (579, 1, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (580, 1, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (581, 1, 1, '2025-11-17', '2025-11-17 08:02:00', '2025-11-17 16:01:00', 2),
-  (582, 1, 1, '2025-11-18', '2025-11-18 08:02:00', '2025-11-18 16:01:00', 2),
-  (583, 1, 1, '2025-11-19', '2025-11-19 08:02:00', '2025-11-19 16:01:00', 2),
-  (584, 1, 1, '2025-11-20', '2025-11-20 08:02:00', '2025-11-20 16:01:00', 2),
-  (585, 1, 1, '2025-11-21', '2025-11-21 08:02:00', '2025-11-21 16:01:00', 2),
-  (586, 1, 1, '2025-11-22', '2025-11-22 08:02:00', '2025-11-22 16:01:00', 2),
-  (587, 1, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (588, 1, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (589, 1, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (590, 1, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (591, 1, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (592, 1, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (593, 1, 1, '2025-12-01', '2025-12-01 08:02:00', '2025-12-01 16:01:00', 2),
-  (594, 1, 1, '2025-12-02', '2025-12-02 08:02:00', '2025-12-02 16:01:00', 2),
-  (595, 1, 1, '2025-12-03', '2025-12-03 08:02:00', '2025-12-03 16:01:00', 2),
-  (596, 1, 1, '2025-12-04', '2025-12-04 08:02:00', '2025-12-04 16:01:00', 2),
-  (597, 1, 1, '2025-12-05', '2025-12-05 08:02:00', '2025-12-05 16:01:00', 2),
-  (598, 1, 1, '2025-12-06', '2025-12-06 08:02:00', '2025-12-06 16:01:00', 2),
-  (599, 1, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (600, 1, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (601, 1, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (602, 1, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (603, 1, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (604, 1, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (605, 1, 1, '2025-12-15', '2025-12-15 08:02:00', '2025-12-15 16:01:00', 2),
-  (606, 1, 1, '2025-12-16', '2025-12-16 08:02:00', '2025-12-16 16:01:00', 2),
-  (607, 1, 1, '2025-12-17', '2025-12-17 08:02:00', '2025-12-17 16:01:00', 2),
-  (608, 1, 1, '2025-12-18', '2025-12-18 08:02:00', '2025-12-18 16:01:00', 2),
-  (609, 1, 1, '2025-12-19', '2025-12-19 08:02:00', '2025-12-19 16:01:00', 2),
-  (610, 1, 1, '2025-12-20', '2025-12-20 08:02:00', '2025-12-20 16:01:00', 2),
-  (611, 1, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (612, 1, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2),
-  (613, 1, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (614, 1, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (615, 1, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (616, 1, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (617, 1, 1, '2025-12-29', '2025-12-29 08:02:00', '2025-12-29 16:01:00', 2),
-  (618, 1, 1, '2025-12-30', '2025-12-30 08:02:00', '2025-12-30 16:01:00', 2),
-  (619, 1, 1, '2025-12-31', '2025-12-31 08:02:00', '2025-12-31 16:01:00', 2),
-  (620, 1, 1, '2026-01-01', '2026-01-01 08:02:00', '2026-01-01 16:01:00', 2),
-  (621, 1, 1, '2026-01-02', '2026-01-02 08:02:00', '2026-01-02 16:01:00', 2),
-  (622, 1, 1, '2026-01-03', '2026-01-03 08:02:00', '2026-01-03 16:01:00', 2),
-  (623, 1, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (624, 1, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (625, 1, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (626, 1, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (627, 1, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (628, 1, 1, '2026-01-10', '2026-01-10 08:02:00', '2026-01-10 16:01:00', 2),
-  (629, 1, 1, '2026-01-12', '2026-01-12 08:02:00', '2026-01-12 16:01:00', 2),
-  (630, 1, 1, '2026-01-13', '2026-01-13 08:02:00', '2026-01-13 16:01:00', 2),
-  (631, 1, 1, '2026-01-14', '2026-01-14 08:02:00', '2026-01-14 16:01:00', 2),
-  (632, 1, 1, '2026-01-15', '2026-01-15 08:02:00', '2026-01-15 16:01:00', 2),
-  (633, 1, 1, '2026-01-16', '2026-01-16 08:02:00', '2026-01-16 16:01:00', 2),
-  (634, 1, 1, '2026-01-17', '2026-01-17 08:02:00', '2026-01-17 16:01:00', 2),
-  (635, 1, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (636, 1, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (637, 1, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (638, 1, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (639, 1, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (640, 1, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (641, 1, 1, '2026-01-26', '2026-01-26 08:02:00', '2026-01-26 16:01:00', 2),
-  (642, 1, 1, '2026-01-27', '2026-01-27 08:02:00', '2026-01-27 16:01:00', 2),
-  (643, 1, 1, '2026-01-28', '2026-01-28 08:02:00', '2026-01-28 16:01:00', 2),
-  (644, 1, 1, '2026-01-29', '2026-01-29 08:02:00', '2026-01-29 16:01:00', 2),
-  (645, 1, 1, '2026-01-30', '2026-01-30 08:02:00', '2026-01-30 16:01:00', 2),
-  (646, 1, 1, '2026-01-31', '2026-01-31 08:02:00', '2026-01-31 16:01:00', 2),
-  (647, 1, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (648, 1, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (649, 1, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (650, 1, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (651, 1, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (652, 1, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (653, 1, 1, '2026-02-09', '2026-02-09 08:02:00', '2026-02-09 16:01:00', 2),
-  (654, 1, 1, '2026-02-10', '2026-02-10 08:02:00', '2026-02-10 16:01:00', 2),
-  (655, 1, 1, '2026-02-11', '2026-02-11 08:02:00', '2026-02-11 16:01:00', 2),
-  (656, 1, 1, '2026-02-12', '2026-02-12 08:02:00', '2026-02-12 16:01:00', 2),
-  (657, 1, 1, '2026-02-13', '2026-02-13 08:02:00', '2026-02-13 16:01:00', 2),
-  (658, 1, 1, '2026-02-14', '2026-02-14 08:02:00', '2026-02-14 16:01:00', 2),
-  (659, 1, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (660, 1, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (661, 1, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (662, 1, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (663, 1, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (664, 1, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (665, 1, 1, '2026-02-23', '2026-02-23 08:02:00', '2026-02-23 16:01:00', 2),
-  (666, 1, 1, '2026-02-24', '2026-02-24 08:02:00', '2026-02-24 16:01:00', 2),
-  (667, 1, 1, '2026-02-25', '2026-02-25 08:02:00', '2026-02-25 16:01:00', 2),
-  (668, 1, 1, '2026-02-26', '2026-02-26 08:02:00', '2026-02-26 16:01:00', 2),
-  (669, 1, 1, '2026-02-27', '2026-02-27 08:02:00', '2026-02-27 16:01:00', 2),
-  (670, 1, 1, '2026-02-28', '2026-02-28 08:02:00', '2026-02-28 16:01:00', 2),
-  (671, 1, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (672, 1, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (673, 1, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (674, 1, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (675, 1, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (676, 1, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (677, 1, 1, '2026-03-09', '2026-03-09 08:02:00', '2026-03-09 16:01:00', 2),
-  (678, 1, 1, '2026-03-10', '2026-03-10 08:02:00', '2026-03-10 16:01:00', 2),
-  (679, 1, 1, '2026-03-11', '2026-03-11 08:02:00', '2026-03-11 16:01:00', 2),
-  (680, 1, 1, '2026-03-12', '2026-03-12 08:02:00', '2026-03-12 16:01:00', 2),
-  (681, 1, 1, '2026-03-13', '2026-03-13 08:02:00', '2026-03-13 16:01:00', 2),
-  (682, 1, 1, '2026-03-14', '2026-03-14 08:02:00', '2026-03-14 16:01:00', 2),
-  (683, 1, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (684, 1, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (685, 1, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (686, 1, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (687, 1, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (688, 1, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (689, 1, 1, '2026-03-23', '2026-03-23 08:02:00', '2026-03-23 16:01:00', 2),
-  (690, 1, 1, '2026-03-24', '2026-03-24 08:02:00', '2026-03-24 16:01:00', 2),
-  (691, 1, 1, '2026-03-25', '2026-03-25 08:02:00', '2026-03-25 16:01:00', 2),
-  (692, 1, 1, '2026-03-26', '2026-03-26 08:02:00', '2026-03-26 16:01:00', 2),
-  (693, 1, 1, '2026-03-27', '2026-03-27 08:02:00', '2026-03-27 16:01:00', 2),
-  (694, 1, 1, '2026-03-28', '2026-03-28 08:02:00', '2026-03-28 16:01:00', 2),
-  (695, 1, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (696, 1, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (697, 1, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (698, 1, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (699, 1, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (700, 1, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (701, 1, 1, '2026-04-06', '2026-04-06 08:02:00', '2026-04-06 16:01:00', 2),
-  (702, 1, 1, '2026-04-07', '2026-04-07 08:02:00', '2026-04-07 16:01:00', 2),
-  (703, 2, 2, '2024-02-15', '2024-02-15 14:01:00', '2024-02-15 22:02:00', 2),
-  (704, 2, 2, '2024-02-16', '2024-02-16 14:01:00', '2024-02-16 22:02:00', 2),
-  (705, 2, 2, '2024-02-17', '2024-02-17 14:01:00', '2024-02-17 22:02:00', 2),
-  (706, 2, 1, '2024-02-19', '2024-02-19 08:02:00', '2024-02-19 16:01:00', 2),
-  (707, 2, 1, '2024-02-20', '2024-02-20 08:02:00', '2024-02-20 16:01:00', 2),
-  (708, 2, 1, '2024-02-21', '2024-02-21 08:02:00', '2024-02-21 16:01:00', 2),
-  (709, 2, 1, '2024-02-22', '2024-02-22 08:02:00', '2024-02-22 16:01:00', 2),
-  (710, 2, 1, '2024-02-23', '2024-02-23 08:02:00', '2024-02-23 16:01:00', 2),
-  (711, 2, 1, '2024-02-24', '2024-02-24 08:02:00', '2024-02-24 16:01:00', 2),
-  (712, 2, 2, '2024-02-26', '2024-02-26 14:01:00', '2024-02-26 22:02:00', 2),
-  (713, 2, 2, '2024-02-27', '2024-02-27 14:01:00', '2024-02-27 22:02:00', 2),
-  (714, 2, 2, '2024-02-28', '2024-02-28 14:01:00', '2024-02-28 22:02:00', 2),
-  (715, 2, 2, '2024-02-29', '2024-02-29 14:01:00', '2024-02-29 22:02:00', 2),
-  (716, 2, 2, '2024-03-01', '2024-03-01 14:01:00', '2024-03-01 22:02:00', 2),
-  (717, 2, 2, '2024-03-02', '2024-03-02 14:01:00', '2024-03-02 22:02:00', 2),
-  (718, 2, 1, '2024-03-04', '2024-03-04 08:02:00', '2024-03-04 16:01:00', 2),
-  (719, 2, 1, '2024-03-05', '2024-03-05 08:02:00', '2024-03-05 16:01:00', 2),
-  (720, 2, 1, '2024-03-06', '2024-03-06 08:02:00', '2024-03-06 16:01:00', 2),
-  (721, 2, 1, '2024-03-07', '2024-03-07 08:02:00', '2024-03-07 16:01:00', 2),
-  (722, 2, 1, '2024-03-08', '2024-03-08 08:02:00', '2024-03-08 16:01:00', 2),
-  (723, 2, 1, '2024-03-09', '2024-03-09 08:02:00', '2024-03-09 16:01:00', 2),
-  (724, 2, 2, '2024-03-11', '2024-03-11 14:01:00', '2024-03-11 22:02:00', 2),
-  (725, 2, 2, '2024-03-12', '2024-03-12 14:01:00', '2024-03-12 22:02:00', 2),
-  (726, 2, 2, '2024-03-13', '2024-03-13 14:01:00', '2024-03-13 22:02:00', 2),
-  (727, 2, 2, '2024-03-14', '2024-03-14 14:01:00', '2024-03-14 22:02:00', 2),
-  (728, 2, 2, '2024-03-15', '2024-03-15 14:01:00', '2024-03-15 22:02:00', 2),
-  (729, 2, 2, '2024-03-16', '2024-03-16 14:01:00', '2024-03-16 22:02:00', 2),
-  (730, 2, 1, '2024-03-18', '2024-03-18 08:02:00', '2024-03-18 16:01:00', 2),
-  (731, 2, 1, '2024-03-19', '2024-03-19 08:02:00', '2024-03-19 16:01:00', 2),
-  (732, 2, 1, '2024-03-20', '2024-03-20 08:02:00', '2024-03-20 16:01:00', 2),
-  (733, 2, 1, '2024-03-21', '2024-03-21 08:02:00', '2024-03-21 16:01:00', 2),
-  (734, 2, 1, '2024-03-22', '2024-03-22 08:02:00', '2024-03-22 16:01:00', 2),
-  (735, 2, 1, '2024-03-23', '2024-03-23 08:02:00', '2024-03-23 16:01:00', 2),
-  (736, 2, 2, '2024-03-25', '2024-03-25 14:01:00', '2024-03-25 22:02:00', 2),
-  (737, 2, 2, '2024-03-26', '2024-03-26 14:01:00', '2024-03-26 22:02:00', 2),
-  (738, 2, 2, '2024-03-27', '2024-03-27 14:01:00', '2024-03-27 22:02:00', 2),
-  (739, 2, 2, '2024-03-28', '2024-03-28 14:01:00', '2024-03-28 22:02:00', 2),
-  (740, 2, 2, '2024-03-29', '2024-03-29 14:01:00', '2024-03-29 22:02:00', 2),
-  (741, 2, 2, '2024-03-30', '2024-03-30 14:01:00', '2024-03-30 22:02:00', 2),
-  (742, 2, 1, '2024-04-01', '2024-04-01 08:02:00', '2024-04-01 16:01:00', 2),
-  (743, 2, 1, '2024-04-02', '2024-04-02 08:02:00', '2024-04-02 16:01:00', 2),
-  (744, 2, 1, '2024-04-03', '2024-04-03 08:02:00', '2024-04-03 16:01:00', 2),
-  (745, 2, 1, '2024-04-04', '2024-04-04 08:02:00', '2024-04-04 16:01:00', 2),
-  (746, 2, 1, '2024-04-05', '2024-04-05 08:02:00', '2024-04-05 16:01:00', 2),
-  (747, 2, 1, '2024-04-06', '2024-04-06 08:02:00', '2024-04-06 16:01:00', 2),
-  (748, 2, 2, '2024-04-08', '2024-04-08 14:01:00', '2024-04-08 22:02:00', 2),
-  (749, 2, 2, '2024-04-09', '2024-04-09 14:01:00', '2024-04-09 22:02:00', 2),
-  (750, 2, 2, '2024-04-10', '2024-04-10 14:01:00', '2024-04-10 22:02:00', 2),
-  (751, 2, 2, '2024-04-11', '2024-04-11 14:01:00', '2024-04-11 22:02:00', 2),
-  (752, 2, 2, '2024-04-12', '2024-04-12 14:01:00', '2024-04-12 22:02:00', 2),
-  (753, 2, 2, '2024-04-13', '2024-04-13 14:01:00', '2024-04-13 22:02:00', 2),
-  (754, 2, 1, '2024-04-15', '2024-04-15 08:02:00', '2024-04-15 16:01:00', 2),
-  (755, 2, 1, '2024-04-16', '2024-04-16 08:02:00', '2024-04-16 16:01:00', 2),
-  (756, 2, 1, '2024-04-17', '2024-04-17 08:02:00', '2024-04-17 16:01:00', 2),
-  (757, 2, 1, '2024-04-18', '2024-04-18 08:02:00', '2024-04-18 16:01:00', 2),
-  (758, 2, 1, '2024-04-19', '2024-04-19 08:02:00', '2024-04-19 16:01:00', 2),
-  (759, 2, 1, '2024-04-20', '2024-04-20 08:02:00', '2024-04-20 16:01:00', 2),
-  (760, 2, 2, '2024-04-22', '2024-04-22 14:01:00', '2024-04-22 22:02:00', 2),
-  (761, 2, 2, '2024-04-23', '2024-04-23 14:01:00', '2024-04-23 22:02:00', 2),
-  (762, 2, 2, '2024-04-24', '2024-04-24 14:01:00', '2024-04-24 22:02:00', 2),
-  (763, 2, 2, '2024-04-25', '2024-04-25 14:01:00', '2024-04-25 22:02:00', 2),
-  (764, 2, 2, '2024-04-26', '2024-04-26 14:01:00', '2024-04-26 22:02:00', 2),
-  (765, 2, 2, '2024-04-27', '2024-04-27 14:01:00', '2024-04-27 22:02:00', 2),
-  (766, 2, 1, '2024-04-29', '2024-04-29 08:02:00', '2024-04-29 16:01:00', 2),
-  (767, 2, 1, '2024-04-30', '2024-04-30 08:02:00', '2024-04-30 16:01:00', 2),
-  (768, 2, 1, '2024-05-01', '2024-05-01 08:02:00', '2024-05-01 16:01:00', 2),
-  (769, 2, 1, '2024-05-02', '2024-05-02 08:02:00', '2024-05-02 16:01:00', 2),
-  (770, 2, 1, '2024-05-03', '2024-05-03 08:02:00', '2024-05-03 16:01:00', 2),
-  (771, 2, 1, '2024-05-04', '2024-05-04 08:02:00', '2024-05-04 16:01:00', 2),
-  (772, 2, 2, '2024-05-06', '2024-05-06 14:01:00', '2024-05-06 22:02:00', 2),
-  (773, 2, 2, '2024-05-07', '2024-05-07 14:01:00', '2024-05-07 22:02:00', 2),
-  (774, 2, 2, '2024-05-08', '2024-05-08 14:01:00', '2024-05-08 22:02:00', 2),
-  (775, 2, 2, '2024-05-09', '2024-05-09 14:01:00', '2024-05-09 22:02:00', 2),
-  (776, 2, 2, '2024-05-10', '2024-05-10 14:01:00', '2024-05-10 22:02:00', 2),
-  (777, 2, 2, '2024-05-11', '2024-05-11 14:01:00', '2024-05-11 22:02:00', 2),
-  (778, 2, 1, '2024-05-13', '2024-05-13 08:02:00', '2024-05-13 16:01:00', 2),
-  (779, 2, 1, '2024-05-14', '2024-05-14 08:02:00', '2024-05-14 16:01:00', 2),
-  (780, 2, 1, '2024-05-15', '2024-05-15 08:02:00', '2024-05-15 16:01:00', 2),
-  (781, 2, 1, '2024-05-16', '2024-05-16 08:02:00', '2024-05-16 16:01:00', 2),
-  (782, 2, 1, '2024-05-17', '2024-05-17 08:02:00', '2024-05-17 16:01:00', 2),
-  (783, 2, 1, '2024-05-18', '2024-05-18 08:02:00', '2024-05-18 16:01:00', 2),
-  (784, 2, 2, '2024-05-20', '2024-05-20 14:01:00', '2024-05-20 22:02:00', 2),
-  (785, 2, 2, '2024-05-21', '2024-05-21 14:01:00', '2024-05-21 22:02:00', 2),
-  (786, 2, 2, '2024-05-22', '2024-05-22 14:01:00', '2024-05-22 22:02:00', 2),
-  (787, 2, 2, '2024-05-23', '2024-05-23 14:01:00', '2024-05-23 22:02:00', 2),
-  (788, 2, 2, '2024-05-24', '2024-05-24 14:01:00', '2024-05-24 22:02:00', 2),
-  (789, 2, 2, '2024-05-25', '2024-05-25 14:01:00', '2024-05-25 22:02:00', 2),
-  (790, 2, 1, '2024-05-27', '2024-05-27 08:02:00', '2024-05-27 16:01:00', 2),
-  (791, 2, 1, '2024-05-28', '2024-05-28 08:02:00', '2024-05-28 16:01:00', 2),
-  (792, 2, 1, '2024-05-29', '2024-05-29 08:02:00', '2024-05-29 16:01:00', 2),
-  (793, 2, 1, '2024-05-30', '2024-05-30 08:02:00', '2024-05-30 16:01:00', 2),
-  (794, 2, 1, '2024-05-31', '2024-05-31 08:02:00', '2024-05-31 16:01:00', 2),
-  (795, 2, 1, '2024-06-01', '2024-06-01 08:02:00', '2024-06-01 16:01:00', 2),
-  (796, 2, 2, '2024-06-03', '2024-06-03 14:01:00', '2024-06-03 22:02:00', 2),
-  (797, 2, 2, '2024-06-04', '2024-06-04 14:01:00', '2024-06-04 22:02:00', 2),
-  (798, 2, 2, '2024-06-05', '2024-06-05 14:01:00', '2024-06-05 22:02:00', 2),
-  (799, 2, 2, '2024-06-06', '2024-06-06 14:01:00', '2024-06-06 22:02:00', 2),
-  (800, 2, 2, '2024-06-07', '2024-06-07 14:01:00', '2024-06-07 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (801, 2, 2, '2024-06-08', '2024-06-08 14:01:00', '2024-06-08 22:02:00', 2),
-  (802, 2, 1, '2024-06-10', '2024-06-10 08:02:00', '2024-06-10 16:01:00', 2),
-  (803, 2, 1, '2024-06-11', '2024-06-11 08:02:00', '2024-06-11 16:01:00', 2),
-  (804, 2, 1, '2024-06-12', '2024-06-12 08:02:00', '2024-06-12 16:01:00', 2),
-  (805, 2, 1, '2024-06-13', '2024-06-13 08:02:00', '2024-06-13 16:01:00', 2),
-  (806, 2, 1, '2024-06-14', '2024-06-14 08:02:00', '2024-06-14 16:01:00', 2),
-  (807, 2, 1, '2024-06-15', '2024-06-15 08:02:00', '2024-06-15 16:01:00', 2),
-  (808, 2, 2, '2024-06-17', '2024-06-17 14:01:00', '2024-06-17 22:02:00', 2),
-  (809, 2, 2, '2024-06-18', '2024-06-18 14:01:00', '2024-06-18 22:02:00', 2),
-  (810, 2, 2, '2024-06-19', '2024-06-19 14:01:00', '2024-06-19 22:02:00', 2),
-  (811, 2, 2, '2024-06-20', '2024-06-20 14:01:00', '2024-06-20 22:02:00', 2),
-  (812, 2, 2, '2024-06-21', '2024-06-21 14:01:00', '2024-06-21 22:02:00', 2),
-  (813, 2, 2, '2024-06-22', '2024-06-22 14:01:00', '2024-06-22 22:02:00', 2),
-  (814, 2, 1, '2024-06-24', '2024-06-24 08:02:00', '2024-06-24 16:01:00', 2),
-  (815, 2, 1, '2024-06-25', '2024-06-25 08:02:00', '2024-06-25 16:01:00', 2),
-  (816, 2, 1, '2024-06-26', '2024-06-26 08:02:00', '2024-06-26 16:01:00', 2),
-  (817, 2, 1, '2024-06-27', '2024-06-27 08:02:00', '2024-06-27 16:01:00', 2),
-  (818, 2, 1, '2024-06-28', '2024-06-28 08:02:00', '2024-06-28 16:01:00', 2),
-  (819, 2, 1, '2024-06-29', '2024-06-29 08:02:00', '2024-06-29 16:01:00', 2),
-  (820, 2, 2, '2024-07-01', '2024-07-01 14:01:00', '2024-07-01 22:02:00', 2),
-  (821, 2, 2, '2024-07-02', '2024-07-02 14:01:00', '2024-07-02 22:02:00', 2),
-  (822, 2, 2, '2024-07-03', '2024-07-03 14:01:00', '2024-07-03 22:02:00', 2),
-  (823, 2, 2, '2024-07-04', '2024-07-04 14:01:00', '2024-07-04 22:02:00', 2),
-  (824, 2, 2, '2024-07-05', '2024-07-05 14:01:00', '2024-07-05 22:02:00', 2),
-  (825, 2, 2, '2024-07-06', '2024-07-06 14:01:00', '2024-07-06 22:02:00', 2),
-  (826, 2, 1, '2024-07-08', '2024-07-08 08:02:00', '2024-07-08 16:01:00', 2),
-  (827, 2, 1, '2024-07-09', '2024-07-09 08:02:00', '2024-07-09 16:01:00', 2),
-  (828, 2, 1, '2024-07-10', '2024-07-10 08:02:00', '2024-07-10 16:01:00', 2),
-  (829, 2, 1, '2024-07-11', '2024-07-11 08:02:00', '2024-07-11 16:01:00', 2),
-  (830, 2, 1, '2024-07-12', '2024-07-12 08:02:00', '2024-07-12 16:01:00', 2),
-  (831, 2, 1, '2024-07-13', '2024-07-13 08:02:00', '2024-07-13 16:01:00', 2),
-  (832, 2, 2, '2024-07-15', '2024-07-15 14:01:00', '2024-07-15 22:02:00', 2),
-  (833, 2, 2, '2024-07-16', '2024-07-16 14:01:00', '2024-07-16 22:02:00', 2),
-  (834, 2, 2, '2024-07-17', '2024-07-17 14:01:00', '2024-07-17 22:02:00', 2),
-  (835, 2, 2, '2024-07-18', '2024-07-18 14:01:00', '2024-07-18 22:02:00', 2),
-  (836, 2, 2, '2024-07-19', '2024-07-19 14:01:00', '2024-07-19 22:02:00', 2),
-  (837, 2, 2, '2024-07-20', '2024-07-20 14:01:00', '2024-07-20 22:02:00', 2),
-  (838, 2, 1, '2024-07-22', '2024-07-22 08:02:00', '2024-07-22 16:01:00', 2),
-  (839, 2, 1, '2024-07-23', '2024-07-23 08:02:00', '2024-07-23 16:01:00', 2),
-  (840, 2, 1, '2024-07-24', '2024-07-24 08:02:00', '2024-07-24 16:01:00', 2),
-  (841, 2, 1, '2024-07-25', '2024-07-25 08:02:00', '2024-07-25 16:01:00', 2),
-  (842, 2, 1, '2024-07-26', '2024-07-26 08:02:00', '2024-07-26 16:01:00', 2),
-  (843, 2, 1, '2024-07-27', '2024-07-27 08:02:00', '2024-07-27 16:01:00', 2),
-  (844, 2, 2, '2024-07-29', '2024-07-29 14:01:00', '2024-07-29 22:02:00', 2),
-  (845, 2, 2, '2024-07-30', '2024-07-30 14:01:00', '2024-07-30 22:02:00', 2),
-  (846, 2, 2, '2024-07-31', '2024-07-31 14:01:00', '2024-07-31 22:02:00', 2),
-  (847, 2, 2, '2024-08-01', '2024-08-01 14:01:00', '2024-08-01 22:02:00', 2),
-  (848, 2, 2, '2024-08-02', '2024-08-02 14:01:00', '2024-08-02 22:02:00', 2),
-  (849, 2, 2, '2024-08-03', '2024-08-03 14:01:00', '2024-08-03 22:02:00', 2),
-  (850, 2, 1, '2024-08-05', '2024-08-05 08:02:00', '2024-08-05 16:01:00', 2),
-  (851, 2, 1, '2024-08-06', '2024-08-06 08:02:00', '2024-08-06 16:01:00', 2),
-  (852, 2, 1, '2024-08-07', '2024-08-07 08:02:00', '2024-08-07 16:01:00', 2),
-  (853, 2, 1, '2024-08-08', '2024-08-08 08:02:00', '2024-08-08 16:01:00', 2),
-  (854, 2, 1, '2024-08-09', '2024-08-09 08:02:00', '2024-08-09 16:01:00', 2),
-  (855, 2, 1, '2024-08-10', '2024-08-10 08:02:00', '2024-08-10 16:01:00', 2),
-  (856, 2, 2, '2024-08-12', '2024-08-12 14:01:00', '2024-08-12 22:02:00', 2),
-  (857, 2, 2, '2024-08-13', '2024-08-13 14:01:00', '2024-08-13 22:02:00', 2),
-  (858, 2, 2, '2024-08-14', '2024-08-14 14:01:00', '2024-08-14 22:02:00', 2),
-  (859, 2, 2, '2024-08-15', '2024-08-15 14:01:00', '2024-08-15 22:02:00', 2),
-  (860, 2, 2, '2024-08-16', '2024-08-16 14:01:00', '2024-08-16 22:02:00', 2),
-  (861, 2, 2, '2024-08-17', '2024-08-17 14:01:00', '2024-08-17 22:02:00', 2),
-  (862, 2, 1, '2024-08-19', '2024-08-19 08:02:00', '2024-08-19 16:01:00', 2),
-  (863, 2, 1, '2024-08-20', '2024-08-20 08:02:00', '2024-08-20 16:01:00', 2),
-  (864, 2, 1, '2024-08-21', '2024-08-21 08:02:00', '2024-08-21 16:01:00', 2),
-  (865, 2, 1, '2024-08-22', '2024-08-22 08:02:00', '2024-08-22 16:01:00', 2),
-  (866, 2, 1, '2024-08-23', '2024-08-23 08:02:00', '2024-08-23 16:01:00', 2),
-  (867, 2, 1, '2024-08-24', '2024-08-24 08:02:00', '2024-08-24 16:01:00', 2),
-  (868, 2, 2, '2024-08-26', '2024-08-26 14:01:00', '2024-08-26 22:02:00', 2),
-  (869, 2, 2, '2024-08-27', '2024-08-27 14:01:00', '2024-08-27 22:02:00', 2),
-  (870, 2, 2, '2024-08-28', '2024-08-28 14:01:00', '2024-08-28 22:02:00', 2),
-  (871, 2, 2, '2024-08-29', '2024-08-29 14:01:00', '2024-08-29 22:02:00', 2),
-  (872, 2, 2, '2024-08-30', '2024-08-30 14:01:00', '2024-08-30 22:02:00', 2),
-  (873, 2, 2, '2024-08-31', '2024-08-31 14:01:00', '2024-08-31 22:02:00', 2),
-  (874, 2, 1, '2024-09-02', '2024-09-02 08:02:00', '2024-09-02 16:01:00', 2),
-  (875, 2, 1, '2024-09-03', '2024-09-03 08:02:00', '2024-09-03 16:01:00', 2),
-  (876, 2, 1, '2024-09-04', '2024-09-04 08:02:00', '2024-09-04 16:01:00', 2),
-  (877, 2, 1, '2024-09-05', '2024-09-05 08:02:00', '2024-09-05 16:01:00', 2),
-  (878, 2, 1, '2024-09-06', '2024-09-06 08:02:00', '2024-09-06 16:01:00', 2),
-  (879, 2, 1, '2024-09-07', '2024-09-07 08:02:00', '2024-09-07 16:01:00', 2),
-  (880, 2, 2, '2024-09-09', '2024-09-09 14:01:00', '2024-09-09 22:02:00', 2),
-  (881, 2, 2, '2024-09-10', '2024-09-10 14:01:00', '2024-09-10 22:02:00', 2),
-  (882, 2, 2, '2024-09-11', '2024-09-11 14:01:00', '2024-09-11 22:02:00', 2),
-  (883, 2, 2, '2024-09-12', '2024-09-12 14:01:00', '2024-09-12 22:02:00', 2),
-  (884, 2, 2, '2024-09-13', '2024-09-13 14:01:00', '2024-09-13 22:02:00', 2),
-  (885, 2, 2, '2024-09-14', '2024-09-14 14:01:00', '2024-09-14 22:02:00', 2),
-  (886, 2, 1, '2024-09-16', '2024-09-16 08:02:00', '2024-09-16 16:01:00', 2),
-  (887, 2, 1, '2024-09-17', '2024-09-17 08:02:00', '2024-09-17 16:01:00', 2),
-  (888, 2, 1, '2024-09-18', '2024-09-18 08:02:00', '2024-09-18 16:01:00', 2),
-  (889, 2, 1, '2024-09-19', '2024-09-19 08:02:00', '2024-09-19 16:01:00', 2),
-  (890, 2, 1, '2024-09-20', '2024-09-20 08:02:00', '2024-09-20 16:01:00', 2),
-  (891, 2, 1, '2024-09-21', '2024-09-21 08:02:00', '2024-09-21 16:01:00', 2),
-  (892, 2, 2, '2024-09-23', '2024-09-23 14:01:00', '2024-09-23 22:02:00', 2),
-  (893, 2, 2, '2024-09-24', '2024-09-24 14:01:00', '2024-09-24 22:02:00', 2),
-  (894, 2, 2, '2024-09-25', '2024-09-25 14:01:00', '2024-09-25 22:02:00', 2),
-  (895, 2, 2, '2024-09-26', '2024-09-26 14:01:00', '2024-09-26 22:02:00', 2),
-  (896, 2, 2, '2024-09-27', '2024-09-27 14:01:00', '2024-09-27 22:02:00', 2),
-  (897, 2, 2, '2024-09-28', '2024-09-28 14:01:00', '2024-09-28 22:02:00', 2),
-  (898, 2, 1, '2024-09-30', '2024-09-30 08:02:00', '2024-09-30 16:01:00', 2),
-  (899, 2, 1, '2024-10-01', '2024-10-01 08:02:00', '2024-10-01 16:01:00', 2),
-  (900, 2, 1, '2024-10-02', '2024-10-02 08:02:00', '2024-10-02 16:01:00', 2),
-  (901, 2, 1, '2024-10-03', '2024-10-03 08:02:00', '2024-10-03 16:01:00', 2),
-  (902, 2, 1, '2024-10-04', '2024-10-04 08:02:00', '2024-10-04 16:01:00', 2),
-  (903, 2, 1, '2024-10-05', '2024-10-05 08:02:00', '2024-10-05 16:01:00', 2),
-  (904, 2, 2, '2024-10-07', '2024-10-07 14:01:00', '2024-10-07 22:02:00', 2),
-  (905, 2, 2, '2024-10-08', '2024-10-08 14:01:00', '2024-10-08 22:02:00', 2),
-  (906, 2, 2, '2024-10-09', '2024-10-09 14:01:00', '2024-10-09 22:02:00', 2),
-  (907, 2, 2, '2024-10-10', '2024-10-10 14:01:00', '2024-10-10 22:02:00', 2),
-  (908, 2, 2, '2024-10-11', '2024-10-11 14:01:00', '2024-10-11 22:02:00', 2),
-  (909, 2, 2, '2024-10-12', '2024-10-12 14:01:00', '2024-10-12 22:02:00', 2),
-  (910, 2, 1, '2024-10-14', '2024-10-14 08:02:00', '2024-10-14 16:01:00', 2),
-  (911, 2, 1, '2024-10-15', '2024-10-15 08:02:00', '2024-10-15 16:01:00', 2),
-  (912, 2, 1, '2024-10-16', '2024-10-16 08:02:00', '2024-10-16 16:01:00', 2),
-  (913, 2, 1, '2024-10-17', '2024-10-17 08:02:00', '2024-10-17 16:01:00', 2),
-  (914, 2, 1, '2024-10-18', '2024-10-18 08:02:00', '2024-10-18 16:01:00', 2),
-  (915, 2, 1, '2024-10-19', '2024-10-19 08:02:00', '2024-10-19 16:01:00', 2),
-  (916, 2, 2, '2024-10-21', '2024-10-21 14:01:00', '2024-10-21 22:02:00', 2),
-  (917, 2, 2, '2024-10-22', '2024-10-22 14:01:00', '2024-10-22 22:02:00', 2),
-  (918, 2, 2, '2024-10-23', '2024-10-23 14:01:00', '2024-10-23 22:02:00', 2),
-  (919, 2, 2, '2024-10-24', '2024-10-24 14:01:00', '2024-10-24 22:02:00', 2),
-  (920, 2, 2, '2024-10-25', '2024-10-25 14:01:00', '2024-10-25 22:02:00', 2),
-  (921, 2, 2, '2024-10-26', '2024-10-26 14:01:00', '2024-10-26 22:02:00', 2),
-  (922, 2, 1, '2024-10-28', '2024-10-28 08:02:00', '2024-10-28 16:01:00', 2),
-  (923, 2, 1, '2024-10-29', '2024-10-29 08:02:00', '2024-10-29 16:01:00', 2),
-  (924, 2, 1, '2024-10-30', '2024-10-30 08:02:00', '2024-10-30 16:01:00', 2),
-  (925, 2, 1, '2024-10-31', '2024-10-31 08:02:00', '2024-10-31 16:01:00', 2),
-  (926, 2, 1, '2024-11-01', '2024-11-01 08:02:00', '2024-11-01 16:01:00', 2),
-  (927, 2, 1, '2024-11-02', '2024-11-02 08:02:00', '2024-11-02 16:01:00', 2),
-  (928, 2, 2, '2024-11-04', '2024-11-04 14:01:00', '2024-11-04 22:02:00', 2),
-  (929, 2, 2, '2024-11-05', '2024-11-05 14:01:00', '2024-11-05 22:02:00', 2),
-  (930, 2, 2, '2024-11-06', '2024-11-06 14:01:00', '2024-11-06 22:02:00', 2),
-  (931, 2, 2, '2024-11-07', '2024-11-07 14:01:00', '2024-11-07 22:02:00', 2),
-  (932, 2, 2, '2024-11-08', '2024-11-08 14:01:00', '2024-11-08 22:02:00', 2),
-  (933, 2, 2, '2024-11-09', '2024-11-09 14:01:00', '2024-11-09 22:02:00', 2),
-  (934, 2, 1, '2024-11-11', '2024-11-11 08:02:00', '2024-11-11 16:01:00', 2),
-  (935, 2, 1, '2024-11-12', '2024-11-12 08:02:00', '2024-11-12 16:01:00', 2),
-  (936, 2, 1, '2024-11-13', '2024-11-13 08:02:00', '2024-11-13 16:01:00', 2),
-  (937, 2, 1, '2024-11-14', '2024-11-14 08:02:00', '2024-11-14 16:01:00', 2),
-  (938, 2, 1, '2024-11-15', NULL, NULL, 3), -- Nghỉ không lương (MDN11) - không chấm công
-  (939, 2, 1, '2024-11-16', NULL, NULL, 3), -- Nghỉ không lương (MDN11) - không chấm công
-  (940, 2, 2, '2024-11-18', '2024-11-18 14:01:00', '2024-11-18 22:02:00', 2),
-  (941, 2, 2, '2024-11-19', '2024-11-19 14:01:00', '2024-11-19 22:02:00', 2),
-  (942, 2, 2, '2024-11-20', '2024-11-20 14:01:00', '2024-11-20 22:02:00', 2),
-  (943, 2, 2, '2024-11-21', '2024-11-21 14:01:00', '2024-11-21 22:02:00', 2),
-  (944, 2, 2, '2024-11-22', '2024-11-22 14:01:00', '2024-11-22 22:02:00', 2),
-  (945, 2, 2, '2024-11-23', '2024-11-23 14:01:00', '2024-11-23 22:02:00', 2),
-  (946, 2, 1, '2024-11-25', '2024-11-25 08:02:00', '2024-11-25 16:01:00', 2),
-  (947, 2, 1, '2024-11-26', '2024-11-26 08:02:00', '2024-11-26 16:01:00', 2),
-  (948, 2, 1, '2024-11-27', '2024-11-27 08:02:00', '2024-11-27 16:01:00', 2),
-  (949, 2, 1, '2024-11-28', '2024-11-28 08:02:00', '2024-11-28 16:01:00', 2),
-  (950, 2, 1, '2024-11-29', '2024-11-29 08:02:00', '2024-11-29 16:01:00', 2),
-  (951, 2, 1, '2024-11-30', '2024-11-30 08:02:00', '2024-11-30 16:01:00', 2),
-  (952, 2, 2, '2024-12-02', '2024-12-02 14:01:00', '2024-12-02 22:02:00', 2),
-  (953, 2, 2, '2024-12-03', '2024-12-03 14:01:00', '2024-12-03 22:02:00', 2),
-  (954, 2, 2, '2024-12-04', '2024-12-04 14:01:00', '2024-12-04 22:02:00', 2),
-  (955, 2, 2, '2024-12-05', '2024-12-05 14:01:00', '2024-12-05 22:02:00', 2),
-  (956, 2, 2, '2024-12-06', '2024-12-06 14:01:00', '2024-12-06 22:02:00', 2),
-  (957, 2, 2, '2024-12-07', '2024-12-07 14:01:00', '2024-12-07 22:02:00', 2),
-  (958, 2, 1, '2024-12-09', '2024-12-09 08:02:00', '2024-12-09 16:01:00', 2),
-  (959, 2, 1, '2024-12-10', '2024-12-10 08:02:00', '2024-12-10 16:01:00', 2),
-  (960, 2, 1, '2024-12-11', '2024-12-11 08:02:00', '2024-12-11 16:01:00', 2),
-  (961, 2, 1, '2024-12-12', '2024-12-12 08:02:00', '2024-12-12 16:01:00', 2),
-  (962, 2, 1, '2024-12-13', '2024-12-13 08:02:00', '2024-12-13 16:01:00', 2),
-  (963, 2, 1, '2024-12-14', '2024-12-14 08:02:00', '2024-12-14 16:01:00', 2),
-  (964, 2, 2, '2024-12-16', '2024-12-16 14:01:00', '2024-12-16 22:02:00', 2),
-  (965, 2, 2, '2024-12-17', '2024-12-17 14:01:00', '2024-12-17 22:02:00', 2),
-  (966, 2, 2, '2024-12-18', '2024-12-18 14:01:00', '2024-12-18 22:02:00', 2),
-  (967, 2, 2, '2024-12-19', '2024-12-19 14:01:00', '2024-12-19 22:02:00', 2),
-  (968, 2, 2, '2024-12-20', '2024-12-20 14:01:00', '2024-12-20 22:02:00', 2),
-  (969, 2, 2, '2024-12-21', '2024-12-21 14:01:00', '2024-12-21 22:02:00', 2),
-  (970, 2, 1, '2024-12-23', '2024-12-23 08:02:00', '2024-12-23 16:01:00', 2),
-  (971, 2, 1, '2024-12-24', '2024-12-24 08:02:00', '2024-12-24 16:01:00', 2),
-  (972, 2, 1, '2024-12-25', '2024-12-25 08:02:00', '2024-12-25 16:01:00', 2),
-  (973, 2, 1, '2024-12-26', '2024-12-26 08:02:00', '2024-12-26 16:01:00', 2),
-  (974, 2, 1, '2024-12-27', '2024-12-27 08:02:00', '2024-12-27 16:01:00', 2),
-  (975, 2, 1, '2024-12-28', '2024-12-28 08:02:00', '2024-12-28 16:01:00', 2),
-  (976, 2, 2, '2024-12-30', '2024-12-30 14:01:00', '2024-12-30 22:02:00', 2),
-  (977, 2, 2, '2024-12-31', '2024-12-31 14:01:00', '2024-12-31 22:02:00', 2),
-  (978, 2, 2, '2025-01-01', '2025-01-01 14:01:00', '2025-01-01 22:02:00', 2),
-  (979, 2, 2, '2025-01-02', '2025-01-02 14:01:00', '2025-01-02 22:02:00', 2),
-  (980, 2, 2, '2025-01-03', '2025-01-03 14:01:00', '2025-01-03 22:02:00', 2),
-  (981, 2, 2, '2025-01-04', '2025-01-04 14:01:00', '2025-01-04 22:02:00', 2),
-  (982, 2, 1, '2025-01-06', '2025-01-06 08:02:00', '2025-01-06 16:01:00', 2),
-  (983, 2, 1, '2025-01-07', '2025-01-07 08:02:00', '2025-01-07 16:01:00', 2),
-  (984, 2, 1, '2025-01-08', '2025-01-08 08:02:00', '2025-01-08 16:01:00', 2),
-  (985, 2, 1, '2025-01-09', '2025-01-09 08:02:00', '2025-01-09 16:01:00', 2),
-  (986, 2, 1, '2025-01-10', '2025-01-10 08:02:00', '2025-01-10 16:01:00', 2),
-  (987, 2, 1, '2025-01-11', '2025-01-11 08:02:00', '2025-01-11 16:01:00', 2),
-  (988, 2, 2, '2025-01-13', '2025-01-13 14:01:00', '2025-01-13 22:02:00', 2),
-  (989, 2, 2, '2025-01-14', '2025-01-14 14:01:00', '2025-01-14 22:02:00', 2),
-  (990, 2, 2, '2025-01-15', '2025-01-15 14:01:00', '2025-01-15 22:02:00', 2),
-  (991, 2, 2, '2025-01-16', '2025-01-16 14:01:00', '2025-01-16 22:02:00', 2),
-  (992, 2, 2, '2025-01-17', '2025-01-17 14:01:00', '2025-01-17 22:02:00', 2),
-  (993, 2, 2, '2025-01-18', '2025-01-18 14:01:00', '2025-01-18 22:02:00', 2),
-  (994, 2, 1, '2025-01-20', '2025-01-20 08:02:00', '2025-01-20 16:01:00', 2),
-  (995, 2, 1, '2025-01-21', '2025-01-21 08:02:00', '2025-01-21 16:01:00', 2),
-  (996, 2, 1, '2025-01-22', '2025-01-22 08:02:00', '2025-01-22 16:01:00', 2),
-  (997, 2, 1, '2025-01-23', '2025-01-23 08:02:00', '2025-01-23 16:01:00', 2),
-  (998, 2, 1, '2025-01-24', '2025-01-24 08:02:00', '2025-01-24 16:01:00', 2),
-  (999, 2, 1, '2025-01-25', '2025-01-25 08:02:00', '2025-01-25 16:01:00', 2),
-  (1000, 2, 2, '2025-01-27', '2025-01-27 14:01:00', '2025-01-27 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1001, 2, 2, '2025-01-28', '2025-01-28 14:01:00', '2025-01-28 22:02:00', 2),
-  (1002, 2, 2, '2025-01-29', '2025-01-29 14:01:00', '2025-01-29 22:02:00', 2),
-  (1003, 2, 2, '2025-01-30', '2025-01-30 14:01:00', '2025-01-30 22:02:00', 2),
-  (1004, 2, 2, '2025-01-31', '2025-01-31 14:01:00', '2025-01-31 22:02:00', 2),
-  (1005, 2, 2, '2025-02-01', '2025-02-01 14:01:00', '2025-02-01 22:02:00', 2),
-  (1006, 2, 1, '2025-02-03', '2025-02-03 08:02:00', '2025-02-03 16:01:00', 2),
-  (1007, 2, 1, '2025-02-04', '2025-02-04 08:02:00', '2025-02-04 16:01:00', 2),
-  (1008, 2, 1, '2025-02-05', '2025-02-05 08:02:00', '2025-02-05 16:01:00', 2),
-  (1009, 2, 1, '2025-02-06', '2025-02-06 08:02:00', '2025-02-06 16:01:00', 2),
-  (1010, 2, 1, '2025-02-07', '2025-02-07 08:02:00', '2025-02-07 16:01:00', 2),
-  (1011, 2, 1, '2025-02-08', '2025-02-08 08:02:00', '2025-02-08 16:01:00', 2),
-  (1012, 2, 2, '2025-02-10', '2025-02-10 14:01:00', '2025-02-10 22:02:00', 2),
-  (1013, 2, 2, '2025-02-11', '2025-02-11 14:01:00', '2025-02-11 22:02:00', 2),
-  (1014, 2, 2, '2025-02-12', '2025-02-12 14:01:00', '2025-02-12 22:02:00', 2),
-  (1015, 2, 2, '2025-02-13', '2025-02-13 14:01:00', '2025-02-13 22:02:00', 2),
-  (1016, 2, 2, '2025-02-14', '2025-02-14 14:01:00', '2025-02-14 22:02:00', 2),
-  (1017, 2, 2, '2025-02-15', '2025-02-15 14:01:00', '2025-02-15 22:02:00', 2),
-  (1018, 2, 1, '2025-02-17', '2025-02-17 08:02:00', '2025-02-17 16:01:00', 2),
-  (1019, 2, 1, '2025-02-18', '2025-02-18 08:02:00', '2025-02-18 16:01:00', 2),
-  (1020, 2, 1, '2025-02-19', '2025-02-19 08:02:00', '2025-02-19 16:01:00', 2),
-  (1021, 2, 1, '2025-02-20', '2025-02-20 08:02:00', '2025-02-20 16:01:00', 2),
-  (1022, 2, 1, '2025-02-21', '2025-02-21 08:02:00', '2025-02-21 16:01:00', 2),
-  (1023, 2, 1, '2025-02-22', '2025-02-22 08:02:00', '2025-02-22 16:01:00', 2),
-  (1024, 2, 2, '2025-02-24', '2025-02-24 14:01:00', '2025-02-24 22:02:00', 2),
-  (1025, 2, 2, '2025-02-25', '2025-02-25 14:01:00', '2025-02-25 22:02:00', 2),
-  (1026, 2, 2, '2025-02-26', '2025-02-26 14:01:00', '2025-02-26 22:02:00', 2),
-  (1027, 2, 2, '2025-02-27', '2025-02-27 14:01:00', '2025-02-27 22:02:00', 2),
-  (1028, 2, 2, '2025-02-28', '2025-02-28 14:01:00', '2025-02-28 22:02:00', 2),
-  (1029, 2, 2, '2025-03-01', '2025-03-01 14:01:00', '2025-03-01 22:02:00', 2),
-  (1030, 2, 1, '2025-03-03', '2025-03-03 08:02:00', '2025-03-03 16:01:00', 2),
-  (1031, 2, 1, '2025-03-04', '2025-03-04 08:02:00', '2025-03-04 16:01:00', 2),
-  (1032, 2, 1, '2025-03-05', '2025-03-05 08:02:00', '2025-03-05 16:01:00', 2),
-  (1033, 2, 1, '2025-03-06', '2025-03-06 08:02:00', '2025-03-06 16:01:00', 2),
-  (1034, 2, 1, '2025-03-07', '2025-03-07 08:02:00', '2025-03-07 16:01:00', 2),
-  (1035, 2, 1, '2025-03-08', '2025-03-08 08:02:00', '2025-03-08 16:01:00', 2),
-  (1036, 2, 2, '2025-03-10', '2025-03-10 14:01:00', '2025-03-10 22:02:00', 2),
-  (1037, 2, 2, '2025-03-11', '2025-03-11 14:01:00', '2025-03-11 22:02:00', 2),
-  (1038, 2, 2, '2025-03-12', '2025-03-12 14:01:00', '2025-03-12 22:02:00', 2),
-  (1039, 2, 2, '2025-03-13', '2025-03-13 14:01:00', '2025-03-13 22:02:00', 2),
-  (1040, 2, 2, '2025-03-14', '2025-03-14 14:01:00', '2025-03-14 22:02:00', 2),
-  (1041, 2, 2, '2025-03-15', '2025-03-15 14:01:00', '2025-03-15 22:02:00', 2),
-  (1042, 2, 1, '2025-03-17', '2025-03-17 08:02:00', '2025-03-17 16:01:00', 2),
-  (1043, 2, 1, '2025-03-18', '2025-03-18 08:02:00', '2025-03-18 16:01:00', 2),
-  (1044, 2, 1, '2025-03-19', '2025-03-19 08:02:00', '2025-03-19 16:01:00', 2),
-  (1045, 2, 1, '2025-03-20', '2025-03-20 08:02:00', '2025-03-20 16:01:00', 2),
-  (1046, 2, 1, '2025-03-21', '2025-03-21 08:02:00', '2025-03-21 16:01:00', 2),
-  (1047, 2, 1, '2025-03-22', '2025-03-22 08:02:00', '2025-03-22 16:01:00', 2),
-  (1048, 2, 2, '2025-03-24', '2025-03-24 14:01:00', '2025-03-24 22:02:00', 2),
-  (1049, 2, 2, '2025-03-25', '2025-03-25 14:01:00', '2025-03-25 22:02:00', 2),
-  (1050, 2, 2, '2025-03-26', '2025-03-26 14:01:00', '2025-03-26 22:02:00', 2),
-  (1051, 2, 2, '2025-03-27', '2025-03-27 14:01:00', '2025-03-27 22:02:00', 2),
-  (1052, 2, 2, '2025-03-28', '2025-03-28 14:01:00', '2025-03-28 22:02:00', 2),
-  (1053, 2, 2, '2025-03-29', '2025-03-29 14:01:00', '2025-03-29 22:02:00', 2),
-  (1054, 2, 1, '2025-03-31', '2025-03-31 08:02:00', '2025-03-31 16:01:00', 2),
-  (1055, 2, 1, '2025-04-01', '2025-04-01 08:02:00', '2025-04-01 16:01:00', 2),
-  (1056, 2, 1, '2025-04-02', '2025-04-02 08:02:00', '2025-04-02 16:01:00', 2),
-  (1057, 2, 1, '2025-04-03', '2025-04-03 08:02:00', '2025-04-03 16:01:00', 2),
-  (1058, 2, 1, '2025-04-04', '2025-04-04 08:02:00', '2025-04-04 16:01:00', 2),
-  (1059, 2, 1, '2025-04-05', '2025-04-05 08:02:00', '2025-04-05 16:01:00', 2),
-  (1060, 2, 2, '2025-04-07', '2025-04-07 14:01:00', '2025-04-07 22:02:00', 2),
-  (1061, 2, 2, '2025-04-08', '2025-04-08 14:01:00', '2025-04-08 22:02:00', 2),
-  (1062, 2, 2, '2025-04-09', '2025-04-09 14:01:00', '2025-04-09 22:02:00', 2),
-  (1063, 2, 2, '2025-04-10', '2025-04-10 14:01:00', '2025-04-10 22:02:00', 2),
-  (1064, 2, 2, '2025-04-11', '2025-04-11 14:01:00', '2025-04-11 22:02:00', 2),
-  (1065, 2, 2, '2025-04-12', '2025-04-12 14:01:00', '2025-04-12 22:02:00', 2),
-  (1066, 2, 1, '2025-04-14', '2025-04-14 08:02:00', '2025-04-14 16:01:00', 2),
-  (1067, 2, 1, '2025-04-15', '2025-04-15 08:02:00', '2025-04-15 16:01:00', 2),
-  (1068, 2, 1, '2025-04-16', '2025-04-16 08:02:00', '2025-04-16 16:01:00', 2),
-  (1069, 2, 1, '2025-04-17', '2025-04-17 08:02:00', '2025-04-17 16:01:00', 2),
-  (1070, 2, 1, '2025-04-18', '2025-04-18 08:02:00', '2025-04-18 16:01:00', 2),
-  (1071, 2, 1, '2025-04-19', '2025-04-19 08:02:00', '2025-04-19 16:01:00', 2),
-  (1072, 2, 2, '2025-04-21', '2025-04-21 14:01:00', '2025-04-21 22:02:00', 2),
-  (1073, 2, 2, '2025-04-22', '2025-04-22 14:01:00', '2025-04-22 22:02:00', 2),
-  (1074, 2, 2, '2025-04-23', '2025-04-23 14:01:00', '2025-04-23 22:02:00', 2),
-  (1075, 2, 2, '2025-04-24', '2025-04-24 14:01:00', '2025-04-24 22:02:00', 2),
-  (1076, 2, 2, '2025-04-25', '2025-04-25 14:01:00', '2025-04-25 22:02:00', 2),
-  (1077, 2, 2, '2025-04-26', '2025-04-26 14:01:00', '2025-04-26 22:02:00', 2),
-  (1078, 2, 1, '2025-04-28', '2025-04-28 08:02:00', '2025-04-28 16:01:00', 2),
-  (1079, 2, 1, '2025-04-29', '2025-04-29 08:02:00', '2025-04-29 16:01:00', 2),
-  (1080, 2, 1, '2025-04-30', '2025-04-30 08:02:00', '2025-04-30 16:01:00', 2),
-  (1081, 2, 1, '2025-05-01', '2025-05-01 08:02:00', '2025-05-01 16:01:00', 2),
-  (1082, 2, 1, '2025-05-02', '2025-05-02 08:02:00', '2025-05-02 16:01:00', 2),
-  (1083, 2, 1, '2025-05-03', '2025-05-03 08:02:00', '2025-05-03 16:01:00', 2),
-  (1084, 2, 2, '2025-05-05', '2025-05-05 14:01:00', '2025-05-05 22:02:00', 2),
-  (1085, 2, 2, '2025-05-06', '2025-05-06 14:01:00', '2025-05-06 22:02:00', 2),
-  (1086, 2, 2, '2025-05-07', '2025-05-07 14:01:00', '2025-05-07 22:02:00', 2),
-  (1087, 2, 2, '2025-05-08', '2025-05-08 14:01:00', '2025-05-08 22:02:00', 2),
-  (1088, 2, 2, '2025-05-09', '2025-05-09 14:01:00', '2025-05-09 22:02:00', 2),
-  (1089, 2, 2, '2025-05-10', '2025-05-10 14:01:00', '2025-05-10 22:02:00', 2),
-  (1090, 2, 1, '2025-05-12', '2025-05-12 08:02:00', '2025-05-12 16:01:00', 2),
-  (1091, 2, 1, '2025-05-13', '2025-05-13 08:02:00', '2025-05-13 16:01:00', 2),
-  (1092, 2, 1, '2025-05-14', '2025-05-14 08:02:00', '2025-05-14 16:01:00', 2),
-  (1093, 2, 1, '2025-05-15', '2025-05-15 08:02:00', '2025-05-15 16:01:00', 2),
-  (1094, 2, 1, '2025-05-16', '2025-05-16 08:02:00', '2025-05-16 16:01:00', 2),
-  (1095, 2, 1, '2025-05-17', '2025-05-17 08:02:00', '2025-05-17 16:01:00', 2),
-  (1096, 2, 2, '2025-05-19', '2025-05-19 14:01:00', '2025-05-19 22:02:00', 2),
-  (1097, 2, 2, '2025-05-20', '2025-05-20 14:01:00', '2025-05-20 22:02:00', 2),
-  (1098, 2, 2, '2025-05-21', '2025-05-21 14:01:00', '2025-05-21 22:02:00', 2),
-  (1099, 2, 2, '2025-05-22', '2025-05-22 14:01:00', '2025-05-22 22:02:00', 2),
-  (1100, 2, 2, '2025-05-23', '2025-05-23 14:01:00', '2025-05-23 22:02:00', 2),
-  (1101, 2, 2, '2025-05-24', '2025-05-24 14:01:00', '2025-05-24 22:02:00', 2),
-  (1102, 2, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (1103, 2, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (1104, 2, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (1105, 2, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (1106, 2, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (1107, 2, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (1108, 2, 2, '2025-06-02', '2025-06-02 14:01:00', '2025-06-02 22:02:00', 2),
-  (1109, 2, 2, '2025-06-03', '2025-06-03 14:01:00', '2025-06-03 22:02:00', 2),
-  (1110, 2, 2, '2025-06-04', '2025-06-04 14:01:00', '2025-06-04 22:02:00', 2),
-  (1111, 2, 2, '2025-06-05', '2025-06-05 14:01:00', '2025-06-05 22:02:00', 2),
-  (1112, 2, 2, '2025-06-06', '2025-06-06 14:01:00', '2025-06-06 22:02:00', 2),
-  (1113, 2, 2, '2025-06-07', '2025-06-07 14:01:00', '2025-06-07 22:02:00', 2),
-  (1114, 2, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (1115, 2, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (1116, 2, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (1117, 2, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (1118, 2, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (1119, 2, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (1120, 2, 2, '2025-06-16', '2025-06-16 14:01:00', '2025-06-16 22:02:00', 2),
-  (1121, 2, 2, '2025-06-17', '2025-06-17 14:01:00', '2025-06-17 22:02:00', 2),
-  (1122, 2, 2, '2025-06-18', '2025-06-18 14:01:00', '2025-06-18 22:02:00', 2),
-  (1123, 2, 2, '2025-06-19', '2025-06-19 14:01:00', '2025-06-19 22:02:00', 2),
-  (1124, 2, 2, '2025-06-20', '2025-06-20 14:01:00', '2025-06-20 22:02:00', 2),
-  (1125, 2, 2, '2025-06-21', '2025-06-21 14:01:00', '2025-06-21 22:02:00', 2),
-  (1126, 2, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (1127, 2, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (1128, 2, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (1129, 2, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2),
-  (1130, 2, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (1131, 2, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (1132, 2, 2, '2025-06-30', '2025-06-30 14:01:00', '2025-06-30 22:02:00', 2),
-  (1133, 2, 2, '2025-07-01', '2025-07-01 14:01:00', '2025-07-01 22:02:00', 2),
-  (1134, 2, 2, '2025-07-02', '2025-07-02 14:01:00', '2025-07-02 22:02:00', 2),
-  (1135, 2, 2, '2025-07-03', '2025-07-03 14:01:00', '2025-07-03 22:02:00', 2),
-  (1136, 2, 2, '2025-07-04', '2025-07-04 14:01:00', '2025-07-04 22:02:00', 2),
-  (1137, 2, 2, '2025-07-05', '2025-07-05 14:01:00', '2025-07-05 22:02:00', 2),
-  (1138, 2, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (1139, 2, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (1140, 2, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (1141, 2, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (1142, 2, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (1143, 2, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (1144, 2, 2, '2025-07-14', '2025-07-14 14:01:00', '2025-07-14 22:02:00', 2),
-  (1145, 2, 2, '2025-07-15', '2025-07-15 14:01:00', '2025-07-15 22:02:00', 2),
-  (1146, 2, 2, '2025-07-16', '2025-07-16 14:01:00', '2025-07-16 22:02:00', 2),
-  (1147, 2, 2, '2025-07-17', '2025-07-17 14:01:00', '2025-07-17 22:02:00', 2),
-  (1148, 2, 2, '2025-07-18', '2025-07-18 14:01:00', '2025-07-18 22:02:00', 2),
-  (1149, 2, 2, '2025-07-19', '2025-07-19 14:01:00', '2025-07-19 22:02:00', 2),
-  (1150, 2, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (1151, 2, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (1152, 2, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (1153, 2, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (1154, 2, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (1155, 2, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (1156, 2, 2, '2025-07-28', '2025-07-28 14:01:00', '2025-07-28 22:02:00', 2),
-  (1157, 2, 2, '2025-07-29', '2025-07-29 14:01:00', '2025-07-29 22:02:00', 2),
-  (1158, 2, 2, '2025-07-30', '2025-07-30 14:01:00', '2025-07-30 22:02:00', 2),
-  (1159, 2, 2, '2025-07-31', '2025-07-31 14:01:00', '2025-07-31 22:02:00', 2),
-  (1160, 2, 2, '2025-08-01', '2025-08-01 14:01:00', '2025-08-01 22:02:00', 2),
-  (1161, 2, 2, '2025-08-02', '2025-08-02 14:01:00', '2025-08-02 22:02:00', 2),
-  (1162, 2, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (1163, 2, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (1164, 2, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (1165, 2, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (1166, 2, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (1167, 2, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (1168, 2, 2, '2025-08-11', '2025-08-11 14:01:00', '2025-08-11 22:02:00', 2),
-  (1169, 2, 2, '2025-08-12', '2025-08-12 14:01:00', '2025-08-12 22:02:00', 2),
-  (1170, 2, 2, '2025-08-13', '2025-08-13 14:01:00', '2025-08-13 22:02:00', 2),
-  (1171, 2, 2, '2025-08-14', '2025-08-14 14:01:00', '2025-08-14 22:02:00', 2),
-  (1172, 2, 2, '2025-08-15', '2025-08-15 14:01:00', '2025-08-15 22:02:00', 2),
-  (1173, 2, 2, '2025-08-16', '2025-08-16 14:01:00', '2025-08-16 22:02:00', 2),
-  (1174, 2, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (1175, 2, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (1176, 2, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (1177, 2, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (1178, 2, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (1179, 2, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (1180, 2, 2, '2025-08-25', '2025-08-25 14:01:00', '2025-08-25 22:02:00', 2),
-  (1181, 2, 2, '2025-08-26', '2025-08-26 14:01:00', '2025-08-26 22:02:00', 2),
-  (1182, 2, 2, '2025-08-27', '2025-08-27 14:01:00', '2025-08-27 22:02:00', 2),
-  (1183, 2, 2, '2025-08-28', '2025-08-28 14:01:00', '2025-08-28 22:02:00', 2),
-  (1184, 2, 2, '2025-08-29', '2025-08-29 14:01:00', '2025-08-29 22:02:00', 2),
-  (1185, 2, 2, '2025-08-30', '2025-08-30 14:01:00', '2025-08-30 22:02:00', 2),
-  (1186, 2, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (1187, 2, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (1188, 2, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (1189, 2, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (1190, 2, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (1191, 2, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (1192, 2, 2, '2025-09-08', '2025-09-08 14:01:00', '2025-09-08 22:02:00', 2),
-  (1193, 2, 2, '2025-09-09', '2025-09-09 14:01:00', '2025-09-09 22:02:00', 2),
-  (1194, 2, 2, '2025-09-10', '2025-09-10 14:01:00', '2025-09-10 22:02:00', 2),
-  (1195, 2, 2, '2025-09-11', '2025-09-11 14:01:00', '2025-09-11 22:02:00', 2),
-  (1196, 2, 2, '2025-09-12', '2025-09-12 14:01:00', '2025-09-12 22:02:00', 2),
-  (1197, 2, 2, '2025-09-13', '2025-09-13 14:01:00', '2025-09-13 22:02:00', 2),
-  (1198, 2, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (1199, 2, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (1200, 2, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1201, 2, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (1202, 2, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (1203, 2, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (1204, 2, 2, '2025-09-22', '2025-09-22 14:01:00', '2025-09-22 22:02:00', 2),
-  (1205, 2, 2, '2025-09-23', '2025-09-23 14:01:00', '2025-09-23 22:02:00', 2),
-  (1206, 2, 2, '2025-09-24', '2025-09-24 14:01:00', '2025-09-24 22:02:00', 2),
-  (1207, 2, 2, '2025-09-25', '2025-09-25 14:01:00', '2025-09-25 22:02:00', 2),
-  (1208, 2, 2, '2025-09-26', '2025-09-26 14:01:00', '2025-09-26 22:02:00', 2),
-  (1209, 2, 2, '2025-09-27', '2025-09-27 14:01:00', '2025-09-27 22:02:00', 2),
-  (1210, 2, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (1211, 2, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (1212, 2, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (1213, 2, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (1214, 2, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (1215, 2, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (1216, 2, 2, '2025-10-06', '2025-10-06 14:01:00', '2025-10-06 22:02:00', 2),
-  (1217, 2, 2, '2025-10-07', '2025-10-07 14:01:00', '2025-10-07 22:02:00', 2),
-  (1218, 2, 2, '2025-10-08', '2025-10-08 14:01:00', '2025-10-08 22:02:00', 2),
-  (1219, 2, 2, '2025-10-09', '2025-10-09 14:01:00', '2025-10-09 22:02:00', 2),
-  (1220, 2, 2, '2025-10-10', '2025-10-10 14:01:00', '2025-10-10 22:02:00', 2),
-  (1221, 2, 2, '2025-10-11', '2025-10-11 14:01:00', '2025-10-11 22:02:00', 2),
-  (1222, 2, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (1223, 2, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (1224, 2, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (1225, 2, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (1226, 2, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (1227, 2, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (1228, 2, 2, '2025-10-20', '2025-10-20 14:01:00', '2025-10-20 22:02:00', 2),
-  (1229, 2, 2, '2025-10-21', '2025-10-21 14:01:00', '2025-10-21 22:02:00', 2),
-  (1230, 2, 2, '2025-10-22', '2025-10-22 14:01:00', '2025-10-22 22:02:00', 2),
-  (1231, 2, 2, '2025-10-23', '2025-10-23 14:01:00', '2025-10-23 22:02:00', 2),
-  (1232, 2, 2, '2025-10-24', '2025-10-24 14:01:00', '2025-10-24 22:02:00', 2),
-  (1233, 2, 2, '2025-10-25', '2025-10-25 14:01:00', '2025-10-25 22:02:00', 2),
-  (1234, 2, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (1235, 2, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (1236, 2, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (1237, 2, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (1238, 2, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (1239, 2, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (1240, 2, 2, '2025-11-03', '2025-11-03 14:01:00', '2025-11-03 22:02:00', 2),
-  (1241, 2, 2, '2025-11-04', '2025-11-04 14:01:00', '2025-11-04 22:02:00', 2),
-  (1242, 2, 2, '2025-11-05', '2025-11-05 14:01:00', '2025-11-05 22:02:00', 2),
-  (1243, 2, 2, '2025-11-06', '2025-11-06 14:01:00', '2025-11-06 22:02:00', 2),
-  (1244, 2, 2, '2025-11-07', '2025-11-07 14:01:00', '2025-11-07 22:02:00', 2),
-  (1245, 2, 2, '2025-11-08', '2025-11-08 14:01:00', '2025-11-08 22:02:00', 2),
-  (1246, 2, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (1247, 2, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (1248, 2, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (1249, 2, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (1250, 2, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (1251, 2, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (1252, 2, 2, '2025-11-17', '2025-11-17 14:01:00', '2025-11-17 22:02:00', 2),
-  (1253, 2, 2, '2025-11-18', '2025-11-18 14:01:00', '2025-11-18 22:02:00', 2),
-  (1254, 2, 2, '2025-11-19', '2025-11-19 14:01:00', '2025-11-19 22:02:00', 2),
-  (1255, 2, 2, '2025-11-20', '2025-11-20 14:01:00', '2025-11-20 22:02:00', 2),
-  (1256, 2, 2, '2025-11-21', '2025-11-21 14:01:00', '2025-11-21 22:02:00', 2),
-  (1257, 2, 2, '2025-11-22', '2025-11-22 14:01:00', '2025-11-22 22:02:00', 2),
-  (1258, 2, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (1259, 2, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (1260, 2, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (1261, 2, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (1262, 2, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (1263, 2, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (1264, 2, 2, '2025-12-01', '2025-12-01 14:01:00', '2025-12-01 22:02:00', 2),
-  (1265, 2, 2, '2025-12-02', '2025-12-02 14:01:00', '2025-12-02 22:02:00', 2),
-  (1266, 2, 2, '2025-12-03', '2025-12-03 14:01:00', '2025-12-03 22:02:00', 2),
-  (1267, 2, 2, '2025-12-04', '2025-12-04 14:01:00', '2025-12-04 22:02:00', 2),
-  (1268, 2, 2, '2025-12-05', '2025-12-05 14:01:00', '2025-12-05 22:02:00', 2),
-  (1269, 2, 2, '2025-12-06', '2025-12-06 14:01:00', '2025-12-06 22:02:00', 2),
-  (1270, 2, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (1271, 2, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2),
-  (1272, 2, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (1273, 2, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (1274, 2, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (1275, 2, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (1276, 2, 2, '2025-12-15', '2025-12-15 14:01:00', '2025-12-15 22:02:00', 2),
-  (1277, 2, 2, '2025-12-16', '2025-12-16 14:01:00', '2025-12-16 22:02:00', 2),
-  (1278, 2, 2, '2025-12-17', '2025-12-17 14:01:00', '2025-12-17 22:02:00', 2),
-  (1279, 2, 2, '2025-12-18', '2025-12-18 14:01:00', '2025-12-18 22:02:00', 2),
-  (1280, 2, 2, '2025-12-19', '2025-12-19 14:01:00', '2025-12-19 22:02:00', 2),
-  (1281, 2, 2, '2025-12-20', '2025-12-20 14:01:00', '2025-12-20 22:02:00', 2),
-  (1282, 2, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (1283, 2, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2),
-  (1284, 2, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (1285, 2, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (1286, 2, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (1287, 2, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (1288, 2, 2, '2025-12-29', '2025-12-29 14:01:00', '2025-12-29 22:02:00', 2),
-  (1289, 2, 2, '2025-12-30', '2025-12-30 14:01:00', '2025-12-30 22:02:00', 2),
-  (1290, 2, 2, '2025-12-31', '2025-12-31 14:01:00', '2025-12-31 22:02:00', 2),
-  (1291, 2, 2, '2026-01-01', '2026-01-01 14:01:00', '2026-01-01 22:02:00', 2),
-  (1292, 2, 2, '2026-01-02', '2026-01-02 14:01:00', '2026-01-02 22:02:00', 2),
-  (1293, 2, 2, '2026-01-03', '2026-01-03 14:01:00', '2026-01-03 22:02:00', 2),
-  (1294, 2, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (1295, 2, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (1296, 2, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (1297, 2, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (1298, 2, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (1299, 2, 1, '2026-01-10', '2026-01-10 08:02:00', '2026-01-10 16:01:00', 2),
-  (1300, 2, 2, '2026-01-12', '2026-01-12 14:01:00', '2026-01-12 22:02:00', 2),
-  (1301, 2, 2, '2026-01-13', '2026-01-13 14:01:00', '2026-01-13 22:02:00', 2),
-  (1302, 2, 2, '2026-01-14', '2026-01-14 14:01:00', '2026-01-14 22:02:00', 2),
-  (1303, 2, 2, '2026-01-15', '2026-01-15 14:01:00', '2026-01-15 22:02:00', 2),
-  (1304, 2, 2, '2026-01-16', '2026-01-16 14:01:00', '2026-01-16 22:02:00', 2),
-  (1305, 2, 2, '2026-01-17', '2026-01-17 14:01:00', '2026-01-17 22:02:00', 2),
-  (1306, 2, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (1307, 2, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (1308, 2, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (1309, 2, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (1310, 2, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (1311, 2, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (1312, 2, 2, '2026-01-26', '2026-01-26 14:01:00', '2026-01-26 22:02:00', 2),
-  (1313, 2, 2, '2026-01-27', '2026-01-27 14:01:00', '2026-01-27 22:02:00', 2),
-  (1314, 2, 2, '2026-01-28', '2026-01-28 14:01:00', '2026-01-28 22:02:00', 2),
-  (1315, 2, 2, '2026-01-29', '2026-01-29 14:01:00', '2026-01-29 22:02:00', 2),
-  (1316, 2, 2, '2026-01-30', '2026-01-30 14:01:00', '2026-01-30 22:02:00', 2),
-  (1317, 2, 2, '2026-01-31', '2026-01-31 14:01:00', '2026-01-31 22:02:00', 2),
-  (1318, 2, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (1319, 2, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (1320, 2, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (1321, 2, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (1322, 2, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (1323, 2, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (1324, 2, 2, '2026-02-09', '2026-02-09 14:01:00', '2026-02-09 22:02:00', 2),
-  (1325, 2, 2, '2026-02-10', '2026-02-10 14:01:00', '2026-02-10 22:02:00', 2),
-  (1326, 2, 2, '2026-02-11', '2026-02-11 14:01:00', '2026-02-11 22:02:00', 2),
-  (1327, 2, 2, '2026-02-12', '2026-02-12 14:01:00', '2026-02-12 22:02:00', 2),
-  (1328, 2, 2, '2026-02-13', '2026-02-13 14:01:00', '2026-02-13 22:02:00', 2),
-  (1329, 2, 2, '2026-02-14', '2026-02-14 14:01:00', '2026-02-14 22:02:00', 2),
-  (1330, 2, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (1331, 2, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (1332, 2, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (1333, 2, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (1334, 2, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (1335, 2, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (1336, 2, 2, '2026-02-23', '2026-02-23 14:01:00', '2026-02-23 22:02:00', 2),
-  (1337, 2, 2, '2026-02-24', '2026-02-24 14:01:00', '2026-02-24 22:02:00', 2),
-  (1338, 2, 2, '2026-02-25', '2026-02-25 14:01:00', '2026-02-25 22:02:00', 2),
-  (1339, 2, 2, '2026-02-26', '2026-02-26 14:01:00', '2026-02-26 22:02:00', 2),
-  (1340, 2, 2, '2026-02-27', '2026-02-27 14:01:00', '2026-02-27 22:02:00', 2),
-  (1341, 2, 2, '2026-02-28', '2026-02-28 14:01:00', '2026-02-28 22:02:00', 2),
-  (1342, 2, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (1343, 2, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (1344, 2, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (1345, 2, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (1346, 2, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (1347, 2, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (1348, 2, 2, '2026-03-09', '2026-03-09 14:01:00', '2026-03-09 22:02:00', 2),
-  (1349, 2, 2, '2026-03-10', '2026-03-10 14:01:00', '2026-03-10 22:02:00', 2),
-  (1350, 2, 2, '2026-03-11', '2026-03-11 14:01:00', '2026-03-11 22:02:00', 2),
-  (1351, 2, 2, '2026-03-12', '2026-03-12 14:01:00', '2026-03-12 22:02:00', 2),
-  (1352, 2, 2, '2026-03-13', '2026-03-13 14:01:00', '2026-03-13 22:02:00', 2),
-  (1353, 2, 2, '2026-03-14', '2026-03-14 14:01:00', '2026-03-14 22:02:00', 2),
-  (1354, 2, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (1355, 2, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (1356, 2, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (1357, 2, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (1358, 2, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (1359, 2, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (1360, 2, 2, '2026-03-23', '2026-03-23 14:01:00', '2026-03-23 22:02:00', 2),
-  (1361, 2, 2, '2026-03-24', '2026-03-24 14:01:00', '2026-03-24 22:02:00', 2),
-  (1362, 2, 2, '2026-03-25', '2026-03-25 14:01:00', '2026-03-25 22:02:00', 2),
-  (1363, 2, 2, '2026-03-26', '2026-03-26 14:01:00', '2026-03-26 22:02:00', 2),
-  (1364, 2, 2, '2026-03-27', '2026-03-27 14:01:00', '2026-03-27 22:02:00', 2),
-  (1365, 2, 2, '2026-03-28', '2026-03-28 14:01:00', '2026-03-28 22:02:00', 2),
-  (1366, 2, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (1367, 2, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (1368, 2, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (1369, 2, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (1370, 2, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (1371, 2, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (1372, 2, 2, '2026-04-06', '2026-04-06 14:01:00', '2026-04-06 22:02:00', 2),
-  (1373, 2, 2, '2026-04-07', '2026-04-07 14:01:00', '2026-04-07 22:02:00', 2),
-  (1374, 3, 2, '2024-02-15', '2024-02-15 14:01:00', '2024-02-15 22:02:00', 2),
-  (1375, 3, 2, '2024-02-16', '2024-02-16 14:01:00', '2024-02-16 22:02:00', 2),
-  (1376, 3, 2, '2024-02-17', '2024-02-17 14:01:00', '2024-02-17 22:02:00', 2),
-  (1377, 3, 1, '2024-02-19', '2024-02-19 08:02:00', '2024-02-19 16:01:00', 2),
-  (1378, 3, 1, '2024-02-20', '2024-02-20 08:02:00', '2024-02-20 16:01:00', 2),
-  (1379, 3, 1, '2024-02-21', '2024-02-21 08:02:00', '2024-02-21 16:01:00', 2),
-  (1380, 3, 1, '2024-02-22', '2024-02-22 08:02:00', '2024-02-22 16:01:00', 2),
-  (1381, 3, 1, '2024-02-23', '2024-02-23 08:02:00', '2024-02-23 16:01:00', 2),
-  (1382, 3, 1, '2024-02-24', '2024-02-24 08:02:00', '2024-02-24 16:01:00', 2),
-  (1383, 3, 2, '2024-02-26', '2024-02-26 14:01:00', '2024-02-26 22:02:00', 2),
-  (1384, 3, 2, '2024-02-27', '2024-02-27 14:01:00', '2024-02-27 22:02:00', 2),
-  (1385, 3, 2, '2024-02-28', '2024-02-28 14:01:00', '2024-02-28 22:02:00', 2),
-  (1386, 3, 2, '2024-02-29', '2024-02-29 14:01:00', '2024-02-29 22:02:00', 2),
-  (1387, 3, 2, '2024-03-01', '2024-03-01 14:01:00', '2024-03-01 22:02:00', 2),
-  (1388, 3, 2, '2024-03-02', '2024-03-02 14:01:00', '2024-03-02 22:02:00', 2),
-  (1389, 3, 1, '2024-03-04', '2024-03-04 08:02:00', '2024-03-04 16:01:00', 2),
-  (1390, 3, 1, '2024-03-05', '2024-03-05 08:02:00', '2024-03-05 16:01:00', 2),
-  (1391, 3, 1, '2024-03-06', '2024-03-06 08:02:00', '2024-03-06 16:01:00', 2),
-  (1392, 3, 1, '2024-03-07', '2024-03-07 08:02:00', '2024-03-07 16:01:00', 2),
-  (1393, 3, 1, '2024-03-08', '2024-03-08 08:02:00', '2024-03-08 16:01:00', 2),
-  (1394, 3, 1, '2024-03-09', '2024-03-09 08:02:00', '2024-03-09 16:01:00', 2),
-  (1395, 3, 2, '2024-03-11', '2024-03-11 14:01:00', '2024-03-11 22:02:00', 2),
-  (1396, 3, 2, '2024-03-12', '2024-03-12 14:01:00', '2024-03-12 22:02:00', 2),
-  (1397, 3, 2, '2024-03-13', '2024-03-13 14:01:00', '2024-03-13 22:02:00', 2),
-  (1398, 3, 2, '2024-03-14', '2024-03-14 14:01:00', '2024-03-14 22:02:00', 2),
-  (1399, 3, 2, '2024-03-15', '2024-03-15 14:01:00', '2024-03-15 22:02:00', 2),
-  (1400, 3, 2, '2024-03-16', '2024-03-16 14:01:00', '2024-03-16 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1401, 3, 1, '2024-03-18', '2024-03-18 08:02:00', '2024-03-18 16:01:00', 2),
-  (1402, 3, 1, '2024-03-19', '2024-03-19 08:02:00', '2024-03-19 16:01:00', 2),
-  (1403, 3, 1, '2024-03-20', '2024-03-20 08:02:00', '2024-03-20 16:01:00', 2),
-  (1404, 3, 1, '2024-03-21', '2024-03-21 08:02:00', '2024-03-21 16:01:00', 2),
-  (1405, 3, 1, '2024-03-22', '2024-03-22 08:02:00', '2024-03-22 16:01:00', 2),
-  (1406, 3, 1, '2024-03-23', '2024-03-23 08:02:00', '2024-03-23 16:01:00', 2),
-  (1407, 3, 2, '2024-03-25', '2024-03-25 14:01:00', '2024-03-25 22:02:00', 2),
-  (1408, 3, 2, '2024-03-26', '2024-03-26 14:01:00', '2024-03-26 22:02:00', 2),
-  (1409, 3, 2, '2024-03-27', '2024-03-27 14:01:00', '2024-03-27 22:02:00', 2),
-  (1410, 3, 2, '2024-03-28', '2024-03-28 14:01:00', '2024-03-28 22:02:00', 2),
-  (1411, 3, 2, '2024-03-29', '2024-03-29 14:01:00', '2024-03-29 22:02:00', 2),
-  (1412, 3, 2, '2024-03-30', '2024-03-30 14:01:00', '2024-03-30 22:02:00', 2),
-  (1413, 3, 1, '2024-04-01', '2024-04-01 08:02:00', '2024-04-01 16:01:00', 2),
-  (1414, 3, 1, '2024-04-02', '2024-04-02 08:02:00', '2024-04-02 16:01:00', 2),
-  (1415, 3, 1, '2024-04-03', '2024-04-03 08:02:00', '2024-04-03 16:01:00', 2),
-  (1416, 3, 1, '2024-04-04', '2024-04-04 08:02:00', '2024-04-04 16:01:00', 2),
-  (1417, 3, 1, '2024-04-05', '2024-04-05 08:02:00', '2024-04-05 16:01:00', 2),
-  (1418, 3, 1, '2024-04-06', '2024-04-06 08:02:00', '2024-04-06 16:01:00', 2),
-  (1419, 3, 2, '2024-04-08', '2024-04-08 14:01:00', '2024-04-08 22:02:00', 2),
-  (1420, 3, 2, '2024-04-09', '2024-04-09 14:01:00', '2024-04-09 22:02:00', 2),
-  (1421, 3, 2, '2024-04-10', '2024-04-10 14:01:00', '2024-04-10 22:02:00', 2),
-  (1422, 3, 2, '2024-04-11', '2024-04-11 14:01:00', '2024-04-11 22:02:00', 2),
-  (1423, 3, 2, '2024-04-12', '2024-04-12 14:01:00', '2024-04-12 22:02:00', 2),
-  (1424, 3, 2, '2024-04-13', '2024-04-13 14:01:00', '2024-04-13 22:02:00', 2),
-  (1425, 3, 1, '2024-04-15', '2024-04-15 08:02:00', '2024-04-15 16:01:00', 2),
-  (1426, 3, 1, '2024-04-16', '2024-04-16 08:02:00', '2024-04-16 16:01:00', 2),
-  (1427, 3, 1, '2024-04-17', '2024-04-17 08:02:00', '2024-04-17 16:01:00', 2),
-  (1428, 3, 1, '2024-04-18', '2024-04-18 08:02:00', '2024-04-18 16:01:00', 2),
-  (1429, 3, 1, '2024-04-19', '2024-04-19 08:02:00', '2024-04-19 16:01:00', 2),
-  (1430, 3, 1, '2024-04-20', '2024-04-20 08:02:00', '2024-04-20 16:01:00', 2),
-  (1431, 3, 2, '2024-04-22', '2024-04-22 14:01:00', '2024-04-22 22:02:00', 2),
-  (1432, 3, 2, '2024-04-23', '2024-04-23 14:01:00', '2024-04-23 22:02:00', 2),
-  (1433, 3, 2, '2024-04-24', '2024-04-24 14:01:00', '2024-04-24 22:02:00', 2),
-  (1434, 3, 2, '2024-04-25', '2024-04-25 14:01:00', '2024-04-25 22:02:00', 2),
-  (1435, 3, 2, '2024-04-26', '2024-04-26 14:01:00', '2024-04-26 22:02:00', 2),
-  (1436, 3, 2, '2024-04-27', '2024-04-27 14:01:00', '2024-04-27 22:02:00', 2),
-  (1437, 3, 1, '2024-04-29', '2024-04-29 08:02:00', '2024-04-29 16:01:00', 2),
-  (1438, 3, 1, '2024-04-30', '2024-04-30 08:02:00', '2024-04-30 16:01:00', 2),
-  (1439, 3, 1, '2024-05-01', '2024-05-01 08:02:00', '2024-05-01 16:01:00', 2),
-  (1440, 3, 1, '2024-05-02', '2024-05-02 08:02:00', '2024-05-02 16:01:00', 2),
-  (1441, 3, 1, '2024-05-03', '2024-05-03 08:02:00', '2024-05-03 16:01:00', 2),
-  (1442, 3, 1, '2024-05-04', '2024-05-04 08:02:00', '2024-05-04 16:01:00', 2),
-  (1443, 3, 2, '2024-05-06', '2024-05-06 14:01:00', '2024-05-06 22:02:00', 2),
-  (1444, 3, 2, '2024-05-07', '2024-05-07 14:01:00', '2024-05-07 22:02:00', 2),
-  (1445, 3, 2, '2024-05-08', '2024-05-08 14:01:00', '2024-05-08 22:02:00', 2),
-  (1446, 3, 2, '2024-05-09', '2024-05-09 14:01:00', '2024-05-09 22:02:00', 2),
-  (1447, 3, 2, '2024-05-10', '2024-05-10 14:01:00', '2024-05-10 22:02:00', 2),
-  (1448, 3, 2, '2024-05-11', '2024-05-11 14:01:00', '2024-05-11 22:02:00', 2),
-  (1449, 3, 1, '2024-05-13', '2024-05-13 08:02:00', '2024-05-13 16:01:00', 2),
-  (1450, 3, 1, '2024-05-14', '2024-05-14 08:02:00', '2024-05-14 16:01:00', 2),
-  (1451, 3, 1, '2024-05-15', '2024-05-15 08:02:00', '2024-05-15 16:01:00', 2),
-  (1452, 3, 1, '2024-05-16', '2024-05-16 08:02:00', '2024-05-16 16:01:00', 2),
-  (1453, 3, 1, '2024-05-17', '2024-05-17 08:02:00', '2024-05-17 16:01:00', 2),
-  (1454, 3, 1, '2024-05-18', '2024-05-18 08:02:00', '2024-05-18 16:01:00', 2),
-  (1455, 3, 2, '2024-05-20', '2024-05-20 14:01:00', '2024-05-20 22:02:00', 2),
-  (1456, 3, 2, '2024-05-21', '2024-05-21 14:01:00', '2024-05-21 22:02:00', 2),
-  (1457, 3, 2, '2024-05-22', '2024-05-22 14:01:00', '2024-05-22 22:02:00', 2),
-  (1458, 3, 2, '2024-05-23', '2024-05-23 14:01:00', '2024-05-23 22:02:00', 2),
-  (1459, 3, 2, '2024-05-24', '2024-05-24 14:01:00', '2024-05-24 22:02:00', 2),
-  (1460, 3, 2, '2024-05-25', '2024-05-25 14:01:00', '2024-05-25 22:02:00', 2),
-  (1461, 3, 1, '2024-05-27', '2024-05-27 08:02:00', '2024-05-27 16:01:00', 2),
-  (1462, 3, 1, '2024-05-28', '2024-05-28 08:02:00', '2024-05-28 16:01:00', 2),
-  (1463, 3, 1, '2024-05-29', '2024-05-29 08:02:00', '2024-05-29 16:01:00', 2),
-  (1464, 3, 1, '2024-05-30', '2024-05-30 08:02:00', '2024-05-30 16:01:00', 2),
-  (1465, 3, 1, '2024-05-31', '2024-05-31 08:02:00', '2024-05-31 16:01:00', 2),
-  (1466, 3, 1, '2024-06-01', '2024-06-01 08:02:00', '2024-06-01 16:01:00', 2),
-  (1467, 3, 2, '2024-06-03', '2024-06-03 14:01:00', '2024-06-03 22:02:00', 2),
-  (1468, 3, 2, '2024-06-04', '2024-06-04 14:01:00', '2024-06-04 22:02:00', 2),
-  (1469, 3, 2, '2024-06-05', '2024-06-05 14:01:00', '2024-06-05 22:02:00', 2),
-  (1470, 3, 2, '2024-06-06', '2024-06-06 14:01:00', '2024-06-06 22:02:00', 2),
-  (1471, 3, 2, '2024-06-07', '2024-06-07 14:01:00', '2024-06-07 22:02:00', 2),
-  (1472, 3, 2, '2024-06-08', '2024-06-08 14:01:00', '2024-06-08 22:02:00', 2),
-  (1473, 3, 1, '2024-06-10', '2024-06-10 08:02:00', '2024-06-10 16:01:00', 2),
-  (1474, 3, 1, '2024-06-11', '2024-06-11 08:02:00', '2024-06-11 16:01:00', 2),
-  (1475, 3, 1, '2024-06-12', '2024-06-12 08:02:00', '2024-06-12 16:01:00', 2),
-  (1476, 3, 1, '2024-06-13', '2024-06-13 08:02:00', '2024-06-13 16:01:00', 2),
-  (1477, 3, 1, '2024-06-14', '2024-06-14 08:02:00', '2024-06-14 16:01:00', 2),
-  (1478, 3, 1, '2024-06-15', '2024-06-15 08:02:00', '2024-06-15 16:01:00', 2),
-  (1479, 3, 2, '2024-06-17', '2024-06-17 14:01:00', '2024-06-17 22:02:00', 2),
-  (1480, 3, 2, '2024-06-18', '2024-06-18 14:01:00', '2024-06-18 22:02:00', 2),
-  (1481, 3, 2, '2024-06-19', '2024-06-19 14:01:00', '2024-06-19 22:02:00', 2),
-  (1482, 3, 2, '2024-06-20', '2024-06-20 14:01:00', '2024-06-20 22:02:00', 2),
-  (1483, 3, 2, '2024-06-21', '2024-06-21 14:01:00', '2024-06-21 22:02:00', 2),
-  (1484, 3, 2, '2024-06-22', '2024-06-22 14:01:00', '2024-06-22 22:02:00', 2),
-  (1485, 3, 1, '2024-06-24', '2024-06-24 08:02:00', '2024-06-24 16:01:00', 2),
-  (1486, 3, 1, '2024-06-25', '2024-06-25 08:02:00', '2024-06-25 16:01:00', 2),
-  (1487, 3, 1, '2024-06-26', '2024-06-26 08:02:00', '2024-06-26 16:01:00', 2),
-  (1488, 3, 1, '2024-06-27', '2024-06-27 08:02:00', '2024-06-27 16:01:00', 2),
-  (1489, 3, 1, '2024-06-28', '2024-06-28 08:02:00', '2024-06-28 16:01:00', 2),
-  (1490, 3, 1, '2024-06-29', '2024-06-29 08:02:00', '2024-06-29 16:01:00', 2),
-  (1491, 3, 2, '2024-07-01', '2024-07-01 14:01:00', '2024-07-01 22:02:00', 2),
-  (1492, 3, 2, '2024-07-02', '2024-07-02 14:01:00', '2024-07-02 22:02:00', 2),
-  (1493, 3, 2, '2024-07-03', '2024-07-03 14:01:00', '2024-07-03 22:02:00', 2),
-  (1494, 3, 2, '2024-07-04', '2024-07-04 14:01:00', '2024-07-04 22:02:00', 2),
-  (1495, 3, 2, '2024-07-05', '2024-07-05 14:01:00', '2024-07-05 22:02:00', 2),
-  (1496, 3, 2, '2024-07-06', '2024-07-06 14:01:00', '2024-07-06 22:02:00', 2),
-  (1497, 3, 1, '2024-07-08', '2024-07-08 08:02:00', '2024-07-08 16:01:00', 2),
-  (1498, 3, 1, '2024-07-09', '2024-07-09 08:02:00', '2024-07-09 16:01:00', 2),
-  (1499, 3, 1, '2024-07-10', '2024-07-10 08:02:00', '2024-07-10 16:01:00', 2),
-  (1500, 3, 1, '2024-07-11', '2024-07-11 08:02:00', '2024-07-11 16:01:00', 2),
-  (1501, 3, 1, '2024-07-12', '2024-07-12 08:02:00', '2024-07-12 16:01:00', 2),
-  (1502, 3, 1, '2024-07-13', '2024-07-13 08:02:00', '2024-07-13 16:01:00', 2),
-  (1503, 3, 2, '2024-07-15', '2024-07-15 14:01:00', '2024-07-15 22:02:00', 2),
-  (1504, 3, 2, '2024-07-16', '2024-07-16 14:01:00', '2024-07-16 22:02:00', 2),
-  (1505, 3, 2, '2024-07-17', '2024-07-17 14:01:00', '2024-07-17 22:02:00', 2),
-  (1506, 3, 2, '2024-07-18', '2024-07-18 14:01:00', '2024-07-18 22:02:00', 2),
-  (1507, 3, 2, '2024-07-19', '2024-07-19 14:01:00', '2024-07-19 22:02:00', 2),
-  (1508, 3, 2, '2024-07-20', '2024-07-20 14:01:00', '2024-07-20 22:02:00', 2),
-  (1509, 3, 1, '2024-07-22', '2024-07-22 08:02:00', '2024-07-22 16:01:00', 2),
-  (1510, 3, 1, '2024-07-23', '2024-07-23 08:02:00', '2024-07-23 16:01:00', 2),
-  (1511, 3, 1, '2024-07-24', '2024-07-24 08:02:00', '2024-07-24 16:01:00', 2),
-  (1512, 3, 1, '2024-07-25', '2024-07-25 08:02:00', '2024-07-25 16:01:00', 2),
-  (1513, 3, 1, '2024-07-26', '2024-07-26 08:02:00', '2024-07-26 16:01:00', 2),
-  (1514, 3, 1, '2024-07-27', '2024-07-27 08:02:00', '2024-07-27 16:01:00', 2),
-  (1515, 3, 2, '2024-07-29', '2024-07-29 14:01:00', '2024-07-29 22:02:00', 2),
-  (1516, 3, 2, '2024-07-30', '2024-07-30 14:01:00', '2024-07-30 22:02:00', 2),
-  (1517, 3, 2, '2024-07-31', '2024-07-31 14:01:00', '2024-07-31 22:02:00', 2),
-  (1518, 3, 2, '2024-08-01', '2024-08-01 14:01:00', '2024-08-01 22:02:00', 2),
-  (1519, 3, 2, '2024-08-02', '2024-08-02 14:01:00', '2024-08-02 22:02:00', 2),
-  (1520, 3, 2, '2024-08-03', '2024-08-03 14:01:00', '2024-08-03 22:02:00', 2),
-  (1521, 3, 1, '2024-08-05', '2024-08-05 08:02:00', '2024-08-05 16:01:00', 2),
-  (1522, 3, 1, '2024-08-06', '2024-08-06 08:02:00', '2024-08-06 16:01:00', 2),
-  (1523, 3, 1, '2024-08-07', '2024-08-07 08:02:00', '2024-08-07 16:01:00', 2),
-  (1524, 3, 1, '2024-08-08', '2024-08-08 08:02:00', '2024-08-08 16:01:00', 2),
-  (1525, 3, 1, '2024-08-09', '2024-08-09 08:02:00', '2024-08-09 16:01:00', 2),
-  (1526, 3, 1, '2024-08-10', '2024-08-10 08:02:00', '2024-08-10 16:01:00', 2),
-  (1527, 3, 2, '2024-08-12', '2024-08-12 14:01:00', '2024-08-12 22:02:00', 2),
-  (1528, 3, 2, '2024-08-13', '2024-08-13 14:01:00', '2024-08-13 22:02:00', 2),
-  (1529, 3, 2, '2024-08-14', '2024-08-14 14:01:00', '2024-08-14 22:02:00', 2),
-  (1530, 3, 2, '2024-08-15', '2024-08-15 14:01:00', '2024-08-15 22:02:00', 2),
-  (1531, 3, 2, '2024-08-16', '2024-08-16 14:01:00', '2024-08-16 22:02:00', 2),
-  (1532, 3, 2, '2024-08-17', '2024-08-17 14:01:00', '2024-08-17 22:02:00', 2),
-  (1533, 3, 1, '2024-08-19', '2024-08-19 08:02:00', '2024-08-19 16:01:00', 2),
-  (1534, 3, 1, '2024-08-20', '2024-08-20 08:02:00', '2024-08-20 16:01:00', 2),
-  (1535, 3, 1, '2024-08-21', '2024-08-21 08:02:00', '2024-08-21 16:01:00', 2),
-  (1536, 3, 1, '2024-08-22', '2024-08-22 08:02:00', '2024-08-22 16:01:00', 2),
-  (1537, 3, 1, '2024-08-23', '2024-08-23 08:02:00', '2024-08-23 16:01:00', 2),
-  (1538, 3, 1, '2024-08-24', '2024-08-24 08:02:00', '2024-08-24 16:01:00', 2),
-  (1539, 3, 2, '2024-08-26', '2024-08-26 14:01:00', '2024-08-26 22:02:00', 2),
-  (1540, 3, 2, '2024-08-27', '2024-08-27 14:01:00', '2024-08-27 22:02:00', 2),
-  (1541, 3, 2, '2024-08-28', '2024-08-28 14:01:00', '2024-08-28 22:02:00', 2),
-  (1542, 3, 2, '2024-08-29', '2024-08-29 14:01:00', '2024-08-29 22:02:00', 2),
-  (1543, 3, 2, '2024-08-30', '2024-08-30 14:01:00', '2024-08-30 22:02:00', 2),
-  (1544, 3, 2, '2024-08-31', '2024-08-31 14:01:00', '2024-08-31 22:02:00', 2),
-  (1545, 3, 1, '2024-09-02', '2024-09-02 08:02:00', '2024-09-02 16:01:00', 2),
-  (1546, 3, 1, '2024-09-03', '2024-09-03 08:02:00', '2024-09-03 16:01:00', 2),
-  (1547, 3, 1, '2024-09-04', '2024-09-04 08:02:00', '2024-09-04 16:01:00', 2),
-  (1548, 3, 1, '2024-09-05', '2024-09-05 08:02:00', '2024-09-05 16:01:00', 2),
-  (1549, 3, 1, '2024-09-06', '2024-09-06 08:02:00', '2024-09-06 16:01:00', 2),
-  (1550, 3, 1, '2024-09-07', '2024-09-07 08:02:00', '2024-09-07 16:01:00', 2),
-  (1551, 3, 2, '2024-09-09', '2024-09-09 14:01:00', '2024-09-09 22:02:00', 2),
-  (1552, 3, 2, '2024-09-10', '2024-09-10 14:01:00', '2024-09-10 22:02:00', 2),
-  (1553, 3, 2, '2024-09-11', '2024-09-11 14:01:00', '2024-09-11 22:02:00', 2),
-  (1554, 3, 2, '2024-09-12', '2024-09-12 14:01:00', '2024-09-12 22:02:00', 2),
-  (1555, 3, 2, '2024-09-13', '2024-09-13 14:01:00', '2024-09-13 22:02:00', 2),
-  (1556, 3, 2, '2024-09-14', '2024-09-14 14:01:00', '2024-09-14 22:02:00', 2),
-  (1557, 3, 1, '2024-09-16', '2024-09-16 08:02:00', '2024-09-16 16:01:00', 2),
-  (1558, 3, 1, '2024-09-17', '2024-09-17 08:02:00', '2024-09-17 16:01:00', 2),
-  (1559, 3, 1, '2024-09-18', '2024-09-18 08:02:00', '2024-09-18 16:01:00', 2),
-  (1560, 3, 1, '2024-09-19', '2024-09-19 08:02:00', '2024-09-19 16:01:00', 2),
-  (1561, 3, 1, '2024-09-20', '2024-09-20 08:02:00', '2024-09-20 16:01:00', 2),
-  (1562, 3, 1, '2024-09-21', '2024-09-21 08:02:00', '2024-09-21 16:01:00', 2),
-  (1563, 3, 2, '2024-09-23', '2024-09-23 14:01:00', '2024-09-23 22:02:00', 2),
-  (1564, 3, 2, '2024-09-24', '2024-09-24 14:01:00', '2024-09-24 22:02:00', 2),
-  (1565, 3, 2, '2024-09-25', '2024-09-25 14:01:00', '2024-09-25 22:02:00', 2),
-  (1566, 3, 2, '2024-09-26', '2024-09-26 14:01:00', '2024-09-26 22:02:00', 2),
-  (1567, 3, 2, '2024-09-27', '2024-09-27 14:01:00', '2024-09-27 22:02:00', 2),
-  (1568, 3, 2, '2024-09-28', '2024-09-28 14:01:00', '2024-09-28 22:02:00', 2),
-  (1569, 3, 1, '2024-09-30', '2024-09-30 08:02:00', '2024-09-30 16:01:00', 2),
-  (1570, 3, 1, '2024-10-01', '2024-10-01 08:02:00', '2024-10-01 16:01:00', 2),
-  (1571, 3, 1, '2024-10-02', '2024-10-02 08:02:00', '2024-10-02 16:01:00', 2),
-  (1572, 3, 1, '2024-10-03', '2024-10-03 08:02:00', '2024-10-03 16:01:00', 2),
-  (1573, 3, 1, '2024-10-04', '2024-10-04 08:02:00', '2024-10-04 16:01:00', 2),
-  (1574, 3, 1, '2024-10-05', '2024-10-05 08:02:00', '2024-10-05 16:01:00', 2),
-  (1575, 3, 2, '2024-10-07', '2024-10-07 14:01:00', '2024-10-07 22:02:00', 2),
-  (1576, 3, 2, '2024-10-08', '2024-10-08 14:01:00', '2024-10-08 22:02:00', 2),
-  (1577, 3, 2, '2024-10-09', '2024-10-09 14:01:00', '2024-10-09 22:02:00', 2),
-  (1578, 3, 2, '2024-10-10', '2024-10-10 14:01:00', '2024-10-10 22:02:00', 2),
-  (1579, 3, 2, '2024-10-11', '2024-10-11 14:01:00', '2024-10-11 22:02:00', 2),
-  (1580, 3, 2, '2024-10-12', '2024-10-12 14:01:00', '2024-10-12 22:02:00', 2),
-  (1581, 3, 1, '2024-10-14', '2024-10-14 08:02:00', '2024-10-14 16:01:00', 2),
-  (1582, 3, 1, '2024-10-15', '2024-10-15 08:02:00', '2024-10-15 16:01:00', 2),
-  (1583, 3, 1, '2024-10-16', '2024-10-16 08:02:00', '2024-10-16 16:01:00', 2),
-  (1584, 3, 1, '2024-10-17', '2024-10-17 08:02:00', '2024-10-17 16:01:00', 2),
-  (1585, 3, 1, '2024-10-18', '2024-10-18 08:02:00', '2024-10-18 16:01:00', 2),
-  (1586, 3, 1, '2024-10-19', '2024-10-19 08:02:00', '2024-10-19 16:01:00', 2),
-  (1587, 3, 2, '2024-10-21', '2024-10-21 14:01:00', '2024-10-21 22:02:00', 2),
-  (1588, 3, 2, '2024-10-22', '2024-10-22 14:01:00', '2024-10-22 22:02:00', 2),
-  (1589, 3, 2, '2024-10-23', '2024-10-23 14:01:00', '2024-10-23 22:02:00', 2),
-  (1590, 3, 2, '2024-10-24', '2024-10-24 14:01:00', '2024-10-24 22:02:00', 2),
-  (1591, 3, 2, '2024-10-25', '2024-10-25 14:01:00', '2024-10-25 22:02:00', 2),
-  (1592, 3, 2, '2024-10-26', '2024-10-26 14:01:00', '2024-10-26 22:02:00', 2),
-  (1593, 3, 1, '2024-10-28', '2024-10-28 08:02:00', '2024-10-28 16:01:00', 2),
-  (1594, 3, 1, '2024-10-29', '2024-10-29 08:02:00', '2024-10-29 16:01:00', 2),
-  (1595, 3, 1, '2024-10-30', '2024-10-30 08:02:00', '2024-10-30 16:01:00', 2),
-  (1596, 3, 1, '2024-10-31', '2024-10-31 08:02:00', '2024-10-31 16:01:00', 2),
-  (1597, 3, 1, '2024-11-01', '2024-11-01 08:02:00', '2024-11-01 16:01:00', 2),
-  (1598, 3, 1, '2024-11-02', '2024-11-02 08:02:00', '2024-11-02 16:01:00', 2),
-  (1599, 3, 2, '2024-11-04', '2024-11-04 14:01:00', '2024-11-04 22:02:00', 2),
-  (1600, 3, 2, '2024-11-05', '2024-11-05 14:01:00', '2024-11-05 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1601, 3, 2, '2024-11-06', '2024-11-06 14:01:00', '2024-11-06 22:02:00', 2),
-  (1602, 3, 2, '2024-11-07', '2024-11-07 14:01:00', '2024-11-07 22:02:00', 2),
-  (1603, 3, 2, '2024-11-08', '2024-11-08 14:01:00', '2024-11-08 22:02:00', 2),
-  (1604, 3, 2, '2024-11-09', '2024-11-09 14:01:00', '2024-11-09 22:02:00', 2),
-  (1605, 3, 1, '2024-11-11', '2024-11-11 08:02:00', '2024-11-11 16:01:00', 2),
-  (1606, 3, 1, '2024-11-12', '2024-11-12 08:02:00', '2024-11-12 16:01:00', 2),
-  (1607, 3, 1, '2024-11-13', '2024-11-13 08:02:00', '2024-11-13 16:01:00', 2),
-  (1608, 3, 1, '2024-11-14', '2024-11-14 08:02:00', '2024-11-14 16:01:00', 2),
-  (1609, 3, 1, '2024-11-15', '2024-11-15 08:02:00', '2024-11-15 16:01:00', 2),
-  (1610, 3, 1, '2024-11-16', '2024-11-16 08:02:00', '2024-11-16 16:01:00', 2),
-  (1611, 3, 2, '2024-11-18', '2024-11-18 14:01:00', '2024-11-18 22:02:00', 2),
-  (1612, 3, 2, '2024-11-19', '2024-11-19 14:01:00', '2024-11-19 22:02:00', 2),
-  (1613, 3, 2, '2024-11-20', '2024-11-20 14:01:00', '2024-11-20 22:02:00', 2),
-  (1614, 3, 2, '2024-11-21', '2024-11-21 14:01:00', '2024-11-21 22:02:00', 2),
-  (1615, 3, 2, '2024-11-22', '2024-11-22 14:01:00', '2024-11-22 22:02:00', 2),
-  (1616, 3, 2, '2024-11-23', '2024-11-23 14:01:00', '2024-11-23 22:02:00', 2),
-  (1617, 3, 1, '2024-11-25', '2024-11-25 08:02:00', '2024-11-25 16:01:00', 2),
-  (1618, 3, 1, '2024-11-26', '2024-11-26 08:02:00', '2024-11-26 16:01:00', 2),
-  (1619, 3, 1, '2024-11-27', '2024-11-27 08:02:00', '2024-11-27 16:01:00', 2),
-  (1620, 3, 1, '2024-11-28', '2024-11-28 08:02:00', '2024-11-28 16:01:00', 2),
-  (1621, 3, 1, '2024-11-29', '2024-11-29 08:02:00', '2024-11-29 16:01:00', 2),
-  (1622, 3, 1, '2024-11-30', '2024-11-30 08:02:00', '2024-11-30 16:01:00', 2),
-  (1623, 3, 2, '2024-12-02', '2024-12-02 14:01:00', '2024-12-02 22:02:00', 2),
-  (1624, 3, 2, '2024-12-03', '2024-12-03 14:01:00', '2024-12-03 22:02:00', 2),
-  (1625, 3, 2, '2024-12-04', '2024-12-04 14:01:00', '2024-12-04 22:02:00', 2),
-  (1626, 3, 2, '2024-12-05', '2024-12-05 14:01:00', '2024-12-05 22:02:00', 2),
-  (1627, 3, 2, '2024-12-06', '2024-12-06 14:01:00', '2024-12-06 22:02:00', 2),
-  (1628, 3, 2, '2024-12-07', '2024-12-07 14:01:00', '2024-12-07 22:02:00', 2),
-  (1629, 3, 1, '2024-12-09', '2024-12-09 08:02:00', '2024-12-09 16:01:00', 2),
-  (1630, 3, 1, '2024-12-10', '2024-12-10 08:02:00', '2024-12-10 16:01:00', 2),
-  (1631, 3, 1, '2024-12-11', '2024-12-11 08:02:00', '2024-12-11 16:01:00', 2),
-  (1632, 3, 1, '2024-12-12', '2024-12-12 08:02:00', '2024-12-12 16:01:00', 2),
-  (1633, 3, 1, '2024-12-13', '2024-12-13 08:02:00', '2024-12-13 16:01:00', 2),
-  (1634, 3, 1, '2024-12-14', '2024-12-14 08:02:00', '2024-12-14 16:01:00', 2),
-  (1635, 3, 2, '2024-12-16', '2024-12-16 14:01:00', '2024-12-16 22:02:00', 2),
-  (1636, 3, 2, '2024-12-17', '2024-12-17 14:01:00', '2024-12-17 22:02:00', 2),
-  (1637, 3, 2, '2024-12-18', '2024-12-18 14:01:00', '2024-12-18 22:02:00', 2),
-  (1638, 3, 2, '2024-12-19', '2024-12-19 14:01:00', '2024-12-19 22:02:00', 2),
-  (1639, 3, 2, '2024-12-20', '2024-12-20 14:01:00', '2024-12-20 22:02:00', 2),
-  (1640, 3, 2, '2024-12-21', '2024-12-21 14:01:00', '2024-12-21 22:02:00', 2),
-  (1641, 3, 1, '2024-12-23', '2024-12-23 08:02:00', '2024-12-23 16:01:00', 2),
-  (1642, 3, 1, '2024-12-24', '2024-12-24 08:02:00', '2024-12-24 16:01:00', 2),
-  (1643, 3, 1, '2024-12-25', '2024-12-25 08:02:00', '2024-12-25 16:01:00', 2),
-  (1644, 3, 1, '2024-12-26', '2024-12-26 08:02:00', '2024-12-26 16:01:00', 2),
-  (1645, 3, 1, '2024-12-27', '2024-12-27 08:02:00', '2024-12-27 16:01:00', 2),
-  (1646, 3, 1, '2024-12-28', '2024-12-28 08:02:00', '2024-12-28 16:01:00', 2),
-  (1647, 3, 2, '2024-12-30', '2024-12-30 14:01:00', '2024-12-30 22:02:00', 2),
-  (1648, 3, 2, '2024-12-31', '2024-12-31 14:01:00', '2024-12-31 22:02:00', 2),
-  (1649, 3, 2, '2025-01-01', '2025-01-01 14:01:00', '2025-01-01 22:02:00', 2),
-  (1650, 3, 2, '2025-01-02', '2025-01-02 14:01:00', '2025-01-02 22:02:00', 2),
-  (1651, 3, 2, '2025-01-03', '2025-01-03 14:01:00', '2025-01-03 22:02:00', 2),
-  (1652, 3, 2, '2025-01-04', '2025-01-04 14:01:00', '2025-01-04 22:02:00', 2),
-  (1653, 3, 1, '2025-01-06', '2025-01-06 08:02:00', '2025-01-06 16:01:00', 2),
-  (1654, 3, 1, '2025-01-07', '2025-01-07 08:02:00', '2025-01-07 16:01:00', 2),
-  (1655, 3, 1, '2025-01-08', '2025-01-08 08:02:00', '2025-01-08 16:01:00', 2),
-  (1656, 3, 1, '2025-01-09', '2025-01-09 08:02:00', '2025-01-09 16:01:00', 2),
-  (1657, 3, 1, '2025-01-10', '2025-01-10 08:02:00', '2025-01-10 16:01:00', 2),
-  (1658, 3, 1, '2025-01-11', '2025-01-11 08:02:00', '2025-01-11 16:01:00', 2),
-  (1659, 3, 2, '2025-01-13', '2025-01-13 14:01:00', '2025-01-13 22:02:00', 2),
-  (1660, 3, 2, '2025-01-14', '2025-01-14 14:01:00', '2025-01-14 22:02:00', 2),
-  (1661, 3, 2, '2025-01-15', '2025-01-15 14:01:00', '2025-01-15 22:02:00', 2),
-  (1662, 3, 2, '2025-01-16', '2025-01-16 14:01:00', '2025-01-16 22:02:00', 2),
-  (1663, 3, 2, '2025-01-17', '2025-01-17 14:01:00', '2025-01-17 22:02:00', 2),
-  (1664, 3, 2, '2025-01-18', '2025-01-18 14:01:00', '2025-01-18 22:02:00', 2),
-  (1665, 3, 1, '2025-01-20', '2025-01-20 08:02:00', '2025-01-20 16:01:00', 2),
-  (1666, 3, 1, '2025-01-21', '2025-01-21 08:02:00', '2025-01-21 16:01:00', 2),
-  (1667, 3, 1, '2025-01-22', '2025-01-22 08:02:00', '2025-01-22 16:01:00', 2),
-  (1668, 3, 1, '2025-01-23', '2025-01-23 08:02:00', '2025-01-23 16:01:00', 2),
-  (1669, 3, 1, '2025-01-24', '2025-01-24 08:02:00', '2025-01-24 16:01:00', 2),
-  (1670, 3, 1, '2025-01-25', '2025-01-25 08:02:00', '2025-01-25 16:01:00', 2),
-  (1671, 3, 2, '2025-01-27', '2025-01-27 14:01:00', '2025-01-27 22:02:00', 2),
-  (1672, 3, 2, '2025-01-28', '2025-01-28 14:01:00', '2025-01-28 22:02:00', 2),
-  (1673, 3, 2, '2025-01-29', '2025-01-29 14:01:00', '2025-01-29 22:02:00', 2),
-  (1674, 3, 2, '2025-01-30', '2025-01-30 14:01:00', '2025-01-30 22:02:00', 2),
-  (1675, 3, 2, '2025-01-31', '2025-01-31 14:01:00', '2025-01-31 22:02:00', 2),
-  (1676, 3, 2, '2025-02-01', '2025-02-01 14:01:00', '2025-02-01 22:02:00', 2),
-  (1677, 3, 1, '2025-02-03', '2025-02-03 08:02:00', '2025-02-03 16:01:00', 2),
-  (1678, 3, 1, '2025-02-04', '2025-02-04 08:02:00', '2025-02-04 16:01:00', 2),
-  (1679, 3, 1, '2025-02-05', '2025-02-05 08:02:00', '2025-02-05 16:01:00', 2),
-  (1680, 3, 1, '2025-02-06', '2025-02-06 08:02:00', '2025-02-06 16:01:00', 2),
-  (1681, 3, 1, '2025-02-07', '2025-02-07 08:02:00', '2025-02-07 16:01:00', 2),
-  (1682, 3, 1, '2025-02-08', '2025-02-08 08:02:00', '2025-02-08 16:01:00', 2),
-  (1683, 3, 2, '2025-02-10', '2025-02-10 14:01:00', '2025-02-10 22:02:00', 2),
-  (1684, 3, 2, '2025-02-11', '2025-02-11 14:01:00', '2025-02-11 22:02:00', 2),
-  (1685, 3, 2, '2025-02-12', '2025-02-12 14:01:00', '2025-02-12 22:02:00', 2),
-  (1686, 3, 2, '2025-02-13', '2025-02-13 14:01:00', '2025-02-13 22:02:00', 2),
-  (1687, 3, 2, '2025-02-14', '2025-02-14 14:01:00', '2025-02-14 22:02:00', 2),
-  (1688, 3, 2, '2025-02-15', '2025-02-15 14:01:00', '2025-02-15 22:02:00', 2),
-  (1689, 3, 1, '2025-02-17', '2025-02-17 08:02:00', '2025-02-17 16:01:00', 2),
-  (1690, 3, 1, '2025-02-18', '2025-02-18 08:02:00', '2025-02-18 16:01:00', 2),
-  (1691, 3, 1, '2025-02-19', '2025-02-19 08:02:00', '2025-02-19 16:01:00', 2),
-  (1692, 3, 1, '2025-02-20', '2025-02-20 08:02:00', '2025-02-20 16:01:00', 2),
-  (1693, 3, 1, '2025-02-21', '2025-02-21 08:02:00', '2025-02-21 16:01:00', 2),
-  (1694, 3, 1, '2025-02-22', '2025-02-22 08:02:00', '2025-02-22 16:01:00', 2),
-  (1695, 3, 2, '2025-02-24', '2025-02-24 14:01:00', '2025-02-24 22:02:00', 2),
-  (1696, 3, 2, '2025-02-25', '2025-02-25 14:01:00', '2025-02-25 22:02:00', 2),
-  (1697, 3, 2, '2025-02-26', '2025-02-26 14:01:00', '2025-02-26 22:02:00', 2),
-  (1698, 3, 2, '2025-02-27', '2025-02-27 14:01:00', '2025-02-27 22:02:00', 2),
-  (1699, 3, 2, '2025-02-28', '2025-02-28 14:01:00', '2025-02-28 22:02:00', 2),
-  (1700, 3, 2, '2025-03-01', '2025-03-01 14:01:00', '2025-03-01 22:02:00', 2),
-  (1701, 3, 1, '2025-03-03', '2025-03-03 08:02:00', '2025-03-03 16:01:00', 2),
-  (1702, 3, 1, '2025-03-04', '2025-03-04 08:02:00', '2025-03-04 16:01:00', 2),
-  (1703, 3, 1, '2025-03-05', '2025-03-05 08:02:00', '2025-03-05 16:01:00', 2),
-  (1704, 3, 1, '2025-03-06', '2025-03-06 08:02:00', '2025-03-06 16:01:00', 2),
-  (1705, 3, 1, '2025-03-07', '2025-03-07 08:02:00', '2025-03-07 16:01:00', 2),
-  (1706, 3, 1, '2025-03-08', '2025-03-08 08:02:00', '2025-03-08 16:01:00', 2),
-  (1707, 3, 2, '2025-03-10', '2025-03-10 14:01:00', '2025-03-10 22:02:00', 2),
-  (1708, 3, 2, '2025-03-11', '2025-03-11 14:01:00', '2025-03-11 22:02:00', 2),
-  (1709, 3, 2, '2025-03-12', '2025-03-12 14:01:00', '2025-03-12 22:02:00', 2),
-  (1710, 3, 2, '2025-03-13', '2025-03-13 14:01:00', '2025-03-13 22:02:00', 2),
-  (1711, 3, 2, '2025-03-14', '2025-03-14 14:01:00', '2025-03-14 22:02:00', 2),
-  (1712, 3, 2, '2025-03-15', '2025-03-15 14:01:00', '2025-03-15 22:02:00', 2),
-  (1713, 3, 1, '2025-03-17', '2025-03-17 08:02:00', '2025-03-17 16:01:00', 2),
-  (1714, 3, 1, '2025-03-18', '2025-03-18 08:02:00', '2025-03-18 16:01:00', 2),
-  (1715, 3, 1, '2025-03-19', '2025-03-19 08:02:00', '2025-03-19 16:01:00', 2),
-  (1716, 3, 1, '2025-03-20', '2025-03-20 08:02:00', '2025-03-20 16:01:00', 2),
-  (1717, 3, 1, '2025-03-21', '2025-03-21 08:02:00', '2025-03-21 16:01:00', 2),
-  (1718, 3, 1, '2025-03-22', '2025-03-22 08:02:00', '2025-03-22 16:01:00', 2),
-  (1719, 3, 2, '2025-03-24', '2025-03-24 14:01:00', '2025-03-24 22:02:00', 2),
-  (1720, 3, 2, '2025-03-25', '2025-03-25 14:01:00', '2025-03-25 22:02:00', 2),
-  (1721, 3, 2, '2025-03-26', '2025-03-26 14:01:00', '2025-03-26 22:02:00', 2),
-  (1722, 3, 2, '2025-03-27', '2025-03-27 14:01:00', '2025-03-27 22:02:00', 2),
-  (1723, 3, 2, '2025-03-28', '2025-03-28 14:01:00', '2025-03-28 22:02:00', 2),
-  (1724, 3, 2, '2025-03-29', '2025-03-29 14:01:00', '2025-03-29 22:02:00', 2),
-  (1725, 3, 1, '2025-03-31', '2025-03-31 08:02:00', '2025-03-31 16:01:00', 2),
-  (1726, 3, 1, '2025-04-01', '2025-04-01 08:02:00', '2025-04-01 16:01:00', 2),
-  (1727, 3, 1, '2025-04-02', '2025-04-02 08:02:00', '2025-04-02 16:01:00', 2),
-  (1728, 3, 1, '2025-04-03', '2025-04-03 08:02:00', '2025-04-03 16:01:00', 2),
-  (1729, 3, 1, '2025-04-04', '2025-04-04 08:02:00', '2025-04-04 16:01:00', 2),
-  (1730, 3, 1, '2025-04-05', '2025-04-05 08:02:00', '2025-04-05 16:01:00', 2),
-  (1731, 3, 2, '2025-04-07', '2025-04-07 14:01:00', '2025-04-07 22:02:00', 2),
-  (1732, 3, 2, '2025-04-08', '2025-04-08 14:01:00', '2025-04-08 22:02:00', 2),
-  (1733, 3, 2, '2025-04-09', '2025-04-09 14:01:00', '2025-04-09 22:02:00', 2),
-  (1734, 3, 2, '2025-04-10', '2025-04-10 14:01:00', '2025-04-10 22:02:00', 2),
-  (1735, 3, 2, '2025-04-11', '2025-04-11 14:01:00', '2025-04-11 22:02:00', 2),
-  (1736, 3, 2, '2025-04-12', '2025-04-12 14:01:00', '2025-04-12 22:02:00', 2),
-  (1737, 3, 1, '2025-04-14', '2025-04-14 08:02:00', '2025-04-14 16:01:00', 2),
-  (1738, 3, 1, '2025-04-15', '2025-04-15 08:02:00', '2025-04-15 16:01:00', 2),
-  (1739, 3, 1, '2025-04-16', '2025-04-16 08:02:00', '2025-04-16 16:01:00', 2),
-  (1740, 3, 1, '2025-04-17', '2025-04-17 08:02:00', '2025-04-17 16:01:00', 2),
-  (1741, 3, 1, '2025-04-18', '2025-04-18 08:02:00', '2025-04-18 16:01:00', 2),
-  (1742, 3, 1, '2025-04-19', '2025-04-19 08:02:00', '2025-04-19 16:01:00', 2),
-  (1743, 3, 2, '2025-04-21', '2025-04-21 14:01:00', '2025-04-21 22:02:00', 2),
-  (1744, 3, 2, '2025-04-22', '2025-04-22 14:01:00', '2025-04-22 22:02:00', 2),
-  (1745, 3, 2, '2025-04-23', '2025-04-23 14:01:00', '2025-04-23 22:02:00', 2),
-  (1746, 3, 2, '2025-04-24', '2025-04-24 14:01:00', '2025-04-24 22:02:00', 2),
-  (1747, 3, 2, '2025-04-25', '2025-04-25 14:01:00', '2025-04-25 22:02:00', 2),
-  (1748, 3, 2, '2025-04-26', '2025-04-26 14:01:00', '2025-04-26 22:02:00', 2),
-  (1749, 3, 1, '2025-04-28', '2025-04-28 08:02:00', '2025-04-28 16:01:00', 2),
-  (1750, 3, 1, '2025-04-29', '2025-04-29 08:02:00', '2025-04-29 16:01:00', 2),
-  (1751, 3, 1, '2025-04-30', '2025-04-30 08:02:00', '2025-04-30 16:01:00', 2),
-  (1752, 3, 1, '2025-05-01', '2025-05-01 08:02:00', '2025-05-01 16:01:00', 2),
-  (1753, 3, 1, '2025-05-02', '2025-05-02 08:02:00', '2025-05-02 16:01:00', 2),
-  (1754, 3, 1, '2025-05-03', '2025-05-03 08:02:00', '2025-05-03 16:01:00', 2),
-  (1755, 3, 2, '2025-05-05', '2025-05-05 14:01:00', '2025-05-05 22:02:00', 2),
-  (1756, 3, 2, '2025-05-06', '2025-05-06 14:01:00', '2025-05-06 22:02:00', 2),
-  (1757, 3, 2, '2025-05-07', '2025-05-07 14:01:00', '2025-05-07 22:02:00', 2),
-  (1758, 3, 2, '2025-05-08', '2025-05-08 14:01:00', '2025-05-08 22:02:00', 2),
-  (1759, 3, 2, '2025-05-09', '2025-05-09 14:01:00', '2025-05-09 22:02:00', 2),
-  (1760, 3, 2, '2025-05-10', '2025-05-10 14:01:00', '2025-05-10 22:02:00', 2),
-  (1761, 3, 1, '2025-05-12', '2025-05-12 08:02:00', '2025-05-12 16:01:00', 2),
-  (1762, 3, 1, '2025-05-13', '2025-05-13 08:02:00', '2025-05-13 16:01:00', 2),
-  (1763, 3, 1, '2025-05-14', '2025-05-14 08:02:00', '2025-05-14 16:01:00', 2),
-  (1764, 3, 1, '2025-05-15', '2025-05-15 08:02:00', '2025-05-15 16:01:00', 2),
-  (1765, 3, 1, '2025-05-16', '2025-05-16 08:02:00', '2025-05-16 16:01:00', 2),
-  (1766, 3, 1, '2025-05-17', '2025-05-17 08:02:00', '2025-05-17 16:01:00', 2),
-  (1767, 3, 2, '2025-05-19', '2025-05-19 14:01:00', '2025-05-19 22:02:00', 2),
-  (1768, 3, 2, '2025-05-20', '2025-05-20 14:01:00', '2025-05-20 22:02:00', 2),
-  (1769, 3, 2, '2025-05-21', '2025-05-21 14:01:00', '2025-05-21 22:02:00', 2),
-  (1770, 3, 2, '2025-05-22', '2025-05-22 14:01:00', '2025-05-22 22:02:00', 2),
-  (1771, 3, 2, '2025-05-23', '2025-05-23 14:01:00', '2025-05-23 22:02:00', 2),
-  (1772, 3, 2, '2025-05-24', '2025-05-24 14:01:00', '2025-05-24 22:02:00', 2),
-  (1773, 3, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (1774, 3, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (1775, 3, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (1776, 3, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (1777, 3, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (1778, 3, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (1779, 3, 2, '2025-06-02', '2025-06-02 14:01:00', '2025-06-02 22:02:00', 2),
-  (1780, 3, 2, '2025-06-03', '2025-06-03 14:01:00', '2025-06-03 22:02:00', 2),
-  (1781, 3, 2, '2025-06-04', '2025-06-04 14:01:00', '2025-06-04 22:02:00', 2),
-  (1782, 3, 2, '2025-06-05', '2025-06-05 14:01:00', '2025-06-05 22:02:00', 2),
-  (1783, 3, 2, '2025-06-06', '2025-06-06 14:01:00', '2025-06-06 22:02:00', 2),
-  (1784, 3, 2, '2025-06-07', '2025-06-07 14:01:00', '2025-06-07 22:02:00', 2),
-  (1785, 3, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (1786, 3, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (1787, 3, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (1788, 3, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (1789, 3, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (1790, 3, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (1791, 3, 2, '2025-06-16', '2025-06-16 14:01:00', '2025-06-16 22:02:00', 2),
-  (1792, 3, 2, '2025-06-17', '2025-06-17 14:01:00', '2025-06-17 22:02:00', 2),
-  (1793, 3, 2, '2025-06-18', '2025-06-18 14:01:00', '2025-06-18 22:02:00', 2),
-  (1794, 3, 2, '2025-06-19', '2025-06-19 14:01:00', '2025-06-19 22:02:00', 2),
-  (1795, 3, 2, '2025-06-20', '2025-06-20 14:01:00', '2025-06-20 22:02:00', 2),
-  (1796, 3, 2, '2025-06-21', '2025-06-21 14:01:00', '2025-06-21 22:02:00', 2),
-  (1797, 3, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (1798, 3, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (1799, 3, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (1800, 3, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (1801, 3, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (1802, 3, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (1803, 3, 2, '2025-06-30', '2025-06-30 14:01:00', '2025-06-30 22:02:00', 2),
-  (1804, 3, 2, '2025-07-01', '2025-07-01 14:01:00', '2025-07-01 22:02:00', 2),
-  (1805, 3, 2, '2025-07-02', '2025-07-02 14:01:00', '2025-07-02 22:02:00', 2),
-  (1806, 3, 2, '2025-07-03', '2025-07-03 14:01:00', '2025-07-03 22:02:00', 2),
-  (1807, 3, 2, '2025-07-04', '2025-07-04 14:01:00', '2025-07-04 22:02:00', 2),
-  (1808, 3, 2, '2025-07-05', '2025-07-05 14:01:00', '2025-07-05 22:02:00', 2),
-  (1809, 3, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (1810, 3, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (1811, 3, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (1812, 3, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (1813, 3, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (1814, 3, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (1815, 3, 2, '2025-07-14', '2025-07-14 14:01:00', '2025-07-14 22:02:00', 2),
-  (1816, 3, 2, '2025-07-15', '2025-07-15 14:01:00', '2025-07-15 22:02:00', 2),
-  (1817, 3, 2, '2025-07-16', '2025-07-16 14:01:00', '2025-07-16 22:02:00', 2),
-  (1818, 3, 2, '2025-07-17', '2025-07-17 14:01:00', '2025-07-17 22:02:00', 2),
-  (1819, 3, 2, '2025-07-18', '2025-07-18 14:01:00', '2025-07-18 22:02:00', 2),
-  (1820, 3, 2, '2025-07-19', '2025-07-19 14:01:00', '2025-07-19 22:02:00', 2),
-  (1821, 3, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (1822, 3, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (1823, 3, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (1824, 3, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (1825, 3, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (1826, 3, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (1827, 3, 2, '2025-07-28', '2025-07-28 14:01:00', '2025-07-28 22:02:00', 2),
-  (1828, 3, 2, '2025-07-29', '2025-07-29 14:01:00', '2025-07-29 22:02:00', 2),
-  (1829, 3, 2, '2025-07-30', '2025-07-30 14:01:00', '2025-07-30 22:02:00', 2),
-  (1830, 3, 2, '2025-07-31', '2025-07-31 14:01:00', '2025-07-31 22:02:00', 2),
-  (1831, 3, 2, '2025-08-01', '2025-08-01 14:01:00', '2025-08-01 22:02:00', 2),
-  (1832, 3, 2, '2025-08-02', '2025-08-02 14:01:00', '2025-08-02 22:02:00', 2),
-  (1833, 3, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (1834, 3, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (1835, 3, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (1836, 3, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (1837, 3, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (1838, 3, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (1839, 3, 2, '2025-08-11', '2025-08-11 14:01:00', '2025-08-11 22:02:00', 2),
-  (1840, 3, 2, '2025-08-12', '2025-08-12 14:01:00', '2025-08-12 22:02:00', 2),
-  (1841, 3, 2, '2025-08-13', '2025-08-13 14:01:00', '2025-08-13 22:02:00', 2),
-  (1842, 3, 2, '2025-08-14', '2025-08-14 14:01:00', '2025-08-14 22:02:00', 2),
-  (1843, 3, 2, '2025-08-15', '2025-08-15 14:01:00', '2025-08-15 22:02:00', 2),
-  (1844, 3, 2, '2025-08-16', '2025-08-16 14:01:00', '2025-08-16 22:02:00', 2),
-  (1845, 3, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (1846, 3, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (1847, 3, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (1848, 3, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (1849, 3, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (1850, 3, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (1851, 3, 2, '2025-08-25', '2025-08-25 14:01:00', '2025-08-25 22:02:00', 2),
-  (1852, 3, 2, '2025-08-26', '2025-08-26 14:01:00', '2025-08-26 22:02:00', 2),
-  (1853, 3, 2, '2025-08-27', '2025-08-27 14:01:00', '2025-08-27 22:02:00', 2),
-  (1854, 3, 2, '2025-08-28', '2025-08-28 14:01:00', '2025-08-28 22:02:00', 2),
-  (1855, 3, 2, '2025-08-29', '2025-08-29 14:01:00', '2025-08-29 22:02:00', 2),
-  (1856, 3, 2, '2025-08-30', '2025-08-30 14:01:00', '2025-08-30 22:02:00', 2),
-  (1857, 3, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (1858, 3, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (1859, 3, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (1860, 3, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (1861, 3, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (1862, 3, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (1863, 3, 2, '2025-09-08', '2025-09-08 14:01:00', '2025-09-08 22:02:00', 2),
-  (1864, 3, 2, '2025-09-09', '2025-09-09 14:01:00', '2025-09-09 22:02:00', 2),
-  (1865, 3, 2, '2025-09-10', '2025-09-10 14:01:00', '2025-09-10 22:02:00', 2),
-  (1866, 3, 2, '2025-09-11', '2025-09-11 14:01:00', '2025-09-11 22:02:00', 2),
-  (1867, 3, 2, '2025-09-12', '2025-09-12 14:01:00', '2025-09-12 22:02:00', 2),
-  (1868, 3, 2, '2025-09-13', '2025-09-13 14:01:00', '2025-09-13 22:02:00', 2),
-  (1869, 3, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (1870, 3, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (1871, 3, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2),
-  (1872, 3, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (1873, 3, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (1874, 3, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (1875, 3, 2, '2025-09-22', '2025-09-22 14:01:00', '2025-09-22 22:02:00', 2),
-  (1876, 3, 2, '2025-09-23', '2025-09-23 14:01:00', '2025-09-23 22:02:00', 2),
-  (1877, 3, 2, '2025-09-24', '2025-09-24 14:01:00', '2025-09-24 22:02:00', 2),
-  (1878, 3, 2, '2025-09-25', '2025-09-25 14:01:00', '2025-09-25 22:02:00', 2),
-  (1879, 3, 2, '2025-09-26', '2025-09-26 14:01:00', '2025-09-26 22:02:00', 2),
-  (1880, 3, 2, '2025-09-27', '2025-09-27 14:01:00', '2025-09-27 22:02:00', 2),
-  (1881, 3, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (1882, 3, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (1883, 3, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (1884, 3, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (1885, 3, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (1886, 3, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (1887, 3, 2, '2025-10-06', '2025-10-06 14:01:00', '2025-10-06 22:02:00', 2),
-  (1888, 3, 2, '2025-10-07', '2025-10-07 14:01:00', '2025-10-07 22:02:00', 2),
-  (1889, 3, 2, '2025-10-08', '2025-10-08 14:01:00', '2025-10-08 22:02:00', 2),
-  (1890, 3, 2, '2025-10-09', '2025-10-09 14:01:00', '2025-10-09 22:02:00', 2),
-  (1891, 3, 2, '2025-10-10', '2025-10-10 14:01:00', '2025-10-10 22:02:00', 2),
-  (1892, 3, 2, '2025-10-11', '2025-10-11 14:01:00', '2025-10-11 22:02:00', 2),
-  (1893, 3, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (1894, 3, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (1895, 3, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (1896, 3, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (1897, 3, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (1898, 3, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (1899, 3, 2, '2025-10-20', '2025-10-20 14:01:00', '2025-10-20 22:02:00', 2),
-  (1900, 3, 2, '2025-10-21', '2025-10-21 14:01:00', '2025-10-21 22:02:00', 2),
-  (1901, 3, 2, '2025-10-22', '2025-10-22 14:01:00', '2025-10-22 22:02:00', 2),
-  (1902, 3, 2, '2025-10-23', '2025-10-23 14:01:00', '2025-10-23 22:02:00', 2),
-  (1903, 3, 2, '2025-10-24', '2025-10-24 14:01:00', '2025-10-24 22:02:00', 2),
-  (1904, 3, 2, '2025-10-25', '2025-10-25 14:01:00', '2025-10-25 22:02:00', 2),
-  (1905, 3, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (1906, 3, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (1907, 3, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (1908, 3, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (1909, 3, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (1910, 3, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (1911, 3, 2, '2025-11-03', '2025-11-03 14:01:00', '2025-11-03 22:02:00', 2),
-  (1912, 3, 2, '2025-11-04', '2025-11-04 14:01:00', '2025-11-04 22:02:00', 2),
-  (1913, 3, 2, '2025-11-05', '2025-11-05 14:01:00', '2025-11-05 22:02:00', 2),
-  (1914, 3, 2, '2025-11-06', '2025-11-06 14:01:00', '2025-11-06 22:02:00', 2),
-  (1915, 3, 2, '2025-11-07', '2025-11-07 14:01:00', '2025-11-07 22:02:00', 2),
-  (1916, 3, 2, '2025-11-08', '2025-11-08 14:01:00', '2025-11-08 22:02:00', 2),
-  (1917, 3, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (1918, 3, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (1919, 3, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (1920, 3, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (1921, 3, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (1922, 3, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (1923, 3, 2, '2025-11-17', '2025-11-17 14:01:00', '2025-11-17 22:02:00', 2),
-  (1924, 3, 2, '2025-11-18', '2025-11-18 14:01:00', '2025-11-18 22:02:00', 2),
-  (1925, 3, 2, '2025-11-19', '2025-11-19 14:01:00', '2025-11-19 22:02:00', 2),
-  (1926, 3, 2, '2025-11-20', '2025-11-20 14:01:00', '2025-11-20 22:02:00', 2),
-  (1927, 3, 2, '2025-11-21', '2025-11-21 14:01:00', '2025-11-21 22:02:00', 2),
-  (1928, 3, 2, '2025-11-22', '2025-11-22 14:01:00', '2025-11-22 22:02:00', 2),
-  (1929, 3, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (1930, 3, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (1931, 3, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (1932, 3, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (1933, 3, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (1934, 3, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (1935, 3, 2, '2025-12-01', '2025-12-01 14:01:00', '2025-12-01 22:02:00', 2),
-  (1936, 3, 2, '2025-12-02', '2025-12-02 14:01:00', '2025-12-02 22:02:00', 2),
-  (1937, 3, 2, '2025-12-03', '2025-12-03 14:01:00', '2025-12-03 22:02:00', 2),
-  (1938, 3, 2, '2025-12-04', '2025-12-04 14:01:00', '2025-12-04 22:02:00', 2),
-  (1939, 3, 2, '2025-12-05', '2025-12-05 14:01:00', '2025-12-05 22:02:00', 2),
-  (1940, 3, 2, '2025-12-06', '2025-12-06 14:01:00', '2025-12-06 22:02:00', 2),
-  (1941, 3, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (1942, 3, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2),
-  (1943, 3, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (1944, 3, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (1945, 3, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (1946, 3, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (1947, 3, 2, '2025-12-15', '2025-12-15 14:01:00', '2025-12-15 22:02:00', 2),
-  (1948, 3, 2, '2025-12-16', '2025-12-16 14:01:00', '2025-12-16 22:02:00', 2),
-  (1949, 3, 2, '2025-12-17', '2025-12-17 14:01:00', '2025-12-17 22:02:00', 2),
-  (1950, 3, 2, '2025-12-18', '2025-12-18 14:01:00', '2025-12-18 22:02:00', 2),
-  (1951, 3, 2, '2025-12-19', '2025-12-19 14:01:00', '2025-12-19 22:02:00', 2),
-  (1952, 3, 2, '2025-12-20', '2025-12-20 14:01:00', '2025-12-20 22:02:00', 2),
-  (1953, 3, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (1954, 3, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2),
-  (1955, 3, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (1956, 3, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (1957, 3, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (1958, 3, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (1959, 3, 2, '2025-12-29', '2025-12-29 14:01:00', '2025-12-29 22:02:00', 2),
-  (1960, 3, 2, '2025-12-30', '2025-12-30 14:01:00', '2025-12-30 22:02:00', 2),
-  (1961, 3, 2, '2025-12-31', '2025-12-31 14:01:00', '2025-12-31 22:02:00', 2),
-  (1962, 3, 2, '2026-01-01', '2026-01-01 14:01:00', '2026-01-01 22:02:00', 2),
-  (1963, 3, 2, '2026-01-02', '2026-01-02 14:01:00', '2026-01-02 22:02:00', 2),
-  (1964, 3, 2, '2026-01-03', '2026-01-03 14:01:00', '2026-01-03 22:02:00', 2),
-  (1965, 3, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (1966, 3, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (1967, 3, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (1968, 3, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (1969, 3, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (1970, 3, 1, '2026-01-10', '2026-01-10 08:02:00', '2026-01-10 16:01:00', 2),
-  (1971, 3, 2, '2026-01-12', '2026-01-12 14:01:00', '2026-01-12 22:02:00', 2),
-  (1972, 3, 2, '2026-01-13', '2026-01-13 14:01:00', '2026-01-13 22:02:00', 2),
-  (1973, 3, 2, '2026-01-14', '2026-01-14 14:01:00', '2026-01-14 22:02:00', 2),
-  (1974, 3, 2, '2026-01-15', '2026-01-15 14:01:00', '2026-01-15 22:02:00', 2),
-  (1975, 3, 2, '2026-01-16', '2026-01-16 14:01:00', '2026-01-16 22:02:00', 2),
-  (1976, 3, 2, '2026-01-17', '2026-01-17 14:01:00', '2026-01-17 22:02:00', 2),
-  (1977, 3, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (1978, 3, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (1979, 3, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (1980, 3, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (1981, 3, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (1982, 3, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (1983, 3, 2, '2026-01-26', '2026-01-26 14:01:00', '2026-01-26 22:02:00', 2),
-  (1984, 3, 2, '2026-01-27', '2026-01-27 14:01:00', '2026-01-27 22:02:00', 2),
-  (1985, 3, 2, '2026-01-28', '2026-01-28 14:01:00', '2026-01-28 22:02:00', 2),
-  (1986, 3, 2, '2026-01-29', '2026-01-29 14:01:00', '2026-01-29 22:02:00', 2),
-  (1987, 3, 2, '2026-01-30', '2026-01-30 14:01:00', '2026-01-30 22:02:00', 2),
-  (1988, 3, 2, '2026-01-31', '2026-01-31 14:01:00', '2026-01-31 22:02:00', 2),
-  (1989, 3, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (1990, 3, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (1991, 3, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (1992, 3, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (1993, 3, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (1994, 3, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (1995, 3, 2, '2026-02-09', '2026-02-09 14:01:00', '2026-02-09 22:02:00', 2),
-  (1996, 3, 2, '2026-02-10', '2026-02-10 14:01:00', '2026-02-10 22:02:00', 2),
-  (1997, 3, 2, '2026-02-11', '2026-02-11 14:01:00', '2026-02-11 22:02:00', 2),
-  (1998, 3, 2, '2026-02-12', '2026-02-12 14:01:00', '2026-02-12 22:02:00', 2),
-  (1999, 3, 2, '2026-02-13', '2026-02-13 14:01:00', '2026-02-13 22:02:00', 2),
-  (2000, 3, 2, '2026-02-14', '2026-02-14 14:01:00', '2026-02-14 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (2001, 3, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (2002, 3, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (2003, 3, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (2004, 3, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (2005, 3, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (2006, 3, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (2007, 3, 2, '2026-02-23', '2026-02-23 14:01:00', '2026-02-23 22:02:00', 2),
-  (2008, 3, 2, '2026-02-24', '2026-02-24 14:01:00', '2026-02-24 22:02:00', 2),
-  (2009, 3, 2, '2026-02-25', '2026-02-25 14:01:00', '2026-02-25 22:02:00', 2),
-  (2010, 3, 2, '2026-02-26', '2026-02-26 14:01:00', '2026-02-26 22:02:00', 2),
-  (2011, 3, 2, '2026-02-27', '2026-02-27 14:01:00', '2026-02-27 22:02:00', 2),
-  (2012, 3, 2, '2026-02-28', '2026-02-28 14:01:00', '2026-02-28 22:02:00', 2),
-  (2013, 3, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (2014, 3, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (2015, 3, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (2016, 3, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (2017, 3, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (2018, 3, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (2019, 3, 2, '2026-03-09', '2026-03-09 14:01:00', '2026-03-09 22:02:00', 2),
-  (2020, 3, 2, '2026-03-10', '2026-03-10 14:01:00', '2026-03-10 22:02:00', 2),
-  (2021, 3, 2, '2026-03-11', '2026-03-11 14:01:00', '2026-03-11 22:02:00', 2),
-  (2022, 3, 2, '2026-03-12', '2026-03-12 14:01:00', '2026-03-12 22:02:00', 2),
-  (2023, 3, 2, '2026-03-13', '2026-03-13 14:01:00', '2026-03-13 22:02:00', 2),
-  (2024, 3, 2, '2026-03-14', '2026-03-14 14:01:00', '2026-03-14 22:02:00', 2),
-  (2025, 3, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (2026, 3, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (2027, 3, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (2028, 3, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (2029, 3, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (2030, 3, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (2031, 3, 2, '2026-03-23', '2026-03-23 14:01:00', '2026-03-23 22:02:00', 2),
-  (2032, 3, 2, '2026-03-24', '2026-03-24 14:01:00', '2026-03-24 22:02:00', 2),
-  (2033, 3, 2, '2026-03-25', '2026-03-25 14:01:00', '2026-03-25 22:02:00', 2),
-  (2034, 3, 2, '2026-03-26', '2026-03-26 14:01:00', '2026-03-26 22:02:00', 2),
-  (2035, 3, 2, '2026-03-27', '2026-03-27 14:01:00', '2026-03-27 22:02:00', 2),
-  (2036, 3, 2, '2026-03-28', '2026-03-28 14:01:00', '2026-03-28 22:02:00', 2),
-  (2037, 3, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (2038, 3, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (2039, 3, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (2040, 3, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (2041, 3, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (2042, 3, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (2043, 3, 2, '2026-04-06', '2026-04-06 14:01:00', '2026-04-06 22:02:00', 2),
-  (2044, 3, 2, '2026-04-07', '2026-04-07 14:01:00', '2026-04-07 22:02:00', 2),
-  (2045, 5, 2, '2024-03-01', '2024-03-01 14:01:00', '2024-03-01 22:02:00', 2),
-  (2046, 5, 2, '2024-03-02', '2024-03-02 14:01:00', '2024-03-02 22:02:00', 2),
-  (2047, 5, 1, '2024-03-04', '2024-03-04 08:02:00', '2024-03-04 16:01:00', 2),
-  (2048, 5, 1, '2024-03-05', '2024-03-05 08:02:00', '2024-03-05 16:01:00', 2),
-  (2049, 5, 1, '2024-03-06', '2024-03-06 08:02:00', '2024-03-06 16:01:00', 2),
-  (2050, 5, 1, '2024-03-07', '2024-03-07 08:02:00', '2024-03-07 16:01:00', 2),
-  (2051, 5, 1, '2024-03-08', '2024-03-08 08:02:00', '2024-03-08 16:01:00', 2),
-  (2052, 5, 1, '2024-03-09', '2024-03-09 08:02:00', '2024-03-09 16:01:00', 2),
-  (2053, 5, 2, '2024-03-11', '2024-03-11 14:01:00', '2024-03-11 22:02:00', 2),
-  (2054, 5, 2, '2024-03-12', '2024-03-12 14:01:00', '2024-03-12 22:02:00', 2),
-  (2055, 5, 2, '2024-03-13', '2024-03-13 14:01:00', '2024-03-13 22:02:00', 2),
-  (2056, 5, 2, '2024-03-14', '2024-03-14 14:01:00', '2024-03-14 22:02:00', 2),
-  (2057, 5, 2, '2024-03-15', '2024-03-15 14:01:00', '2024-03-15 22:02:00', 2),
-  (2058, 5, 2, '2024-03-16', '2024-03-16 14:01:00', '2024-03-16 22:02:00', 2),
-  (2059, 5, 1, '2024-03-18', '2024-03-18 08:02:00', '2024-03-18 16:01:00', 2),
-  (2060, 5, 1, '2024-03-19', '2024-03-19 08:02:00', '2024-03-19 16:01:00', 2),
-  (2061, 5, 1, '2024-03-20', '2024-03-20 08:02:00', '2024-03-20 16:01:00', 2),
-  (2062, 5, 1, '2024-03-21', '2024-03-21 08:02:00', '2024-03-21 16:01:00', 2),
-  (2063, 5, 1, '2024-03-22', '2024-03-22 08:02:00', '2024-03-22 16:01:00', 2),
-  (2064, 5, 1, '2024-03-23', '2024-03-23 08:02:00', '2024-03-23 16:01:00', 2),
-  (2065, 5, 2, '2024-03-25', '2024-03-25 14:01:00', '2024-03-25 22:02:00', 2),
-  (2066, 5, 2, '2024-03-26', '2024-03-26 14:01:00', '2024-03-26 22:02:00', 2),
-  (2067, 5, 2, '2024-03-27', '2024-03-27 14:01:00', '2024-03-27 22:02:00', 2),
-  (2068, 5, 2, '2024-03-28', '2024-03-28 14:01:00', '2024-03-28 22:02:00', 2),
-  (2069, 5, 2, '2024-03-29', '2024-03-29 14:01:00', '2024-03-29 22:02:00', 2),
-  (2070, 5, 2, '2024-03-30', '2024-03-30 14:01:00', '2024-03-30 22:02:00', 2),
-  (2071, 5, 1, '2024-04-01', '2024-04-01 08:02:00', '2024-04-01 16:01:00', 2),
-  (2072, 5, 1, '2024-04-02', '2024-04-02 08:02:00', '2024-04-02 16:01:00', 2),
-  (2073, 5, 1, '2024-04-03', '2024-04-03 08:02:00', '2024-04-03 16:01:00', 2),
-  (2074, 5, 1, '2024-04-04', '2024-04-04 08:02:00', '2024-04-04 16:01:00', 2),
-  (2075, 5, 1, '2024-04-05', '2024-04-05 08:02:00', '2024-04-05 16:01:00', 2),
-  (2076, 5, 1, '2024-04-06', '2024-04-06 08:02:00', '2024-04-06 16:01:00', 2),
-  (2077, 5, 2, '2024-04-08', '2024-04-08 14:01:00', '2024-04-08 22:02:00', 2),
-  (2078, 5, 2, '2024-04-09', '2024-04-09 14:01:00', '2024-04-09 22:02:00', 2),
-  (2079, 5, 2, '2024-04-10', '2024-04-10 14:01:00', '2024-04-10 22:02:00', 2),
-  (2080, 5, 2, '2024-04-11', '2024-04-11 14:01:00', '2024-04-11 22:02:00', 2),
-  (2081, 5, 2, '2024-04-12', '2024-04-12 14:01:00', '2024-04-12 22:02:00', 2),
-  (2082, 5, 2, '2024-04-13', '2024-04-13 14:01:00', '2024-04-13 22:02:00', 2),
-  (2083, 5, 1, '2024-04-15', '2024-04-15 08:02:00', '2024-04-15 16:01:00', 2),
-  (2084, 5, 1, '2024-04-16', '2024-04-16 08:02:00', '2024-04-16 16:01:00', 2),
-  (2085, 5, 1, '2024-04-17', '2024-04-17 08:02:00', '2024-04-17 16:01:00', 2),
-  (2086, 5, 1, '2024-04-18', '2024-04-18 08:02:00', '2024-04-18 16:01:00', 2),
-  (2087, 5, 1, '2024-04-19', '2024-04-19 08:02:00', '2024-04-19 16:01:00', 2),
-  (2088, 5, 1, '2024-04-20', '2024-04-20 08:02:00', '2024-04-20 16:01:00', 2),
-  (2089, 5, 2, '2024-04-22', '2024-04-22 14:01:00', '2024-04-22 22:02:00', 2),
-  (2090, 5, 2, '2024-04-23', '2024-04-23 14:01:00', '2024-04-23 22:02:00', 2),
-  (2091, 5, 2, '2024-04-24', '2024-04-24 14:01:00', '2024-04-24 22:02:00', 2),
-  (2092, 5, 2, '2024-04-25', '2024-04-25 14:01:00', '2024-04-25 22:02:00', 2),
-  (2093, 5, 2, '2024-04-26', '2024-04-26 14:01:00', '2024-04-26 22:02:00', 2),
-  (2094, 5, 2, '2024-04-27', '2024-04-27 14:01:00', '2024-04-27 22:02:00', 2),
-  (2095, 5, 1, '2024-04-29', '2024-04-29 08:02:00', '2024-04-29 16:01:00', 2),
-  (2096, 5, 1, '2024-04-30', '2024-04-30 08:02:00', '2024-04-30 16:01:00', 2),
-  (2097, 5, 1, '2024-05-01', '2024-05-01 08:02:00', '2024-05-01 16:01:00', 2),
-  (2098, 5, 1, '2024-05-02', '2024-05-02 08:02:00', '2024-05-02 16:01:00', 2),
-  (2099, 5, 1, '2024-05-03', '2024-05-03 08:02:00', '2024-05-03 16:01:00', 2),
-  (2100, 5, 1, '2024-05-04', '2024-05-04 08:02:00', '2024-05-04 16:01:00', 2),
-  (2101, 5, 2, '2024-05-06', '2024-05-06 14:01:00', '2024-05-06 22:02:00', 2),
-  (2102, 5, 2, '2024-05-07', '2024-05-07 14:01:00', '2024-05-07 22:02:00', 2),
-  (2103, 5, 2, '2024-05-08', '2024-05-08 14:01:00', '2024-05-08 22:02:00', 2),
-  (2104, 5, 2, '2024-05-09', '2024-05-09 14:01:00', '2024-05-09 22:02:00', 2),
-  (2105, 5, 2, '2024-05-10', '2024-05-10 14:01:00', '2024-05-10 22:02:00', 2),
-  (2106, 5, 2, '2024-05-11', '2024-05-11 14:01:00', '2024-05-11 22:02:00', 2),
-  (2107, 5, 1, '2024-05-13', '2024-05-13 08:02:00', '2024-05-13 16:01:00', 2),
-  (2108, 5, 1, '2024-05-14', '2024-05-14 08:02:00', '2024-05-14 16:01:00', 2),
-  (2109, 5, 1, '2024-05-15', '2024-05-15 08:02:00', '2024-05-15 16:01:00', 2),
-  (2110, 5, 1, '2024-05-16', '2024-05-16 08:02:00', '2024-05-16 16:01:00', 2),
-  (2111, 5, 1, '2024-05-17', '2024-05-17 08:02:00', '2024-05-17 16:01:00', 2),
-  (2112, 5, 1, '2024-05-18', '2024-05-18 08:02:00', '2024-05-18 16:01:00', 2),
-  (2113, 5, 2, '2024-05-20', '2024-05-20 14:01:00', '2024-05-20 22:02:00', 2),
-  (2114, 5, 2, '2024-05-21', '2024-05-21 14:01:00', '2024-05-21 22:02:00', 2),
-  (2115, 5, 2, '2024-05-22', '2024-05-22 14:01:00', '2024-05-22 22:02:00', 2),
-  (2116, 5, 2, '2024-05-23', '2024-05-23 14:01:00', '2024-05-23 22:02:00', 2),
-  (2117, 5, 2, '2024-05-24', '2024-05-24 14:01:00', '2024-05-24 22:02:00', 2),
-  (2118, 5, 2, '2024-05-25', '2024-05-25 14:01:00', '2024-05-25 22:02:00', 2),
-  (2119, 5, 1, '2024-05-27', '2024-05-27 08:02:00', '2024-05-27 16:01:00', 2),
-  (2120, 5, 1, '2024-05-28', '2024-05-28 08:02:00', '2024-05-28 16:01:00', 2),
-  (2121, 5, 1, '2024-05-29', '2024-05-29 08:02:00', '2024-05-29 16:01:00', 2),
-  (2122, 5, 1, '2024-05-30', '2024-05-30 08:02:00', '2024-05-30 16:01:00', 2),
-  (2123, 5, 1, '2024-05-31', '2024-05-31 08:02:00', '2024-05-31 16:01:00', 2),
-  (2124, 5, 1, '2024-06-01', '2024-06-01 08:02:00', '2024-06-01 16:01:00', 2),
-  (2125, 5, 2, '2024-06-03', '2024-06-03 14:01:00', '2024-06-03 22:02:00', 2),
-  (2126, 5, 2, '2024-06-04', '2024-06-04 14:01:00', '2024-06-04 22:02:00', 2),
-  (2127, 5, 2, '2024-06-05', '2024-06-05 14:01:00', '2024-06-05 22:02:00', 2),
-  (2128, 5, 2, '2024-06-06', '2024-06-06 14:01:00', '2024-06-06 22:02:00', 2),
-  (2129, 5, 2, '2024-06-07', '2024-06-07 14:01:00', '2024-06-07 22:02:00', 2),
-  (2130, 5, 2, '2024-06-08', '2024-06-08 14:01:00', '2024-06-08 22:02:00', 2),
-  (2131, 5, 1, '2024-06-10', '2024-06-10 08:02:00', '2024-06-10 16:01:00', 2),
-  (2132, 5, 1, '2024-06-11', '2024-06-11 08:02:00', '2024-06-11 16:01:00', 2),
-  (2133, 5, 1, '2024-06-12', '2024-06-12 08:02:00', '2024-06-12 16:01:00', 2),
-  (2134, 5, 1, '2024-06-13', '2024-06-13 08:02:00', '2024-06-13 16:01:00', 2),
-  (2135, 5, 1, '2024-06-14', '2024-06-14 08:02:00', '2024-06-14 16:01:00', 2),
-  (2136, 5, 1, '2024-06-15', '2024-06-15 08:02:00', '2024-06-15 16:01:00', 2),
-  (2137, 5, 2, '2024-06-17', '2024-06-17 14:01:00', '2024-06-17 22:02:00', 2),
-  (2138, 5, 2, '2024-06-18', '2024-06-18 14:01:00', '2024-06-18 22:02:00', 2),
-  (2139, 5, 2, '2024-06-19', '2024-06-19 14:01:00', '2024-06-19 22:02:00', 2),
-  (2140, 5, 2, '2024-06-20', '2024-06-20 14:01:00', '2024-06-20 22:02:00', 2),
-  (2141, 5, 2, '2024-06-21', '2024-06-21 14:01:00', '2024-06-21 22:02:00', 2),
-  (2142, 5, 2, '2024-06-22', '2024-06-22 14:01:00', '2024-06-22 22:02:00', 2),
-  (2143, 5, 1, '2024-06-24', '2024-06-24 08:02:00', '2024-06-24 16:01:00', 2),
-  (2144, 5, 1, '2024-06-25', '2024-06-25 08:02:00', '2024-06-25 16:01:00', 2),
-  (2145, 5, 1, '2024-06-26', '2024-06-26 08:02:00', '2024-06-26 16:01:00', 2),
-  (2146, 5, 1, '2024-06-27', '2024-06-27 08:02:00', '2024-06-27 16:01:00', 2),
-  (2147, 5, 1, '2024-06-28', '2024-06-28 08:02:00', '2024-06-28 16:01:00', 2),
-  (2148, 5, 1, '2024-06-29', '2024-06-29 08:02:00', '2024-06-29 16:01:00', 2),
-  (2149, 5, 2, '2024-07-01', '2024-07-01 14:01:00', '2024-07-01 22:02:00', 2),
-  (2150, 5, 2, '2024-07-02', '2024-07-02 14:01:00', '2024-07-02 22:02:00', 2),
-  (2151, 5, 2, '2024-07-03', '2024-07-03 14:01:00', '2024-07-03 22:02:00', 2),
-  (2152, 5, 2, '2024-07-04', '2024-07-04 14:01:00', '2024-07-04 22:02:00', 2),
-  (2153, 5, 2, '2024-07-05', '2024-07-05 14:01:00', '2024-07-05 22:02:00', 2),
-  (2154, 5, 2, '2024-07-06', '2024-07-06 14:01:00', '2024-07-06 22:02:00', 2),
-  (2155, 5, 1, '2024-07-08', '2024-07-08 08:02:00', '2024-07-08 16:01:00', 2),
-  (2156, 5, 1, '2024-07-09', '2024-07-09 08:02:00', '2024-07-09 16:01:00', 2),
-  (2157, 5, 1, '2024-07-10', '2024-07-10 08:02:00', '2024-07-10 16:01:00', 2),
-  (2158, 5, 1, '2024-07-11', '2024-07-11 08:02:00', '2024-07-11 16:01:00', 2),
-  (2159, 5, 1, '2024-07-12', '2024-07-12 08:02:00', '2024-07-12 16:01:00', 2),
-  (2160, 5, 1, '2024-07-13', '2024-07-13 08:02:00', '2024-07-13 16:01:00', 2),
-  (2161, 5, 2, '2024-07-15', '2024-07-15 14:01:00', '2024-07-15 22:02:00', 2),
-  (2162, 5, 2, '2024-07-16', '2024-07-16 14:01:00', '2024-07-16 22:02:00', 2),
-  (2163, 5, 2, '2024-07-17', '2024-07-17 14:01:00', '2024-07-17 22:02:00', 2),
-  (2164, 5, 2, '2024-07-18', '2024-07-18 14:01:00', '2024-07-18 22:02:00', 2),
-  (2165, 5, 2, '2024-07-19', '2024-07-19 14:01:00', '2024-07-19 22:02:00', 2),
-  (2166, 5, 2, '2024-07-20', '2024-07-20 14:01:00', '2024-07-20 22:02:00', 2),
-  (2167, 5, 1, '2024-07-22', '2024-07-22 08:02:00', '2024-07-22 16:01:00', 2),
-  (2168, 5, 1, '2024-07-23', '2024-07-23 08:02:00', '2024-07-23 16:01:00', 2),
-  (2169, 5, 1, '2024-07-24', '2024-07-24 08:02:00', '2024-07-24 16:01:00', 2),
-  (2170, 5, 1, '2024-07-25', '2024-07-25 08:02:00', '2024-07-25 16:01:00', 2),
-  (2171, 5, 1, '2024-07-26', '2024-07-26 08:02:00', '2024-07-26 16:01:00', 2),
-  (2172, 5, 1, '2024-07-27', '2024-07-27 08:02:00', '2024-07-27 16:01:00', 2),
-  (2173, 5, 2, '2024-07-29', '2024-07-29 14:01:00', '2024-07-29 22:02:00', 2),
-  (2174, 5, 2, '2024-07-30', '2024-07-30 14:01:00', '2024-07-30 22:02:00', 2),
-  (2175, 5, 2, '2024-07-31', '2024-07-31 14:01:00', '2024-07-31 22:02:00', 2),
-  (2176, 5, 2, '2024-08-01', '2024-08-01 14:01:00', '2024-08-01 22:02:00', 2),
-  (2177, 5, 2, '2024-08-02', '2024-08-02 14:01:00', '2024-08-02 22:02:00', 2),
-  (2178, 5, 2, '2024-08-03', '2024-08-03 14:01:00', '2024-08-03 22:02:00', 2),
-  (2179, 5, 1, '2024-08-05', '2024-08-05 08:02:00', '2024-08-05 16:01:00', 2),
-  (2180, 5, 1, '2024-08-06', '2024-08-06 08:02:00', '2024-08-06 16:01:00', 2),
-  (2181, 5, 1, '2024-08-07', '2024-08-07 08:02:00', '2024-08-07 16:01:00', 2),
-  (2182, 5, 1, '2024-08-08', '2024-08-08 08:02:00', '2024-08-08 16:01:00', 2),
-  (2183, 5, 1, '2024-08-09', '2024-08-09 08:02:00', '2024-08-09 16:01:00', 2),
-  (2184, 5, 1, '2024-08-10', '2024-08-10 08:02:00', '2024-08-10 16:01:00', 2),
-  (2185, 5, 2, '2024-08-12', '2024-08-12 14:01:00', '2024-08-12 22:02:00', 2),
-  (2186, 5, 2, '2024-08-13', '2024-08-13 14:01:00', '2024-08-13 22:02:00', 2),
-  (2187, 5, 2, '2024-08-14', '2024-08-14 14:01:00', '2024-08-14 22:02:00', 2),
-  (2188, 5, 2, '2024-08-15', '2024-08-15 14:01:00', '2024-08-15 22:02:00', 2),
-  (2189, 5, 2, '2024-08-16', '2024-08-16 14:01:00', '2024-08-16 22:02:00', 2),
-  (2190, 5, 2, '2024-08-17', '2024-08-17 14:01:00', '2024-08-17 22:02:00', 2),
-  (2191, 5, 1, '2024-08-19', '2024-08-19 08:02:00', '2024-08-19 16:01:00', 2),
-  (2192, 5, 1, '2024-08-20', '2024-08-20 08:02:00', '2024-08-20 16:01:00', 2),
-  (2193, 5, 1, '2024-08-21', '2024-08-21 08:02:00', '2024-08-21 16:01:00', 2),
-  (2194, 5, 1, '2024-08-22', '2024-08-22 08:02:00', '2024-08-22 16:01:00', 2),
-  (2195, 5, 1, '2024-08-23', '2024-08-23 08:02:00', '2024-08-23 16:01:00', 2),
-  (2196, 5, 1, '2024-08-24', '2024-08-24 08:02:00', '2024-08-24 16:01:00', 2),
-  (2197, 5, 2, '2024-08-26', '2024-08-26 14:01:00', '2024-08-26 22:02:00', 2),
-  (2198, 5, 2, '2024-08-27', '2024-08-27 14:01:00', '2024-08-27 22:02:00', 2),
-  (2199, 5, 2, '2024-08-28', '2024-08-28 14:01:00', '2024-08-28 22:02:00', 2),
-  (2200, 5, 2, '2024-08-29', '2024-08-29 14:01:00', '2024-08-29 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (2201, 5, 2, '2024-08-30', '2024-08-30 14:01:00', '2024-08-30 22:02:00', 2),
-  (2202, 5, 2, '2024-08-31', '2024-08-31 14:01:00', '2024-08-31 22:02:00', 2),
-  (2203, 5, 1, '2024-09-02', '2024-09-02 08:02:00', '2024-09-02 16:01:00', 2),
-  (2204, 5, 1, '2024-09-03', '2024-09-03 08:02:00', '2024-09-03 16:01:00', 2),
-  (2205, 5, 1, '2024-09-04', '2024-09-04 08:02:00', '2024-09-04 16:01:00', 2),
-  (2206, 5, 1, '2024-09-05', '2024-09-05 08:02:00', '2024-09-05 16:01:00', 2),
-  (2207, 5, 1, '2024-09-06', '2024-09-06 08:02:00', '2024-09-06 16:01:00', 2),
-  (2208, 5, 1, '2024-09-07', '2024-09-07 08:02:00', '2024-09-07 16:01:00', 2),
-  (2209, 5, 2, '2024-09-09', '2024-09-09 14:01:00', '2024-09-09 22:02:00', 2),
-  (2210, 5, 2, '2024-09-10', '2024-09-10 14:01:00', '2024-09-10 22:02:00', 2),
-  (2211, 5, 2, '2024-09-11', '2024-09-11 14:01:00', '2024-09-11 22:02:00', 2),
-  (2212, 5, 2, '2024-09-12', '2024-09-12 14:01:00', '2024-09-12 22:02:00', 2),
-  (2213, 5, 2, '2024-09-13', '2024-09-13 14:01:00', '2024-09-13 22:02:00', 2),
-  (2214, 5, 2, '2024-09-14', '2024-09-14 14:01:00', '2024-09-14 22:02:00', 2),
-  (2215, 5, 1, '2024-09-16', '2024-09-16 08:02:00', '2024-09-16 16:01:00', 2),
-  (2216, 5, 1, '2024-09-17', '2024-09-17 08:02:00', '2024-09-17 16:01:00', 2),
-  (2217, 5, 1, '2024-09-18', '2024-09-18 08:02:00', '2024-09-18 16:01:00', 2),
-  (2218, 5, 1, '2024-09-19', '2024-09-19 08:02:00', '2024-09-19 16:01:00', 2),
-  (2219, 5, 1, '2024-09-20', '2024-09-20 08:02:00', '2024-09-20 16:01:00', 2),
-  (2220, 5, 1, '2024-09-21', '2024-09-21 08:02:00', '2024-09-21 16:01:00', 2),
-  (2221, 5, 2, '2024-09-23', '2024-09-23 14:01:00', '2024-09-23 22:02:00', 2),
-  (2222, 5, 2, '2024-09-24', '2024-09-24 14:01:00', '2024-09-24 22:02:00', 2),
-  (2223, 5, 2, '2024-09-25', '2024-09-25 14:01:00', '2024-09-25 22:02:00', 2),
-  (2224, 5, 2, '2024-09-26', '2024-09-26 14:01:00', '2024-09-26 22:02:00', 2),
-  (2225, 5, 2, '2024-09-27', '2024-09-27 14:01:00', '2024-09-27 22:02:00', 2),
-  (2226, 5, 2, '2024-09-28', '2024-09-28 14:01:00', '2024-09-28 22:02:00', 2),
-  (2227, 5, 1, '2024-09-30', '2024-09-30 08:02:00', '2024-09-30 16:01:00', 2),
-  (2228, 5, 1, '2024-10-01', '2024-10-01 08:02:00', '2024-10-01 16:01:00', 2),
-  (2229, 5, 1, '2024-10-02', '2024-10-02 08:02:00', '2024-10-02 16:01:00', 2),
-  (2230, 5, 1, '2024-10-03', '2024-10-03 08:02:00', '2024-10-03 16:01:00', 2),
-  (2231, 5, 1, '2024-10-04', '2024-10-04 08:02:00', '2024-10-04 16:01:00', 2),
-  (2232, 5, 1, '2024-10-05', '2024-10-05 08:02:00', '2024-10-05 16:01:00', 2),
-  (2233, 5, 2, '2024-10-07', '2024-10-07 14:01:00', '2024-10-07 22:02:00', 2),
-  (2234, 5, 2, '2024-10-08', '2024-10-08 14:01:00', '2024-10-08 22:02:00', 2),
-  (2235, 5, 2, '2024-10-09', '2024-10-09 14:01:00', '2024-10-09 22:02:00', 2),
-  (2236, 5, 2, '2024-10-10', '2024-10-10 14:01:00', '2024-10-10 22:02:00', 2),
-  (2237, 5, 2, '2024-10-11', '2024-10-11 14:01:00', '2024-10-11 22:02:00', 2),
-  (2238, 5, 2, '2024-10-12', '2024-10-12 14:01:00', '2024-10-12 22:02:00', 2),
-  (2239, 5, 1, '2024-10-14', '2024-10-14 08:02:00', '2024-10-14 16:01:00', 2),
-  (2240, 5, 1, '2024-10-15', '2024-10-15 08:02:00', '2024-10-15 16:01:00', 2),
-  (2241, 5, 1, '2024-10-16', '2024-10-16 08:02:00', '2024-10-16 16:01:00', 2),
-  (2242, 5, 1, '2024-10-17', '2024-10-17 08:02:00', '2024-10-17 16:01:00', 2),
-  (2243, 5, 1, '2024-10-18', '2024-10-18 08:02:00', '2024-10-18 16:01:00', 2),
-  (2244, 5, 1, '2024-10-19', '2024-10-19 08:02:00', '2024-10-19 16:01:00', 2),
-  (2245, 5, 2, '2024-10-21', '2024-10-21 14:01:00', '2024-10-21 22:02:00', 2),
-  (2246, 5, 2, '2024-10-22', '2024-10-22 14:01:00', '2024-10-22 22:02:00', 2),
-  (2247, 5, 2, '2024-10-23', '2024-10-23 14:01:00', '2024-10-23 22:02:00', 2),
-  (2248, 5, 2, '2024-10-24', '2024-10-24 14:01:00', '2024-10-24 22:02:00', 2),
-  (2249, 5, 2, '2024-10-25', '2024-10-25 14:01:00', '2024-10-25 22:02:00', 2),
-  (2250, 5, 2, '2024-10-26', '2024-10-26 14:01:00', '2024-10-26 22:02:00', 2),
-  (2251, 5, 1, '2024-10-28', '2024-10-28 08:02:00', '2024-10-28 16:01:00', 2),
-  (2252, 5, 1, '2024-10-29', '2024-10-29 08:02:00', '2024-10-29 16:01:00', 2),
-  (2253, 5, 1, '2024-10-30', '2024-10-30 08:02:00', '2024-10-30 16:01:00', 2),
-  (2254, 5, 1, '2024-10-31', '2024-10-31 08:02:00', '2024-10-31 16:01:00', 2),
-  (2255, 5, 1, '2024-11-01', '2024-11-01 08:02:00', '2024-11-01 16:01:00', 2),
-  (2256, 5, 1, '2024-11-02', '2024-11-02 08:02:00', '2024-11-02 16:01:00', 2),
-  (2257, 5, 2, '2024-11-04', '2024-11-04 14:01:00', '2024-11-04 22:02:00', 2),
-  (2258, 5, 2, '2024-11-05', '2024-11-05 14:01:00', '2024-11-05 22:02:00', 2),
-  (2259, 5, 2, '2024-11-06', '2024-11-06 14:01:00', '2024-11-06 22:02:00', 2),
-  (2260, 5, 2, '2024-11-07', '2024-11-07 14:01:00', '2024-11-07 22:02:00', 2),
-  (2261, 5, 2, '2024-11-08', '2024-11-08 14:01:00', '2024-11-08 22:02:00', 2),
-  (2262, 5, 2, '2024-11-09', '2024-11-09 14:01:00', '2024-11-09 22:02:00', 2),
-  (2263, 5, 1, '2024-11-11', '2024-11-11 08:02:00', '2024-11-11 16:01:00', 2),
-  (2264, 5, 1, '2024-11-12', '2024-11-12 08:02:00', '2024-11-12 16:01:00', 2),
-  (2265, 5, 1, '2024-11-13', '2024-11-13 08:02:00', '2024-11-13 16:01:00', 2),
-  (2266, 5, 1, '2024-11-14', '2024-11-14 08:02:00', '2024-11-14 16:01:00', 2),
-  (2267, 5, 1, '2024-11-15', '2024-11-15 08:02:00', '2024-11-15 16:01:00', 2),
-  (2268, 5, 1, '2024-11-16', '2024-11-16 08:02:00', '2024-11-16 16:01:00', 2),
-  (2269, 5, 2, '2024-11-18', '2024-11-18 14:01:00', '2024-11-18 22:02:00', 2),
-  (2270, 5, 2, '2024-11-19', '2024-11-19 14:01:00', '2024-11-19 22:02:00', 2),
-  (2271, 5, 2, '2024-11-20', '2024-11-20 14:01:00', '2024-11-20 22:02:00', 2),
-  (2272, 5, 2, '2024-11-21', '2024-11-21 14:01:00', '2024-11-21 22:02:00', 2),
-  (2273, 5, 2, '2024-11-22', '2024-11-22 14:01:00', '2024-11-22 22:02:00', 2),
-  (2274, 5, 2, '2024-11-23', '2024-11-23 14:01:00', '2024-11-23 22:02:00', 2),
-  (2275, 5, 1, '2024-11-25', '2024-11-25 08:02:00', '2024-11-25 16:01:00', 2),
-  (2276, 5, 1, '2024-11-26', '2024-11-26 08:02:00', '2024-11-26 16:01:00', 2),
-  (2277, 5, 1, '2024-11-27', '2024-11-27 08:02:00', '2024-11-27 16:01:00', 2),
-  (2278, 5, 1, '2024-11-28', '2024-11-28 08:02:00', '2024-11-28 16:01:00', 2),
-  (2279, 5, 1, '2024-11-29', '2024-11-29 08:02:00', '2024-11-29 16:01:00', 2),
-  (2280, 5, 1, '2024-11-30', '2024-11-30 08:02:00', '2024-11-30 16:01:00', 2),
-  (2281, 5, 2, '2024-12-02', '2024-12-02 14:01:00', '2024-12-02 22:02:00', 2),
-  (2282, 5, 2, '2024-12-03', '2024-12-03 14:01:00', '2024-12-03 22:02:00', 2),
-  (2283, 5, 2, '2024-12-04', '2024-12-04 14:01:00', '2024-12-04 22:02:00', 2),
-  (2284, 5, 2, '2024-12-05', '2024-12-05 14:01:00', '2024-12-05 22:02:00', 2),
-  (2285, 5, 2, '2024-12-06', '2024-12-06 14:01:00', '2024-12-06 22:02:00', 2),
-  (2286, 5, 2, '2024-12-07', '2024-12-07 14:01:00', '2024-12-07 22:02:00', 2),
-  (2287, 5, 1, '2024-12-09', '2024-12-09 08:02:00', '2024-12-09 16:01:00', 2),
-  (2288, 5, 1, '2024-12-10', '2024-12-10 08:02:00', '2024-12-10 16:01:00', 2),
-  (2289, 5, 1, '2024-12-11', '2024-12-11 08:02:00', '2024-12-11 16:01:00', 2),
-  (2290, 5, 1, '2024-12-12', '2024-12-12 08:02:00', '2024-12-12 16:01:00', 2),
-  (2291, 5, 1, '2024-12-13', '2024-12-13 08:02:00', '2024-12-13 16:01:00', 2),
-  (2292, 5, 1, '2024-12-14', '2024-12-14 08:02:00', '2024-12-14 16:01:00', 2),
-  (2293, 5, 2, '2024-12-16', '2024-12-16 14:01:00', '2024-12-16 22:02:00', 2),
-  (2294, 5, 2, '2024-12-17', '2024-12-17 14:01:00', '2024-12-17 22:02:00', 2),
-  (2295, 5, 2, '2024-12-18', '2024-12-18 14:01:00', '2024-12-18 22:02:00', 2),
-  (2296, 5, 2, '2024-12-19', '2024-12-19 14:01:00', '2024-12-19 22:02:00', 2),
-  (2297, 5, 2, '2024-12-20', '2024-12-20 14:01:00', '2024-12-20 22:02:00', 2),
-  (2298, 5, 2, '2024-12-21', '2024-12-21 14:01:00', '2024-12-21 22:02:00', 2),
-  (2299, 5, 1, '2024-12-23', '2024-12-23 08:02:00', '2024-12-23 16:01:00', 2),
-  (2300, 5, 1, '2024-12-24', '2024-12-24 08:02:00', '2024-12-24 16:01:00', 2),
-  (2301, 5, 1, '2024-12-25', '2024-12-25 08:02:00', '2024-12-25 16:01:00', 2),
-  (2302, 5, 1, '2024-12-26', '2024-12-26 08:02:00', '2024-12-26 16:01:00', 2),
-  (2303, 5, 1, '2024-12-27', '2024-12-27 08:02:00', '2024-12-27 16:01:00', 2),
-  (2304, 5, 1, '2024-12-28', '2024-12-28 08:02:00', '2024-12-28 16:01:00', 2),
-  (2305, 5, 2, '2024-12-30', '2024-12-30 14:01:00', '2024-12-30 22:02:00', 2),
-  (2306, 5, 2, '2024-12-31', '2024-12-31 14:01:00', '2024-12-31 22:02:00', 2),
-  (2307, 5, 2, '2025-01-01', '2025-01-01 14:01:00', '2025-01-01 22:02:00', 2),
-  (2308, 5, 2, '2025-01-02', '2025-01-02 14:01:00', '2025-01-02 22:02:00', 2),
-  (2309, 5, 2, '2025-01-03', '2025-01-03 14:01:00', '2025-01-03 22:02:00', 2),
-  (2310, 5, 2, '2025-01-04', '2025-01-04 14:01:00', '2025-01-04 22:02:00', 2),
-  (2311, 5, 1, '2025-01-06', '2025-01-06 08:02:00', '2025-01-06 16:01:00', 2),
-  (2312, 5, 1, '2025-01-07', '2025-01-07 08:02:00', '2025-01-07 16:01:00', 2),
-  (2313, 5, 1, '2025-01-08', '2025-01-08 08:02:00', '2025-01-08 16:01:00', 2),
-  (2314, 5, 1, '2025-01-09', '2025-01-09 08:02:00', '2025-01-09 16:01:00', 2),
-  (2315, 5, 1, '2025-01-10', '2025-01-10 08:02:00', '2025-01-10 16:01:00', 2),
-  (2316, 5, 1, '2025-01-11', '2025-01-11 08:02:00', '2025-01-11 16:01:00', 2),
-  (2317, 5, 2, '2025-01-13', '2025-01-13 14:01:00', '2025-01-13 22:02:00', 2),
-  (2318, 5, 2, '2025-01-14', '2025-01-14 14:01:00', '2025-01-14 22:02:00', 2),
-  (2319, 5, 2, '2025-01-15', '2025-01-15 14:01:00', '2025-01-15 22:02:00', 2),
-  (2320, 5, 2, '2025-01-16', '2025-01-16 14:01:00', '2025-01-16 22:02:00', 2),
-  (2321, 5, 2, '2025-01-17', '2025-01-17 14:01:00', '2025-01-17 22:02:00', 2),
-  (2322, 5, 2, '2025-01-18', '2025-01-18 14:01:00', '2025-01-18 22:02:00', 2),
-  (2323, 5, 1, '2025-01-20', '2025-01-20 08:02:00', '2025-01-20 16:01:00', 2),
-  (2324, 5, 1, '2025-01-21', '2025-01-21 08:02:00', '2025-01-21 16:01:00', 2),
-  (2325, 5, 1, '2025-01-22', '2025-01-22 08:02:00', '2025-01-22 16:01:00', 2),
-  (2326, 5, 1, '2025-01-23', '2025-01-23 08:02:00', '2025-01-23 16:01:00', 2),
-  (2327, 5, 1, '2025-01-24', '2025-01-24 08:02:00', '2025-01-24 16:01:00', 2),
-  (2328, 5, 1, '2025-01-25', '2025-01-25 08:02:00', '2025-01-25 16:01:00', 2),
-  (2329, 5, 2, '2025-01-27', '2025-01-27 14:01:00', '2025-01-27 22:02:00', 2),
-  (2330, 5, 2, '2025-01-28', '2025-01-28 14:01:00', '2025-01-28 22:02:00', 2),
-  (2331, 5, 2, '2025-01-29', '2025-01-29 14:01:00', '2025-01-29 22:02:00', 2),
-  (2332, 5, 2, '2025-01-30', '2025-01-30 14:01:00', '2025-01-30 22:02:00', 2),
-  (2333, 5, 2, '2025-01-31', '2025-01-31 14:01:00', '2025-01-31 22:02:00', 2),
-  (2334, 5, 2, '2025-02-01', '2025-02-01 14:01:00', '2025-02-01 22:02:00', 2),
-  (2335, 5, 1, '2025-02-03', '2025-02-03 08:02:00', '2025-02-03 16:01:00', 2),
-  (2336, 5, 1, '2025-02-04', '2025-02-04 08:02:00', '2025-02-04 16:01:00', 2),
-  (2337, 5, 1, '2025-02-05', '2025-02-05 08:02:00', '2025-02-05 16:01:00', 2),
-  (2338, 5, 1, '2025-02-06', '2025-02-06 08:02:00', '2025-02-06 16:01:00', 2),
-  (2339, 5, 1, '2025-02-07', '2025-02-07 08:02:00', '2025-02-07 16:01:00', 2),
-  (2340, 5, 1, '2025-02-08', '2025-02-08 08:02:00', '2025-02-08 16:01:00', 2),
-  (2341, 5, 2, '2025-02-10', '2025-02-10 14:01:00', '2025-02-10 22:02:00', 2),
-  (2342, 5, 2, '2025-02-11', '2025-02-11 14:01:00', '2025-02-11 22:02:00', 2),
-  (2343, 5, 2, '2025-02-12', '2025-02-12 14:01:00', '2025-02-12 22:02:00', 2),
-  (2344, 5, 2, '2025-02-13', '2025-02-13 14:01:00', '2025-02-13 22:02:00', 2),
-  (2345, 5, 2, '2025-02-14', '2025-02-14 14:01:00', '2025-02-14 22:02:00', 2),
-  (2346, 5, 2, '2025-02-15', '2025-02-15 14:01:00', '2025-02-15 22:02:00', 2),
-  (2347, 5, 1, '2025-02-17', '2025-02-17 08:02:00', '2025-02-17 16:01:00', 2),
-  (2348, 5, 1, '2025-02-18', '2025-02-18 08:02:00', '2025-02-18 16:01:00', 2),
-  (2349, 5, 1, '2025-02-19', '2025-02-19 08:02:00', '2025-02-19 16:01:00', 2),
-  (2350, 5, 1, '2025-02-20', '2025-02-20 08:02:00', '2025-02-20 16:01:00', 2),
-  (2351, 5, 1, '2025-02-21', '2025-02-21 08:02:00', '2025-02-21 16:01:00', 2),
-  (2352, 5, 1, '2025-02-22', '2025-02-22 08:02:00', '2025-02-22 16:01:00', 2),
-  (2353, 5, 2, '2025-02-24', '2025-02-24 14:01:00', '2025-02-24 22:02:00', 2),
-  (2354, 5, 2, '2025-02-25', '2025-02-25 14:01:00', '2025-02-25 22:02:00', 2),
-  (2355, 5, 2, '2025-02-26', '2025-02-26 14:01:00', '2025-02-26 22:02:00', 2),
-  (2356, 5, 2, '2025-02-27', '2025-02-27 14:01:00', '2025-02-27 22:02:00', 2),
-  (2357, 5, 2, '2025-02-28', '2025-02-28 14:01:00', '2025-02-28 22:02:00', 2),
-  (2358, 5, 2, '2025-03-01', '2025-03-01 14:01:00', '2025-03-01 22:02:00', 2),
-  (2359, 5, 1, '2025-03-03', '2025-03-03 08:02:00', '2025-03-03 16:01:00', 2),
-  (2360, 5, 1, '2025-03-04', '2025-03-04 08:02:00', '2025-03-04 16:01:00', 2),
-  (2361, 5, 1, '2025-03-05', '2025-03-05 08:02:00', '2025-03-05 16:01:00', 2),
-  (2362, 5, 1, '2025-03-06', '2025-03-06 08:02:00', '2025-03-06 16:01:00', 2),
-  (2363, 5, 1, '2025-03-07', '2025-03-07 08:02:00', '2025-03-07 16:01:00', 2),
-  (2364, 5, 1, '2025-03-08', '2025-03-08 08:02:00', '2025-03-08 16:01:00', 2),
-  (2365, 5, 2, '2025-03-10', '2025-03-10 14:01:00', '2025-03-10 22:02:00', 2),
-  (2366, 5, 2, '2025-03-11', '2025-03-11 14:01:00', '2025-03-11 22:02:00', 2),
-  (2367, 5, 2, '2025-03-12', '2025-03-12 14:01:00', '2025-03-12 22:02:00', 2),
-  (2368, 5, 2, '2025-03-13', '2025-03-13 14:01:00', '2025-03-13 22:02:00', 2),
-  (2369, 5, 2, '2025-03-14', '2025-03-14 14:01:00', '2025-03-14 22:02:00', 2),
-  (2370, 5, 2, '2025-03-15', '2025-03-15 14:01:00', '2025-03-15 22:02:00', 2),
-  (2371, 5, 1, '2025-03-17', '2025-03-17 08:02:00', '2025-03-17 16:01:00', 2),
-  (2372, 5, 1, '2025-03-18', '2025-03-18 08:02:00', '2025-03-18 16:01:00', 2),
-  (2373, 5, 1, '2025-03-19', '2025-03-19 08:02:00', '2025-03-19 16:01:00', 2),
-  (2374, 5, 1, '2025-03-20', '2025-03-20 08:02:00', '2025-03-20 16:01:00', 2),
-  (2375, 5, 1, '2025-03-21', '2025-03-21 08:02:00', '2025-03-21 16:01:00', 2),
-  (2376, 5, 1, '2025-03-22', '2025-03-22 08:02:00', '2025-03-22 16:01:00', 2),
-  (2377, 5, 2, '2025-03-24', '2025-03-24 14:01:00', '2025-03-24 22:02:00', 2),
-  (2378, 5, 2, '2025-03-25', '2025-03-25 14:01:00', '2025-03-25 22:02:00', 2),
-  (2379, 5, 2, '2025-03-26', '2025-03-26 14:01:00', '2025-03-26 22:02:00', 2),
-  (2380, 5, 2, '2025-03-27', '2025-03-27 14:01:00', '2025-03-27 22:02:00', 2),
-  (2381, 5, 2, '2025-03-28', '2025-03-28 14:01:00', '2025-03-28 22:02:00', 2),
-  (2382, 5, 2, '2025-03-29', '2025-03-29 14:01:00', '2025-03-29 22:02:00', 2),
-  (2383, 5, 1, '2025-03-31', '2025-03-31 08:02:00', '2025-03-31 16:01:00', 2),
-  (2384, 5, 1, '2025-04-01', '2025-04-01 08:02:00', '2025-04-01 16:01:00', 2),
-  (2385, 5, 1, '2025-04-02', '2025-04-02 08:02:00', '2025-04-02 16:01:00', 2),
-  (2386, 5, 1, '2025-04-03', '2025-04-03 08:02:00', '2025-04-03 16:01:00', 2),
-  (2387, 5, 1, '2025-04-04', '2025-04-04 08:02:00', '2025-04-04 16:01:00', 2),
-  (2388, 5, 1, '2025-04-05', '2025-04-05 08:02:00', '2025-04-05 16:01:00', 2),
-  (2389, 5, 2, '2025-04-07', '2025-04-07 14:01:00', '2025-04-07 22:02:00', 2),
-  (2390, 5, 2, '2025-04-08', '2025-04-08 14:01:00', '2025-04-08 22:02:00', 2),
-  (2391, 5, 2, '2025-04-09', '2025-04-09 14:01:00', '2025-04-09 22:02:00', 2),
-  (2392, 5, 2, '2025-04-10', '2025-04-10 14:01:00', '2025-04-10 22:02:00', 2),
-  (2393, 5, 2, '2025-04-11', '2025-04-11 14:01:00', '2025-04-11 22:02:00', 2),
-  (2394, 5, 2, '2025-04-12', '2025-04-12 14:01:00', '2025-04-12 22:02:00', 2),
-  (2395, 5, 1, '2025-04-14', '2025-04-14 08:02:00', '2025-04-14 16:01:00', 2),
-  (2396, 5, 1, '2025-04-15', '2025-04-15 08:02:00', '2025-04-15 16:01:00', 2),
-  (2397, 5, 1, '2025-04-16', '2025-04-16 08:02:00', '2025-04-16 16:01:00', 2),
-  (2398, 5, 1, '2025-04-17', '2025-04-17 08:02:00', '2025-04-17 16:01:00', 2),
-  (2399, 5, 1, '2025-04-18', '2025-04-18 08:02:00', '2025-04-18 16:01:00', 2),
-  (2400, 5, 1, '2025-04-19', '2025-04-19 08:02:00', '2025-04-19 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (2401, 5, 2, '2025-04-21', '2025-04-21 14:01:00', '2025-04-21 22:02:00', 2),
-  (2402, 5, 2, '2025-04-22', '2025-04-22 14:01:00', '2025-04-22 22:02:00', 2),
-  (2403, 5, 2, '2025-04-23', '2025-04-23 14:01:00', '2025-04-23 22:02:00', 2),
-  (2404, 5, 2, '2025-04-24', '2025-04-24 14:01:00', '2025-04-24 22:02:00', 2),
-  (2405, 5, 2, '2025-04-25', '2025-04-25 14:01:00', '2025-04-25 22:02:00', 2),
-  (2406, 5, 2, '2025-04-26', '2025-04-26 14:01:00', '2025-04-26 22:02:00', 2),
-  (2407, 5, 1, '2025-04-28', '2025-04-28 08:02:00', '2025-04-28 16:01:00', 2),
-  (2408, 5, 1, '2025-04-29', '2025-04-29 08:02:00', '2025-04-29 16:01:00', 2),
-  (2409, 5, 1, '2025-04-30', '2025-04-30 08:02:00', '2025-04-30 16:01:00', 2),
-  (2410, 5, 1, '2025-05-01', '2025-05-01 08:02:00', '2025-05-01 16:01:00', 2),
-  (2411, 5, 1, '2025-05-02', '2025-05-02 08:02:00', '2025-05-02 16:01:00', 2),
-  (2412, 5, 1, '2025-05-03', '2025-05-03 08:02:00', '2025-05-03 16:01:00', 2),
-  (2413, 5, 2, '2025-05-05', '2025-05-05 14:01:00', '2025-05-05 22:02:00', 2),
-  (2414, 5, 2, '2025-05-06', '2025-05-06 14:01:00', '2025-05-06 22:02:00', 2),
-  (2415, 5, 2, '2025-05-07', '2025-05-07 14:01:00', '2025-05-07 22:02:00', 2),
-  (2416, 5, 2, '2025-05-08', '2025-05-08 14:01:00', '2025-05-08 22:02:00', 2),
-  (2417, 5, 2, '2025-05-09', '2025-05-09 14:01:00', '2025-05-09 22:02:00', 2),
-  (2418, 5, 2, '2025-05-10', '2025-05-10 14:01:00', '2025-05-10 22:02:00', 2),
-  (2419, 5, 1, '2025-05-12', '2025-05-12 08:02:00', '2025-05-12 16:01:00', 2),
-  (2420, 5, 1, '2025-05-13', '2025-05-13 08:02:00', '2025-05-13 16:01:00', 2),
-  (2421, 5, 1, '2025-05-14', '2025-05-14 08:02:00', '2025-05-14 16:01:00', 2),
-  (2422, 5, 1, '2025-05-15', '2025-05-15 08:02:00', '2025-05-15 16:01:00', 2),
-  (2423, 5, 1, '2025-05-16', '2025-05-16 08:02:00', '2025-05-16 16:01:00', 2),
-  (2424, 5, 1, '2025-05-17', '2025-05-17 08:02:00', '2025-05-17 16:01:00', 2),
-  (2425, 5, 2, '2025-05-19', '2025-05-19 14:01:00', '2025-05-19 22:02:00', 2),
-  (2426, 5, 2, '2025-05-20', '2025-05-20 14:01:00', '2025-05-20 22:02:00', 2),
-  (2427, 5, 2, '2025-05-21', '2025-05-21 14:01:00', '2025-05-21 22:02:00', 2),
-  (2428, 5, 2, '2025-05-22', '2025-05-22 14:01:00', '2025-05-22 22:02:00', 2),
-  (2429, 5, 2, '2025-05-23', '2025-05-23 14:01:00', '2025-05-23 22:02:00', 2),
-  (2430, 5, 2, '2025-05-24', '2025-05-24 14:01:00', '2025-05-24 22:02:00', 2),
-  (2431, 5, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (2432, 5, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (2433, 5, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (2434, 5, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (2435, 5, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (2436, 5, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (2437, 5, 2, '2025-06-02', '2025-06-02 14:01:00', '2025-06-02 22:02:00', 2),
-  (2438, 5, 2, '2025-06-03', '2025-06-03 14:01:00', '2025-06-03 22:02:00', 2),
-  (2439, 5, 2, '2025-06-04', '2025-06-04 14:01:00', '2025-06-04 22:02:00', 2),
-  (2440, 5, 2, '2025-06-05', '2025-06-05 14:01:00', '2025-06-05 22:02:00', 2),
-  (2441, 5, 2, '2025-06-06', '2025-06-06 14:01:00', '2025-06-06 22:02:00', 2),
-  (2442, 5, 2, '2025-06-07', '2025-06-07 14:01:00', '2025-06-07 22:02:00', 2),
-  (2443, 5, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (2444, 5, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (2445, 5, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (2446, 5, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (2447, 5, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (2448, 5, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (2449, 5, 2, '2025-06-16', '2025-06-16 14:01:00', '2025-06-16 22:02:00', 2),
-  (2450, 5, 2, '2025-06-17', '2025-06-17 14:01:00', '2025-06-17 22:02:00', 2),
-  (2451, 5, 2, '2025-06-18', '2025-06-18 14:01:00', '2025-06-18 22:02:00', 2),
-  (2452, 5, 2, '2025-06-19', '2025-06-19 14:01:00', '2025-06-19 22:02:00', 2),
-  (2453, 5, 2, '2025-06-20', '2025-06-20 14:01:00', '2025-06-20 22:02:00', 2),
-  (2454, 5, 2, '2025-06-21', '2025-06-21 14:01:00', '2025-06-21 22:02:00', 2),
-  (2455, 5, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (2456, 5, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (2457, 5, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (2458, 5, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2),
-  (2459, 5, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (2460, 5, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (2461, 5, 2, '2025-06-30', '2025-06-30 14:01:00', '2025-06-30 22:02:00', 2),
-  (2462, 5, 2, '2025-07-01', '2025-07-01 14:01:00', '2025-07-01 22:02:00', 2),
-  (2463, 5, 2, '2025-07-02', '2025-07-02 14:01:00', '2025-07-02 22:02:00', 2),
-  (2464, 5, 2, '2025-07-03', '2025-07-03 14:01:00', '2025-07-03 22:02:00', 2),
-  (2465, 5, 2, '2025-07-04', '2025-07-04 14:01:00', '2025-07-04 22:02:00', 2),
-  (2466, 5, 2, '2025-07-05', '2025-07-05 14:01:00', '2025-07-05 22:02:00', 2),
-  (2467, 5, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (2468, 5, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (2469, 5, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (2470, 5, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (2471, 5, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (2472, 5, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (2473, 5, 2, '2025-07-14', '2025-07-14 14:01:00', '2025-07-14 22:02:00', 2),
-  (2474, 5, 2, '2025-07-15', '2025-07-15 14:01:00', '2025-07-15 22:02:00', 2),
-  (2475, 5, 2, '2025-07-16', '2025-07-16 14:01:00', '2025-07-16 22:02:00', 2),
-  (2476, 5, 2, '2025-07-17', '2025-07-17 14:01:00', '2025-07-17 22:02:00', 2),
-  (2477, 5, 2, '2025-07-18', '2025-07-18 14:01:00', '2025-07-18 22:02:00', 2),
-  (2478, 5, 2, '2025-07-19', '2025-07-19 14:01:00', '2025-07-19 22:02:00', 2),
-  (2479, 5, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (2480, 5, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (2481, 5, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (2482, 5, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (2483, 5, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (2484, 5, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (2485, 5, 2, '2025-07-28', '2025-07-28 14:01:00', '2025-07-28 22:02:00', 2),
-  (2486, 5, 2, '2025-07-29', '2025-07-29 14:01:00', '2025-07-29 22:02:00', 2),
-  (2487, 5, 2, '2025-07-30', '2025-07-30 14:01:00', '2025-07-30 22:02:00', 2),
-  (2488, 5, 2, '2025-07-31', '2025-07-31 14:01:00', '2025-07-31 22:02:00', 2),
-  (2489, 5, 2, '2025-08-01', '2025-08-01 14:01:00', '2025-08-01 22:02:00', 2),
-  (2490, 5, 2, '2025-08-02', '2025-08-02 14:01:00', '2025-08-02 22:02:00', 2),
-  (2491, 5, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (2492, 5, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (2493, 5, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (2494, 5, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (2495, 5, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (2496, 5, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (2497, 5, 2, '2025-08-11', '2025-08-11 14:01:00', '2025-08-11 22:02:00', 2),
-  (2498, 5, 2, '2025-08-12', '2025-08-12 14:01:00', '2025-08-12 22:02:00', 2),
-  (2499, 5, 2, '2025-08-13', '2025-08-13 14:01:00', '2025-08-13 22:02:00', 2),
-  (2500, 5, 2, '2025-08-14', '2025-08-14 14:01:00', '2025-08-14 22:02:00', 2),
-  (2501, 5, 2, '2025-08-15', '2025-08-15 14:01:00', '2025-08-15 22:02:00', 2),
-  (2502, 5, 2, '2025-08-16', '2025-08-16 14:01:00', '2025-08-16 22:02:00', 2),
-  (2503, 5, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (2504, 5, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (2505, 5, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (2506, 5, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (2507, 5, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (2508, 5, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (2509, 5, 2, '2025-08-25', '2025-08-25 14:01:00', '2025-08-25 22:02:00', 2),
-  (2510, 5, 2, '2025-08-26', '2025-08-26 14:01:00', '2025-08-26 22:02:00', 2),
-  (2511, 5, 2, '2025-08-27', '2025-08-27 14:01:00', '2025-08-27 22:02:00', 2),
-  (2512, 5, 2, '2025-08-28', '2025-08-28 14:01:00', '2025-08-28 22:02:00', 2),
-  (2513, 5, 2, '2025-08-29', '2025-08-29 14:01:00', '2025-08-29 22:02:00', 2),
-  (2514, 5, 2, '2025-08-30', '2025-08-30 14:01:00', '2025-08-30 22:02:00', 2),
-  (2515, 5, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (2516, 5, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (2517, 5, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (2518, 5, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (2519, 5, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (2520, 5, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (2521, 5, 2, '2025-09-08', '2025-09-08 14:01:00', '2025-09-08 22:02:00', 2),
-  (2522, 5, 2, '2025-09-09', '2025-09-09 14:01:00', '2025-09-09 22:02:00', 2),
-  (2523, 5, 2, '2025-09-10', '2025-09-10 14:01:00', '2025-09-10 22:02:00', 2),
-  (2524, 5, 2, '2025-09-11', '2025-09-11 14:01:00', '2025-09-11 22:02:00', 2),
-  (2525, 5, 2, '2025-09-12', '2025-09-12 14:01:00', '2025-09-12 22:02:00', 2),
-  (2526, 5, 2, '2025-09-13', '2025-09-13 14:01:00', '2025-09-13 22:02:00', 2),
-  (2527, 5, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (2528, 5, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (2529, 5, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2),
-  (2530, 5, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (2531, 5, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (2532, 5, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (2533, 5, 2, '2025-09-22', '2025-09-22 14:01:00', '2025-09-22 22:02:00', 2),
-  (2534, 5, 2, '2025-09-23', '2025-09-23 14:01:00', '2025-09-23 22:02:00', 2),
-  (2535, 5, 2, '2025-09-24', '2025-09-24 14:01:00', '2025-09-24 22:02:00', 2),
-  (2536, 5, 2, '2025-09-25', '2025-09-25 14:01:00', '2025-09-25 22:02:00', 2),
-  (2537, 5, 2, '2025-09-26', '2025-09-26 14:01:00', '2025-09-26 22:02:00', 2),
-  (2538, 5, 2, '2025-09-27', '2025-09-27 14:01:00', '2025-09-27 22:02:00', 2),
-  (2539, 5, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (2540, 5, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (2541, 5, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (2542, 5, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (2543, 5, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (2544, 5, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (2545, 5, 2, '2025-10-06', '2025-10-06 14:01:00', '2025-10-06 22:02:00', 2),
-  (2546, 5, 2, '2025-10-07', '2025-10-07 14:01:00', '2025-10-07 22:02:00', 2),
-  (2547, 5, 2, '2025-10-08', '2025-10-08 14:01:00', '2025-10-08 22:02:00', 2),
-  (2548, 5, 2, '2025-10-09', '2025-10-09 14:01:00', '2025-10-09 22:02:00', 2),
-  (2549, 5, 2, '2025-10-10', '2025-10-10 14:01:00', '2025-10-10 22:02:00', 2),
-  (2550, 5, 2, '2025-10-11', '2025-10-11 14:01:00', '2025-10-11 22:02:00', 2),
-  (2551, 5, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (2552, 5, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (2553, 5, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (2554, 5, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (2555, 5, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (2556, 5, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (2557, 5, 2, '2025-10-20', '2025-10-20 14:01:00', '2025-10-20 22:02:00', 2),
-  (2558, 5, 2, '2025-10-21', '2025-10-21 14:01:00', '2025-10-21 22:02:00', 2),
-  (2559, 5, 2, '2025-10-22', '2025-10-22 14:01:00', '2025-10-22 22:02:00', 2),
-  (2560, 5, 2, '2025-10-23', '2025-10-23 14:01:00', '2025-10-23 22:02:00', 2),
-  (2561, 5, 2, '2025-10-24', '2025-10-24 14:01:00', '2025-10-24 22:02:00', 2),
-  (2562, 5, 2, '2025-10-25', '2025-10-25 14:01:00', '2025-10-25 22:02:00', 2),
-  (2563, 5, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (2564, 5, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (2565, 5, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (2566, 5, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (2567, 5, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (2568, 5, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (2569, 5, 2, '2025-11-03', '2025-11-03 14:01:00', '2025-11-03 22:02:00', 2),
-  (2570, 5, 2, '2025-11-04', '2025-11-04 14:01:00', '2025-11-04 22:02:00', 2),
-  (2571, 5, 2, '2025-11-05', '2025-11-05 14:01:00', '2025-11-05 22:02:00', 2),
-  (2572, 5, 2, '2025-11-06', '2025-11-06 14:01:00', '2025-11-06 22:02:00', 2),
-  (2573, 5, 2, '2025-11-07', '2025-11-07 14:01:00', '2025-11-07 22:02:00', 2),
-  (2574, 5, 2, '2025-11-08', '2025-11-08 14:01:00', '2025-11-08 22:02:00', 2),
-  (2575, 5, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (2576, 5, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (2577, 5, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (2578, 5, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (2579, 5, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (2580, 5, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (2581, 5, 2, '2025-11-17', '2025-11-17 14:01:00', '2025-11-17 22:02:00', 2),
-  (2582, 5, 2, '2025-11-18', '2025-11-18 14:01:00', '2025-11-18 22:02:00', 2),
-  (2583, 5, 2, '2025-11-19', '2025-11-19 14:01:00', '2025-11-19 22:02:00', 2),
-  (2584, 5, 2, '2025-11-20', '2025-11-20 14:01:00', '2025-11-20 22:02:00', 2),
-  (2585, 5, 2, '2025-11-21', '2025-11-21 14:01:00', '2025-11-21 22:02:00', 2),
-  (2586, 5, 2, '2025-11-22', '2025-11-22 14:01:00', '2025-11-22 22:02:00', 2),
-  (2587, 5, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (2588, 5, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (2589, 5, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (2590, 5, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (2591, 5, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (2592, 5, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (2593, 5, 2, '2025-12-01', '2025-12-01 14:01:00', '2025-12-01 22:02:00', 2),
-  (2594, 5, 2, '2025-12-02', '2025-12-02 14:01:00', '2025-12-02 22:02:00', 2),
-  (2595, 5, 2, '2025-12-03', '2025-12-03 14:01:00', '2025-12-03 22:02:00', 2),
-  (2596, 5, 2, '2025-12-04', '2025-12-04 14:01:00', '2025-12-04 22:02:00', 2),
-  (2597, 5, 2, '2025-12-05', '2025-12-05 14:01:00', '2025-12-05 22:02:00', 2),
-  (2598, 5, 2, '2025-12-06', '2025-12-06 14:01:00', '2025-12-06 22:02:00', 2),
-  (2599, 5, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (2600, 5, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (2601, 5, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (2602, 5, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (2603, 5, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (2604, 5, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (2605, 5, 2, '2025-12-15', '2025-12-15 14:01:00', '2025-12-15 22:02:00', 2),
-  (2606, 5, 2, '2025-12-16', '2025-12-16 14:01:00', '2025-12-16 22:02:00', 2),
-  (2607, 5, 2, '2025-12-17', '2025-12-17 14:01:00', '2025-12-17 22:02:00', 2),
-  (2608, 5, 2, '2025-12-18', '2025-12-18 14:01:00', '2025-12-18 22:02:00', 2),
-  (2609, 5, 2, '2025-12-19', '2025-12-19 14:01:00', '2025-12-19 22:02:00', 2),
-  (2610, 5, 2, '2025-12-20', '2025-12-20 14:01:00', '2025-12-20 22:02:00', 2),
-  (2611, 5, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (2612, 5, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2),
-  (2613, 5, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (2614, 5, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (2615, 5, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (2616, 5, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (2617, 5, 2, '2025-12-29', '2025-12-29 14:01:00', '2025-12-29 22:02:00', 2),
-  (2618, 5, 2, '2025-12-30', '2025-12-30 14:01:00', '2025-12-30 22:02:00', 2),
-  (2619, 5, 2, '2025-12-31', '2025-12-31 14:01:00', '2025-12-31 22:02:00', 2),
-  (2620, 5, 2, '2026-01-01', '2026-01-01 14:01:00', '2026-01-01 22:02:00', 2),
-  (2621, 5, 2, '2026-01-02', '2026-01-02 14:01:00', '2026-01-02 22:02:00', 2),
-  (2622, 5, 2, '2026-01-03', '2026-01-03 14:01:00', '2026-01-03 22:02:00', 2),
-  (2623, 5, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (2624, 5, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (2625, 5, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (2626, 5, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (2627, 5, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (2628, 5, 1, '2026-01-10', '2026-01-10 08:02:00', '2026-01-10 16:01:00', 2),
-  (2629, 5, 2, '2026-01-12', '2026-01-12 14:01:00', '2026-01-12 22:02:00', 2),
-  (2630, 5, 2, '2026-01-13', '2026-01-13 14:01:00', '2026-01-13 22:02:00', 2),
-  (2631, 5, 2, '2026-01-14', '2026-01-14 14:01:00', '2026-01-14 22:02:00', 2),
-  (2632, 5, 2, '2026-01-15', '2026-01-15 14:01:00', '2026-01-15 22:02:00', 2),
-  (2633, 5, 2, '2026-01-16', '2026-01-16 14:01:00', '2026-01-16 22:02:00', 2),
-  (2634, 5, 2, '2026-01-17', '2026-01-17 14:01:00', '2026-01-17 22:02:00', 2),
-  (2635, 5, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (2636, 5, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (2637, 5, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (2638, 5, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (2639, 5, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (2640, 5, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (2641, 5, 2, '2026-01-26', '2026-01-26 14:01:00', '2026-01-26 22:02:00', 2),
-  (2642, 5, 2, '2026-01-27', '2026-01-27 14:01:00', '2026-01-27 22:02:00', 2),
-  (2643, 5, 2, '2026-01-28', '2026-01-28 14:01:00', '2026-01-28 22:02:00', 2),
-  (2644, 5, 2, '2026-01-29', '2026-01-29 14:01:00', '2026-01-29 22:02:00', 2),
-  (2645, 5, 2, '2026-01-30', '2026-01-30 14:01:00', '2026-01-30 22:02:00', 2),
-  (2646, 5, 2, '2026-01-31', '2026-01-31 14:01:00', '2026-01-31 22:02:00', 2),
-  (2647, 5, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (2648, 5, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (2649, 5, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (2650, 5, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (2651, 5, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (2652, 5, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (2653, 5, 2, '2026-02-09', '2026-02-09 14:01:00', '2026-02-09 22:02:00', 2),
-  (2654, 5, 2, '2026-02-10', '2026-02-10 14:01:00', '2026-02-10 22:02:00', 2),
-  (2655, 5, 2, '2026-02-11', '2026-02-11 14:01:00', '2026-02-11 22:02:00', 2),
-  (2656, 5, 2, '2026-02-12', '2026-02-12 14:01:00', '2026-02-12 22:02:00', 2),
-  (2657, 5, 2, '2026-02-13', '2026-02-13 14:01:00', '2026-02-13 22:02:00', 2),
-  (2658, 5, 2, '2026-02-14', '2026-02-14 14:01:00', '2026-02-14 22:02:00', 2),
-  (2659, 5, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (2660, 5, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (2661, 5, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (2662, 5, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (2663, 5, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (2664, 5, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (2665, 5, 2, '2026-02-23', '2026-02-23 14:01:00', '2026-02-23 22:02:00', 2),
-  (2666, 5, 2, '2026-02-24', '2026-02-24 14:01:00', '2026-02-24 22:02:00', 2),
-  (2667, 5, 2, '2026-02-25', '2026-02-25 14:01:00', '2026-02-25 22:02:00', 2),
-  (2668, 5, 2, '2026-02-26', '2026-02-26 14:01:00', '2026-02-26 22:02:00', 2),
-  (2669, 5, 2, '2026-02-27', '2026-02-27 14:01:00', '2026-02-27 22:02:00', 2),
-  (2670, 5, 2, '2026-02-28', '2026-02-28 14:01:00', '2026-02-28 22:02:00', 2),
-  (2671, 5, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (2672, 5, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (2673, 5, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (2674, 5, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (2675, 5, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (2676, 5, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (2677, 5, 2, '2026-03-09', '2026-03-09 14:01:00', '2026-03-09 22:02:00', 2),
-  (2678, 5, 2, '2026-03-10', '2026-03-10 14:01:00', '2026-03-10 22:02:00', 2),
-  (2679, 5, 2, '2026-03-11', '2026-03-11 14:01:00', '2026-03-11 22:02:00', 2),
-  (2680, 5, 2, '2026-03-12', '2026-03-12 14:01:00', '2026-03-12 22:02:00', 2),
-  (2681, 5, 2, '2026-03-13', '2026-03-13 14:01:00', '2026-03-13 22:02:00', 2),
-  (2682, 5, 2, '2026-03-14', '2026-03-14 14:01:00', '2026-03-14 22:02:00', 2),
-  (2683, 5, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (2684, 5, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (2685, 5, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (2686, 5, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (2687, 5, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (2688, 5, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (2689, 5, 2, '2026-03-23', '2026-03-23 14:01:00', '2026-03-23 22:02:00', 2),
-  (2690, 5, 2, '2026-03-24', '2026-03-24 14:01:00', '2026-03-24 22:02:00', 2),
-  (2691, 5, 2, '2026-03-25', '2026-03-25 14:01:00', '2026-03-25 22:02:00', 2),
-  (2692, 5, 2, '2026-03-26', '2026-03-26 14:01:00', '2026-03-26 22:02:00', 2),
-  (2693, 5, 2, '2026-03-27', '2026-03-27 14:01:00', '2026-03-27 22:02:00', 2),
-  (2694, 5, 2, '2026-03-28', '2026-03-28 14:01:00', '2026-03-28 22:02:00', 2),
-  (2695, 5, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (2696, 5, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (2697, 5, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (2698, 5, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (2699, 5, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (2700, 5, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (2701, 5, 2, '2026-04-06', '2026-04-06 14:01:00', '2026-04-06 22:02:00', 2),
-  (2702, 5, 2, '2026-04-07', '2026-04-07 14:01:00', '2026-04-07 22:02:00', 2),
-  (2703, 7, 2, '2025-04-10', '2025-04-10 14:01:00', '2025-04-10 22:02:00', 2),
-  (2704, 7, 2, '2025-04-11', '2025-04-11 14:01:00', '2025-04-11 22:02:00', 2),
-  (2705, 7, 2, '2025-04-12', '2025-04-12 14:01:00', '2025-04-12 22:02:00', 2),
-  (2706, 7, 1, '2025-04-14', '2025-04-14 08:02:00', '2025-04-14 16:01:00', 2),
-  (2707, 7, 1, '2025-04-15', '2025-04-15 08:02:00', '2025-04-15 16:01:00', 2),
-  (2708, 7, 1, '2025-04-16', '2025-04-16 08:02:00', '2025-04-16 16:01:00', 2),
-  (2709, 7, 1, '2025-04-17', '2025-04-17 08:02:00', '2025-04-17 16:01:00', 2),
-  (2710, 7, 1, '2025-04-18', '2025-04-18 08:02:00', '2025-04-18 16:01:00', 2),
-  (2711, 7, 1, '2025-04-19', '2025-04-19 08:02:00', '2025-04-19 16:01:00', 2),
-  (2712, 7, 2, '2025-04-21', '2025-04-21 14:01:00', '2025-04-21 22:02:00', 2),
-  (2713, 7, 2, '2025-04-22', '2025-04-22 14:01:00', '2025-04-22 22:02:00', 2),
-  (2714, 7, 2, '2025-04-23', '2025-04-23 14:01:00', '2025-04-23 22:02:00', 2),
-  (2715, 7, 2, '2025-04-24', '2025-04-24 14:01:00', '2025-04-24 22:02:00', 2),
-  (2716, 7, 2, '2025-04-25', '2025-04-25 14:01:00', '2025-04-25 22:02:00', 2),
-  (2717, 7, 2, '2025-04-26', '2025-04-26 14:01:00', '2025-04-26 22:02:00', 2),
-  (2718, 7, 1, '2025-04-28', '2025-04-28 08:02:00', '2025-04-28 16:01:00', 2),
-  (2719, 7, 1, '2025-04-29', '2025-04-29 08:02:00', '2025-04-29 16:01:00', 2),
-  (2720, 7, 1, '2025-04-30', '2025-04-30 08:02:00', '2025-04-30 16:01:00', 2),
-  (2721, 7, 1, '2025-05-01', '2025-05-01 08:02:00', '2025-05-01 16:01:00', 2),
-  (2722, 7, 1, '2025-05-02', '2025-05-02 08:02:00', '2025-05-02 16:01:00', 2),
-  (2723, 7, 1, '2025-05-03', '2025-05-03 08:02:00', '2025-05-03 16:01:00', 2),
-  (2724, 7, 2, '2025-05-05', '2025-05-05 14:01:00', '2025-05-05 22:02:00', 2),
-  (2725, 7, 2, '2025-05-06', '2025-05-06 14:01:00', '2025-05-06 22:02:00', 2),
-  (2726, 7, 2, '2025-05-07', '2025-05-07 14:01:00', '2025-05-07 22:02:00', 2),
-  (2727, 7, 2, '2025-05-08', '2025-05-08 14:01:00', '2025-05-08 22:02:00', 2),
-  (2728, 7, 2, '2025-05-09', '2025-05-09 14:01:00', '2025-05-09 22:02:00', 2),
-  (2729, 7, 2, '2025-05-10', '2025-05-10 14:01:00', '2025-05-10 22:02:00', 2),
-  (2730, 7, 1, '2025-05-12', '2025-05-12 08:02:00', '2025-05-12 16:01:00', 2),
-  (2731, 7, 1, '2025-05-13', '2025-05-13 08:02:00', '2025-05-13 16:01:00', 2),
-  (2732, 7, 1, '2025-05-14', '2025-05-14 08:02:00', '2025-05-14 16:01:00', 2),
-  (2733, 7, 1, '2025-05-15', '2025-05-15 08:02:00', '2025-05-15 16:01:00', 2),
-  (2734, 7, 1, '2025-05-16', '2025-05-16 08:02:00', '2025-05-16 16:01:00', 2),
-  (2735, 7, 1, '2025-05-17', '2025-05-17 08:02:00', '2025-05-17 16:01:00', 2),
-  (2736, 7, 2, '2025-05-19', '2025-05-19 14:01:00', '2025-05-19 22:02:00', 2),
-  (2737, 7, 2, '2025-05-20', '2025-05-20 14:01:00', '2025-05-20 22:02:00', 2),
-  (2738, 7, 2, '2025-05-21', '2025-05-21 14:01:00', '2025-05-21 22:02:00', 2),
-  (2739, 7, 2, '2025-05-22', '2025-05-22 14:01:00', '2025-05-22 22:02:00', 2),
-  (2740, 7, 2, '2025-05-23', '2025-05-23 14:01:00', '2025-05-23 22:02:00', 2),
-  (2741, 7, 2, '2025-05-24', '2025-05-24 14:01:00', '2025-05-24 22:02:00', 2),
-  (2742, 7, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (2743, 7, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (2744, 7, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (2745, 7, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (2746, 7, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (2747, 7, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (2748, 7, 2, '2025-06-02', '2025-06-02 14:01:00', '2025-06-02 22:02:00', 2),
-  (2749, 7, 2, '2025-06-03', '2025-06-03 14:01:00', '2025-06-03 22:02:00', 2),
-  (2750, 7, 2, '2025-06-04', '2025-06-04 14:01:00', '2025-06-04 22:02:00', 2),
-  (2751, 7, 2, '2025-06-05', '2025-06-05 14:01:00', '2025-06-05 22:02:00', 2),
-  (2752, 7, 2, '2025-06-06', '2025-06-06 14:01:00', '2025-06-06 22:02:00', 2),
-  (2753, 7, 2, '2025-06-07', '2025-06-07 14:01:00', '2025-06-07 22:02:00', 2),
-  (2754, 7, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (2755, 7, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (2756, 7, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (2757, 7, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (2758, 7, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (2759, 7, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (2760, 7, 2, '2025-06-16', '2025-06-16 14:01:00', '2025-06-16 22:02:00', 2),
-  (2761, 7, 2, '2025-06-17', '2025-06-17 14:01:00', '2025-06-17 22:02:00', 2),
-  (2762, 7, 2, '2025-06-18', '2025-06-18 14:01:00', '2025-06-18 22:02:00', 2),
-  (2763, 7, 2, '2025-06-19', '2025-06-19 14:01:00', '2025-06-19 22:02:00', 2),
-  (2764, 7, 2, '2025-06-20', '2025-06-20 14:01:00', '2025-06-20 22:02:00', 2),
-  (2765, 7, 2, '2025-06-21', '2025-06-21 14:01:00', '2025-06-21 22:02:00', 2),
-  (2766, 7, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (2767, 7, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (2768, 7, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (2769, 7, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2),
-  (2770, 7, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (2771, 7, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (2772, 7, 2, '2025-06-30', '2025-06-30 14:01:00', '2025-06-30 22:02:00', 2),
-  (2773, 7, 2, '2025-07-01', '2025-07-01 14:01:00', '2025-07-01 22:02:00', 2),
-  (2774, 7, 2, '2025-07-02', '2025-07-02 14:01:00', '2025-07-02 22:02:00', 2),
-  (2775, 7, 2, '2025-07-03', '2025-07-03 14:01:00', '2025-07-03 22:02:00', 2),
-  (2776, 7, 2, '2025-07-04', '2025-07-04 14:01:00', '2025-07-04 22:02:00', 2),
-  (2777, 7, 2, '2025-07-05', '2025-07-05 14:01:00', '2025-07-05 22:02:00', 2),
-  (2778, 7, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (2779, 7, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (2780, 7, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (2781, 7, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (2782, 7, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (2783, 7, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (2784, 7, 2, '2025-07-14', '2025-07-14 14:01:00', '2025-07-14 22:02:00', 2),
-  (2785, 7, 2, '2025-07-15', '2025-07-15 14:01:00', '2025-07-15 22:02:00', 2),
-  (2786, 7, 2, '2025-07-16', '2025-07-16 14:01:00', '2025-07-16 22:02:00', 2),
-  (2787, 7, 2, '2025-07-17', '2025-07-17 14:01:00', '2025-07-17 22:02:00', 2),
-  (2788, 7, 2, '2025-07-18', '2025-07-18 14:01:00', '2025-07-18 22:02:00', 2),
-  (2789, 7, 2, '2025-07-19', '2025-07-19 14:01:00', '2025-07-19 22:02:00', 2),
-  (2790, 7, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (2791, 7, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (2792, 7, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (2793, 7, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (2794, 7, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (2795, 7, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (2796, 7, 2, '2025-07-28', '2025-07-28 14:01:00', '2025-07-28 22:02:00', 2),
-  (2797, 7, 2, '2025-07-29', '2025-07-29 14:01:00', '2025-07-29 22:02:00', 2),
-  (2798, 7, 2, '2025-07-30', '2025-07-30 14:01:00', '2025-07-30 22:02:00', 2),
-  (2799, 7, 2, '2025-07-31', '2025-07-31 14:01:00', '2025-07-31 22:02:00', 2),
-  (2800, 7, 2, '2025-08-01', '2025-08-01 14:01:00', '2025-08-01 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (2801, 7, 2, '2025-08-02', '2025-08-02 14:01:00', '2025-08-02 22:02:00', 2),
-  (2802, 7, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (2803, 7, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (2804, 7, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (2805, 7, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (2806, 7, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (2807, 7, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (2808, 7, 2, '2025-08-11', '2025-08-11 14:01:00', '2025-08-11 22:02:00', 2),
-  (2809, 7, 2, '2025-08-12', '2025-08-12 14:01:00', '2025-08-12 22:02:00', 2),
-  (2810, 7, 2, '2025-08-13', '2025-08-13 14:01:00', '2025-08-13 22:02:00', 2),
-  (2811, 7, 2, '2025-08-14', '2025-08-14 14:01:00', '2025-08-14 22:02:00', 2),
-  (2812, 7, 2, '2025-08-15', '2025-08-15 14:01:00', '2025-08-15 22:02:00', 2),
-  (2813, 7, 2, '2025-08-16', '2025-08-16 14:01:00', '2025-08-16 22:02:00', 2),
-  (2814, 7, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (2815, 7, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (2816, 7, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (2817, 7, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (2818, 7, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (2819, 7, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (2820, 7, 2, '2025-08-25', '2025-08-25 14:01:00', '2025-08-25 22:02:00', 2),
-  (2821, 7, 2, '2025-08-26', '2025-08-26 14:01:00', '2025-08-26 22:02:00', 2),
-  (2822, 7, 2, '2025-08-27', '2025-08-27 14:01:00', '2025-08-27 22:02:00', 2),
-  (2823, 7, 2, '2025-08-28', '2025-08-28 14:01:00', '2025-08-28 22:02:00', 2),
-  (2824, 7, 2, '2025-08-29', '2025-08-29 14:01:00', '2025-08-29 22:02:00', 2),
-  (2825, 7, 2, '2025-08-30', '2025-08-30 14:01:00', '2025-08-30 22:02:00', 2),
-  (2826, 7, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (2827, 7, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (2828, 7, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (2829, 7, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (2830, 7, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (2831, 7, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (2832, 7, 2, '2025-09-08', '2025-09-08 14:01:00', '2025-09-08 22:02:00', 2),
-  (2833, 7, 2, '2025-09-09', '2025-09-09 14:01:00', '2025-09-09 22:02:00', 2),
-  (2834, 7, 2, '2025-09-10', '2025-09-10 14:01:00', '2025-09-10 22:02:00', 2),
-  (2835, 7, 2, '2025-09-11', '2025-09-11 14:01:00', '2025-09-11 22:02:00', 2),
-  (2836, 7, 2, '2025-09-12', '2025-09-12 14:01:00', '2025-09-12 22:02:00', 2),
-  (2837, 7, 2, '2025-09-13', '2025-09-13 14:01:00', '2025-09-13 22:02:00', 2),
-  (2838, 7, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (2839, 7, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (2840, 7, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2),
-  (2841, 7, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (2842, 7, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (2843, 7, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (2844, 7, 2, '2025-09-22', '2025-09-22 14:01:00', '2025-09-22 22:02:00', 2),
-  (2845, 7, 2, '2025-09-23', '2025-09-23 14:01:00', '2025-09-23 22:02:00', 2),
-  (2846, 7, 2, '2025-09-24', '2025-09-24 14:01:00', '2025-09-24 22:02:00', 2),
-  (2847, 7, 2, '2025-09-25', '2025-09-25 14:01:00', '2025-09-25 22:02:00', 2),
-  (2848, 7, 2, '2025-09-26', '2025-09-26 14:01:00', '2025-09-26 22:02:00', 2),
-  (2849, 7, 2, '2025-09-27', '2025-09-27 14:01:00', '2025-09-27 22:02:00', 2),
-  (2850, 7, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (2851, 7, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (2852, 7, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (2853, 7, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (2854, 7, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (2855, 7, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (2856, 7, 2, '2025-10-06', '2025-10-06 14:01:00', '2025-10-06 22:02:00', 2),
-  (2857, 7, 2, '2025-10-07', '2025-10-07 14:01:00', '2025-10-07 22:02:00', 2),
-  (2858, 7, 2, '2025-10-08', '2025-10-08 14:01:00', '2025-10-08 22:02:00', 2),
-  (2859, 7, 2, '2025-10-09', '2025-10-09 14:01:00', '2025-10-09 22:02:00', 2),
-  (2860, 7, 2, '2025-10-10', '2025-10-10 14:01:00', '2025-10-10 22:02:00', 2),
-  (2861, 7, 2, '2025-10-11', '2025-10-11 14:01:00', '2025-10-11 22:02:00', 2),
-  (2862, 7, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (2863, 7, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (2864, 7, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (2865, 7, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (2866, 7, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (2867, 7, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (2868, 7, 2, '2025-10-20', '2025-10-20 14:01:00', '2025-10-20 22:02:00', 2),
-  (2869, 7, 2, '2025-10-21', '2025-10-21 14:01:00', '2025-10-21 22:02:00', 2),
-  (2870, 7, 2, '2025-10-22', '2025-10-22 14:01:00', '2025-10-22 22:02:00', 2),
-  (2871, 7, 2, '2025-10-23', '2025-10-23 14:01:00', '2025-10-23 22:02:00', 2),
-  (2872, 7, 2, '2025-10-24', '2025-10-24 14:01:00', '2025-10-24 22:02:00', 2),
-  (2873, 7, 2, '2025-10-25', '2025-10-25 14:01:00', '2025-10-25 22:02:00', 2),
-  (2874, 7, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (2875, 7, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (2876, 7, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (2877, 7, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (2878, 7, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (2879, 7, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (2880, 7, 2, '2025-11-03', '2025-11-03 14:01:00', '2025-11-03 22:02:00', 2),
-  (2881, 7, 2, '2025-11-04', '2025-11-04 14:01:00', '2025-11-04 22:02:00', 2),
-  (2882, 7, 2, '2025-11-05', '2025-11-05 14:01:00', '2025-11-05 22:02:00', 2),
-  (2883, 7, 2, '2025-11-06', '2025-11-06 14:01:00', '2025-11-06 22:02:00', 2),
-  (2884, 7, 2, '2025-11-07', '2025-11-07 14:01:00', '2025-11-07 22:02:00', 2),
-  (2885, 7, 2, '2025-11-08', '2025-11-08 14:01:00', '2025-11-08 22:02:00', 2),
-  (2886, 7, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (2887, 7, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (2888, 7, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (2889, 7, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (2890, 7, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (2891, 7, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (2892, 7, 2, '2025-11-17', '2025-11-17 14:01:00', '2025-11-17 22:02:00', 2),
-  (2893, 7, 2, '2025-11-18', '2025-11-18 14:01:00', '2025-11-18 22:02:00', 2),
-  (2894, 7, 2, '2025-11-19', '2025-11-19 14:01:00', '2025-11-19 22:02:00', 2),
-  (2895, 7, 2, '2025-11-20', '2025-11-20 14:01:00', '2025-11-20 22:02:00', 2),
-  (2896, 7, 2, '2025-11-21', '2025-11-21 14:01:00', '2025-11-21 22:02:00', 2),
-  (2897, 7, 2, '2025-11-22', '2025-11-22 14:01:00', '2025-11-22 22:02:00', 2),
-  (2898, 7, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (2899, 7, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (2900, 7, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (2901, 7, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (2902, 7, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (2903, 7, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (2904, 7, 2, '2025-12-01', '2025-12-01 14:01:00', '2025-12-01 22:02:00', 2),
-  (2905, 7, 2, '2025-12-02', '2025-12-02 14:01:00', '2025-12-02 22:02:00', 2),
-  (2906, 7, 2, '2025-12-03', '2025-12-03 14:01:00', '2025-12-03 22:02:00', 2),
-  (2907, 7, 2, '2025-12-04', '2025-12-04 14:01:00', '2025-12-04 22:02:00', 2),
-  (2908, 7, 2, '2025-12-05', '2025-12-05 14:01:00', '2025-12-05 22:02:00', 2),
-  (2909, 7, 2, '2025-12-06', '2025-12-06 14:01:00', '2025-12-06 22:02:00', 2),
-  (2910, 7, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (2911, 7, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2),
-  (2912, 7, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (2913, 7, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (2914, 7, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (2915, 7, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (2916, 7, 2, '2025-12-15', '2025-12-15 14:01:00', '2025-12-15 22:02:00', 2),
-  (2917, 7, 2, '2025-12-16', '2025-12-16 14:01:00', '2025-12-16 22:02:00', 2),
-  (2918, 7, 2, '2025-12-17', '2025-12-17 14:01:00', '2025-12-17 22:02:00', 2),
-  (2919, 7, 2, '2025-12-18', '2025-12-18 14:01:00', '2025-12-18 22:02:00', 2),
-  (2920, 7, 2, '2025-12-19', '2025-12-19 14:01:00', '2025-12-19 22:02:00', 2),
-  (2921, 7, 2, '2025-12-20', '2025-12-20 14:01:00', '2025-12-20 22:02:00', 2),
-  (2922, 7, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (2923, 7, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2),
-  (2924, 7, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (2925, 7, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (2926, 7, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (2927, 7, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (2928, 7, 2, '2025-12-29', '2025-12-29 14:01:00', '2025-12-29 22:02:00', 2),
-  (2929, 7, 2, '2025-12-30', '2025-12-30 14:01:00', '2025-12-30 22:02:00', 2),
-  (2930, 7, 2, '2025-12-31', '2025-12-31 14:01:00', '2025-12-31 22:02:00', 2),
-  (2931, 7, 2, '2026-01-01', '2026-01-01 14:01:00', '2026-01-01 22:02:00', 2),
-  (2932, 7, 2, '2026-01-02', '2026-01-02 14:01:00', '2026-01-02 22:02:00', 2),
-  (2933, 7, 2, '2026-01-03', '2026-01-03 14:01:00', '2026-01-03 22:02:00', 2),
-  (2934, 7, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (2935, 7, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (2936, 7, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (2937, 7, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (2938, 7, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (2939, 7, 1, '2026-01-10', '2026-01-10 08:02:00', '2026-01-10 16:01:00', 2),
-  (2940, 7, 2, '2026-01-12', '2026-01-12 14:01:00', '2026-01-12 22:02:00', 2),
-  (2941, 7, 2, '2026-01-13', '2026-01-13 14:01:00', '2026-01-13 22:02:00', 2),
-  (2942, 7, 2, '2026-01-14', '2026-01-14 14:01:00', '2026-01-14 22:02:00', 2),
-  (2943, 7, 2, '2026-01-15', '2026-01-15 14:01:00', '2026-01-15 22:02:00', 2),
-  (2944, 7, 2, '2026-01-16', '2026-01-16 14:01:00', '2026-01-16 22:02:00', 2),
-  (2945, 7, 2, '2026-01-17', '2026-01-17 14:01:00', '2026-01-17 22:02:00', 2),
-  (2946, 7, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (2947, 7, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (2948, 7, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (2949, 7, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (2950, 7, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (2951, 7, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (2952, 7, 2, '2026-01-26', '2026-01-26 14:01:00', '2026-01-26 22:02:00', 2),
-  (2953, 7, 2, '2026-01-27', '2026-01-27 14:01:00', '2026-01-27 22:02:00', 2),
-  (2954, 7, 2, '2026-01-28', '2026-01-28 14:01:00', '2026-01-28 22:02:00', 2),
-  (2955, 7, 2, '2026-01-29', '2026-01-29 14:01:00', '2026-01-29 22:02:00', 2),
-  (2956, 7, 2, '2026-01-30', '2026-01-30 14:01:00', '2026-01-30 22:02:00', 2),
-  (2957, 7, 2, '2026-01-31', '2026-01-31 14:01:00', '2026-01-31 22:02:00', 2),
-  (2958, 7, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (2959, 7, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (2960, 7, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (2961, 7, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (2962, 7, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (2963, 7, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (2964, 7, 2, '2026-02-09', '2026-02-09 14:01:00', '2026-02-09 22:02:00', 2),
-  (2965, 7, 2, '2026-02-10', '2026-02-10 14:01:00', '2026-02-10 22:02:00', 2),
-  (2966, 7, 2, '2026-02-11', '2026-02-11 14:01:00', '2026-02-11 22:02:00', 2),
-  (2967, 7, 2, '2026-02-12', '2026-02-12 14:01:00', '2026-02-12 22:02:00', 2),
-  (2968, 7, 2, '2026-02-13', '2026-02-13 14:01:00', '2026-02-13 22:02:00', 2),
-  (2969, 7, 2, '2026-02-14', '2026-02-14 14:01:00', '2026-02-14 22:02:00', 2),
-  (2970, 7, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (2971, 7, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (2972, 7, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (2973, 7, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (2974, 7, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (2975, 7, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (2976, 7, 2, '2026-02-23', '2026-02-23 14:01:00', '2026-02-23 22:02:00', 2),
-  (2977, 7, 2, '2026-02-24', '2026-02-24 14:01:00', '2026-02-24 22:02:00', 2),
-  (2978, 7, 2, '2026-02-25', '2026-02-25 14:01:00', '2026-02-25 22:02:00', 2),
-  (2979, 7, 2, '2026-02-26', '2026-02-26 14:01:00', '2026-02-26 22:02:00', 2),
-  (2980, 7, 2, '2026-02-27', '2026-02-27 14:01:00', '2026-02-27 22:02:00', 2),
-  (2981, 7, 2, '2026-02-28', '2026-02-28 14:01:00', '2026-02-28 22:02:00', 2),
-  (2982, 7, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (2983, 7, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (2984, 7, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (2985, 7, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (2986, 7, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (2987, 7, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (2988, 7, 2, '2026-03-09', '2026-03-09 14:01:00', '2026-03-09 22:02:00', 2),
-  (2989, 7, 2, '2026-03-10', '2026-03-10 14:01:00', '2026-03-10 22:02:00', 2),
-  (2990, 7, 2, '2026-03-11', '2026-03-11 14:01:00', '2026-03-11 22:02:00', 2),
-  (2991, 7, 2, '2026-03-12', '2026-03-12 14:01:00', '2026-03-12 22:02:00', 2),
-  (2992, 7, 2, '2026-03-13', '2026-03-13 14:01:00', '2026-03-13 22:02:00', 2),
-  (2993, 7, 2, '2026-03-14', '2026-03-14 14:01:00', '2026-03-14 22:02:00', 2),
-  (2994, 7, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (2995, 7, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (2996, 7, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (2997, 7, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (2998, 7, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (2999, 7, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (3000, 7, 2, '2026-03-23', '2026-03-23 14:01:00', '2026-03-23 22:02:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (3001, 7, 2, '2026-03-24', '2026-03-24 14:01:00', '2026-03-24 22:02:00', 2),
-  (3002, 7, 2, '2026-03-25', '2026-03-25 14:01:00', '2026-03-25 22:02:00', 2),
-  (3003, 7, 2, '2026-03-26', '2026-03-26 14:01:00', '2026-03-26 22:02:00', 2),
-  (3004, 7, 2, '2026-03-27', '2026-03-27 14:01:00', '2026-03-27 22:02:00', 2),
-  (3005, 7, 2, '2026-03-28', '2026-03-28 14:01:00', '2026-03-28 22:02:00', 2),
-  (3006, 7, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (3007, 7, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (3008, 7, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (3009, 7, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (3010, 7, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (3011, 7, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (3012, 7, 2, '2026-04-06', '2026-04-06 14:01:00', '2026-04-06 22:02:00', 2),
-  (3013, 7, 2, '2026-04-07', '2026-04-07 14:01:00', '2026-04-07 22:02:00', 2),
-  (3014, 8, 2, '2025-05-20', '2025-05-20 14:01:00', '2025-05-20 22:02:00', 2),
-  (3015, 8, 2, '2025-05-21', '2025-05-21 14:01:00', '2025-05-21 22:02:00', 2),
-  (3016, 8, 2, '2025-05-22', '2025-05-22 14:01:00', '2025-05-22 22:02:00', 2),
-  (3017, 8, 2, '2025-05-23', '2025-05-23 14:01:00', '2025-05-23 22:02:00', 2),
-  (3018, 8, 2, '2025-05-24', '2025-05-24 14:01:00', '2025-05-24 22:02:00', 2),
-  (3019, 8, 1, '2025-05-26', '2025-05-26 08:02:00', '2025-05-26 16:01:00', 2),
-  (3020, 8, 1, '2025-05-27', '2025-05-27 08:02:00', '2025-05-27 16:01:00', 2),
-  (3021, 8, 1, '2025-05-28', '2025-05-28 08:02:00', '2025-05-28 16:01:00', 2),
-  (3022, 8, 1, '2025-05-29', '2025-05-29 08:02:00', '2025-05-29 16:01:00', 2),
-  (3023, 8, 1, '2025-05-30', '2025-05-30 08:02:00', '2025-05-30 16:01:00', 2),
-  (3024, 8, 1, '2025-05-31', '2025-05-31 08:02:00', '2025-05-31 16:01:00', 2),
-  (3025, 8, 2, '2025-06-02', '2025-06-02 14:01:00', '2025-06-02 22:02:00', 2),
-  (3026, 8, 2, '2025-06-03', '2025-06-03 14:01:00', '2025-06-03 22:02:00', 2),
-  (3027, 8, 2, '2025-06-04', '2025-06-04 14:01:00', '2025-06-04 22:02:00', 2),
-  (3028, 8, 2, '2025-06-05', '2025-06-05 14:01:00', '2025-06-05 22:02:00', 2),
-  (3029, 8, 2, '2025-06-06', '2025-06-06 14:01:00', '2025-06-06 22:02:00', 2),
-  (3030, 8, 2, '2025-06-07', '2025-06-07 14:01:00', '2025-06-07 22:02:00', 2),
-  (3031, 8, 1, '2025-06-09', '2025-06-09 08:02:00', '2025-06-09 16:01:00', 2),
-  (3032, 8, 1, '2025-06-10', '2025-06-10 08:02:00', '2025-06-10 16:01:00', 2),
-  (3033, 8, 1, '2025-06-11', '2025-06-11 08:02:00', '2025-06-11 16:01:00', 2),
-  (3034, 8, 1, '2025-06-12', '2025-06-12 08:02:00', '2025-06-12 16:01:00', 2),
-  (3035, 8, 1, '2025-06-13', '2025-06-13 08:02:00', '2025-06-13 16:01:00', 2),
-  (3036, 8, 1, '2025-06-14', '2025-06-14 08:02:00', '2025-06-14 16:01:00', 2),
-  (3037, 8, 2, '2025-06-16', '2025-06-16 14:01:00', '2025-06-16 22:02:00', 2),
-  (3038, 8, 2, '2025-06-17', '2025-06-17 14:01:00', '2025-06-17 22:02:00', 2),
-  (3039, 8, 2, '2025-06-18', '2025-06-18 14:01:00', '2025-06-18 22:02:00', 2),
-  (3040, 8, 2, '2025-06-19', '2025-06-19 14:01:00', '2025-06-19 22:02:00', 2),
-  (3041, 8, 2, '2025-06-20', '2025-06-20 14:01:00', '2025-06-20 22:02:00', 2),
-  (3042, 8, 2, '2025-06-21', '2025-06-21 14:01:00', '2025-06-21 22:02:00', 2),
-  (3043, 8, 1, '2025-06-23', '2025-06-23 08:02:00', '2025-06-23 16:01:00', 2),
-  (3044, 8, 1, '2025-06-24', '2025-06-24 08:02:00', '2025-06-24 16:01:00', 2),
-  (3045, 8, 1, '2025-06-25', '2025-06-25 08:02:00', '2025-06-25 16:01:00', 2),
-  (3046, 8, 1, '2025-06-26', '2025-06-26 08:02:00', '2025-06-26 16:01:00', 2),
-  (3047, 8, 1, '2025-06-27', '2025-06-27 08:02:00', '2025-06-27 16:01:00', 2),
-  (3048, 8, 1, '2025-06-28', '2025-06-28 08:02:00', '2025-06-28 16:01:00', 2),
-  (3049, 8, 2, '2025-06-30', '2025-06-30 14:01:00', '2025-06-30 22:02:00', 2),
-  (3050, 8, 2, '2025-07-01', '2025-07-01 14:01:00', '2025-07-01 22:02:00', 2),
-  (3051, 8, 2, '2025-07-02', '2025-07-02 14:01:00', '2025-07-02 22:02:00', 2),
-  (3052, 8, 2, '2025-07-03', '2025-07-03 14:01:00', '2025-07-03 22:02:00', 2),
-  (3053, 8, 2, '2025-07-04', '2025-07-04 14:01:00', '2025-07-04 22:02:00', 2),
-  (3054, 8, 2, '2025-07-05', '2025-07-05 14:01:00', '2025-07-05 22:02:00', 2),
-  (3055, 8, 1, '2025-07-07', '2025-07-07 08:02:00', '2025-07-07 16:01:00', 2),
-  (3056, 8, 1, '2025-07-08', '2025-07-08 08:02:00', '2025-07-08 16:01:00', 2),
-  (3057, 8, 1, '2025-07-09', '2025-07-09 08:02:00', '2025-07-09 16:01:00', 2),
-  (3058, 8, 1, '2025-07-10', '2025-07-10 08:02:00', '2025-07-10 16:01:00', 2),
-  (3059, 8, 1, '2025-07-11', '2025-07-11 08:02:00', '2025-07-11 16:01:00', 2),
-  (3060, 8, 1, '2025-07-12', '2025-07-12 08:02:00', '2025-07-12 16:01:00', 2),
-  (3061, 8, 2, '2025-07-14', '2025-07-14 14:01:00', '2025-07-14 22:02:00', 2),
-  (3062, 8, 2, '2025-07-15', '2025-07-15 14:01:00', '2025-07-15 22:02:00', 2),
-  (3063, 8, 2, '2025-07-16', '2025-07-16 14:01:00', '2025-07-16 22:02:00', 2),
-  (3064, 8, 2, '2025-07-17', '2025-07-17 14:01:00', '2025-07-17 22:02:00', 2),
-  (3065, 8, 2, '2025-07-18', '2025-07-18 14:01:00', '2025-07-18 22:02:00', 2),
-  (3066, 8, 2, '2025-07-19', '2025-07-19 14:01:00', '2025-07-19 22:02:00', 2),
-  (3067, 8, 1, '2025-07-21', '2025-07-21 08:02:00', '2025-07-21 16:01:00', 2),
-  (3068, 8, 1, '2025-07-22', '2025-07-22 08:02:00', '2025-07-22 16:01:00', 2),
-  (3069, 8, 1, '2025-07-23', '2025-07-23 08:02:00', '2025-07-23 16:01:00', 2),
-  (3070, 8, 1, '2025-07-24', '2025-07-24 08:02:00', '2025-07-24 16:01:00', 2),
-  (3071, 8, 1, '2025-07-25', '2025-07-25 08:02:00', '2025-07-25 16:01:00', 2),
-  (3072, 8, 1, '2025-07-26', '2025-07-26 08:02:00', '2025-07-26 16:01:00', 2),
-  (3073, 8, 2, '2025-07-28', '2025-07-28 14:01:00', '2025-07-28 22:02:00', 2),
-  (3074, 8, 2, '2025-07-29', '2025-07-29 14:01:00', '2025-07-29 22:02:00', 2),
-  (3075, 8, 2, '2025-07-30', '2025-07-30 14:01:00', '2025-07-30 22:02:00', 2),
-  (3076, 8, 2, '2025-07-31', '2025-07-31 14:01:00', '2025-07-31 22:02:00', 2),
-  (3077, 8, 2, '2025-08-01', '2025-08-01 14:01:00', '2025-08-01 22:02:00', 2),
-  (3078, 8, 2, '2025-08-02', '2025-08-02 14:01:00', '2025-08-02 22:02:00', 2),
-  (3079, 8, 1, '2025-08-04', '2025-08-04 08:02:00', '2025-08-04 16:01:00', 2),
-  (3080, 8, 1, '2025-08-05', '2025-08-05 08:02:00', '2025-08-05 16:01:00', 2),
-  (3081, 8, 1, '2025-08-06', '2025-08-06 08:02:00', '2025-08-06 16:01:00', 2),
-  (3082, 8, 1, '2025-08-07', '2025-08-07 08:02:00', '2025-08-07 16:01:00', 2),
-  (3083, 8, 1, '2025-08-08', '2025-08-08 08:02:00', '2025-08-08 16:01:00', 2),
-  (3084, 8, 1, '2025-08-09', '2025-08-09 08:02:00', '2025-08-09 16:01:00', 2),
-  (3085, 8, 2, '2025-08-11', '2025-08-11 14:01:00', '2025-08-11 22:02:00', 2),
-  (3086, 8, 2, '2025-08-12', '2025-08-12 14:01:00', '2025-08-12 22:02:00', 2),
-  (3087, 8, 2, '2025-08-13', '2025-08-13 14:01:00', '2025-08-13 22:02:00', 2),
-  (3088, 8, 2, '2025-08-14', '2025-08-14 14:01:00', '2025-08-14 22:02:00', 2),
-  (3089, 8, 2, '2025-08-15', '2025-08-15 14:01:00', '2025-08-15 22:02:00', 2),
-  (3090, 8, 2, '2025-08-16', '2025-08-16 14:01:00', '2025-08-16 22:02:00', 2),
-  (3091, 8, 1, '2025-08-18', '2025-08-18 08:02:00', '2025-08-18 16:01:00', 2),
-  (3092, 8, 1, '2025-08-19', '2025-08-19 08:02:00', '2025-08-19 16:01:00', 2),
-  (3093, 8, 1, '2025-08-20', '2025-08-20 08:02:00', '2025-08-20 16:01:00', 2),
-  (3094, 8, 1, '2025-08-21', '2025-08-21 08:02:00', '2025-08-21 16:01:00', 2),
-  (3095, 8, 1, '2025-08-22', '2025-08-22 08:02:00', '2025-08-22 16:01:00', 2),
-  (3096, 8, 1, '2025-08-23', '2025-08-23 08:02:00', '2025-08-23 16:01:00', 2),
-  (3097, 8, 2, '2025-08-25', '2025-08-25 14:01:00', '2025-08-25 22:02:00', 2),
-  (3098, 8, 2, '2025-08-26', '2025-08-26 14:01:00', '2025-08-26 22:02:00', 2),
-  (3099, 8, 2, '2025-08-27', '2025-08-27 14:01:00', '2025-08-27 22:02:00', 2),
-  (3100, 8, 2, '2025-08-28', '2025-08-28 14:01:00', '2025-08-28 22:02:00', 2),
-  (3101, 8, 2, '2025-08-29', '2025-08-29 14:01:00', '2025-08-29 22:02:00', 2),
-  (3102, 8, 2, '2025-08-30', '2025-08-30 14:01:00', '2025-08-30 22:02:00', 2),
-  (3103, 8, 1, '2025-09-01', '2025-09-01 08:02:00', '2025-09-01 16:01:00', 2),
-  (3104, 8, 1, '2025-09-02', '2025-09-02 08:02:00', '2025-09-02 16:01:00', 2),
-  (3105, 8, 1, '2025-09-03', '2025-09-03 08:02:00', '2025-09-03 16:01:00', 2),
-  (3106, 8, 1, '2025-09-04', '2025-09-04 08:02:00', '2025-09-04 16:01:00', 2),
-  (3107, 8, 1, '2025-09-05', '2025-09-05 08:02:00', '2025-09-05 16:01:00', 2),
-  (3108, 8, 1, '2025-09-06', '2025-09-06 08:02:00', '2025-09-06 16:01:00', 2),
-  (3109, 8, 2, '2025-09-08', '2025-09-08 14:01:00', '2025-09-08 22:02:00', 2),
-  (3110, 8, 2, '2025-09-09', '2025-09-09 14:01:00', '2025-09-09 22:02:00', 2),
-  (3111, 8, 2, '2025-09-10', '2025-09-10 14:01:00', '2025-09-10 22:02:00', 2),
-  (3112, 8, 2, '2025-09-11', '2025-09-11 14:01:00', '2025-09-11 22:02:00', 2),
-  (3113, 8, 2, '2025-09-12', '2025-09-12 14:01:00', '2025-09-12 22:02:00', 2),
-  (3114, 8, 2, '2025-09-13', '2025-09-13 14:01:00', '2025-09-13 22:02:00', 2),
-  (3115, 8, 1, '2025-09-15', '2025-09-15 08:02:00', '2025-09-15 16:01:00', 2),
-  (3116, 8, 1, '2025-09-16', '2025-09-16 08:02:00', '2025-09-16 16:01:00', 2),
-  (3117, 8, 1, '2025-09-17', '2025-09-17 08:02:00', '2025-09-17 16:01:00', 2),
-  (3118, 8, 1, '2025-09-18', '2025-09-18 08:02:00', '2025-09-18 16:01:00', 2),
-  (3119, 8, 1, '2025-09-19', '2025-09-19 08:02:00', '2025-09-19 16:01:00', 2),
-  (3120, 8, 1, '2025-09-20', '2025-09-20 08:02:00', '2025-09-20 16:01:00', 2),
-  (3121, 8, 2, '2025-09-22', '2025-09-22 14:01:00', '2025-09-22 22:02:00', 2),
-  (3122, 8, 2, '2025-09-23', '2025-09-23 14:01:00', '2025-09-23 22:02:00', 2),
-  (3123, 8, 2, '2025-09-24', '2025-09-24 14:01:00', '2025-09-24 22:02:00', 2),
-  (3124, 8, 2, '2025-09-25', '2025-09-25 14:01:00', '2025-09-25 22:02:00', 2),
-  (3125, 8, 2, '2025-09-26', '2025-09-26 14:01:00', '2025-09-26 22:02:00', 2),
-  (3126, 8, 2, '2025-09-27', '2025-09-27 14:01:00', '2025-09-27 22:02:00', 2),
-  (3127, 8, 1, '2025-09-29', '2025-09-29 08:02:00', '2025-09-29 16:01:00', 2),
-  (3128, 8, 1, '2025-09-30', '2025-09-30 08:02:00', '2025-09-30 16:01:00', 2),
-  (3129, 8, 1, '2025-10-01', '2025-10-01 08:02:00', '2025-10-01 16:01:00', 2),
-  (3130, 8, 1, '2025-10-02', '2025-10-02 08:02:00', '2025-10-02 16:01:00', 2),
-  (3131, 8, 1, '2025-10-03', '2025-10-03 08:02:00', '2025-10-03 16:01:00', 2),
-  (3132, 8, 1, '2025-10-04', '2025-10-04 08:02:00', '2025-10-04 16:01:00', 2),
-  (3133, 8, 2, '2025-10-06', '2025-10-06 14:01:00', '2025-10-06 22:02:00', 2),
-  (3134, 8, 2, '2025-10-07', '2025-10-07 14:01:00', '2025-10-07 22:02:00', 2),
-  (3135, 8, 2, '2025-10-08', '2025-10-08 14:01:00', '2025-10-08 22:02:00', 2),
-  (3136, 8, 2, '2025-10-09', '2025-10-09 14:01:00', '2025-10-09 22:02:00', 2),
-  (3137, 8, 2, '2025-10-10', '2025-10-10 14:01:00', '2025-10-10 22:02:00', 2),
-  (3138, 8, 2, '2025-10-11', '2025-10-11 14:01:00', '2025-10-11 22:02:00', 2),
-  (3139, 8, 1, '2025-10-13', '2025-10-13 08:02:00', '2025-10-13 16:01:00', 2),
-  (3140, 8, 1, '2025-10-14', '2025-10-14 08:02:00', '2025-10-14 16:01:00', 2),
-  (3141, 8, 1, '2025-10-15', '2025-10-15 08:02:00', '2025-10-15 16:01:00', 2),
-  (3142, 8, 1, '2025-10-16', '2025-10-16 08:02:00', '2025-10-16 16:01:00', 2),
-  (3143, 8, 1, '2025-10-17', '2025-10-17 08:02:00', '2025-10-17 16:01:00', 2),
-  (3144, 8, 1, '2025-10-18', '2025-10-18 08:02:00', '2025-10-18 16:01:00', 2),
-  (3145, 8, 2, '2025-10-20', '2025-10-20 14:01:00', '2025-10-20 22:02:00', 2),
-  (3146, 8, 2, '2025-10-21', '2025-10-21 14:01:00', '2025-10-21 22:02:00', 2),
-  (3147, 8, 2, '2025-10-22', '2025-10-22 14:01:00', '2025-10-22 22:02:00', 2),
-  (3148, 8, 2, '2025-10-23', '2025-10-23 14:01:00', '2025-10-23 22:02:00', 2),
-  (3149, 8, 2, '2025-10-24', '2025-10-24 14:01:00', '2025-10-24 22:02:00', 2),
-  (3150, 8, 2, '2025-10-25', '2025-10-25 14:01:00', '2025-10-25 22:02:00', 2),
-  (3151, 8, 1, '2025-10-27', '2025-10-27 08:02:00', '2025-10-27 16:01:00', 2),
-  (3152, 8, 1, '2025-10-28', '2025-10-28 08:02:00', '2025-10-28 16:01:00', 2),
-  (3153, 8, 1, '2025-10-29', '2025-10-29 08:02:00', '2025-10-29 16:01:00', 2),
-  (3154, 8, 1, '2025-10-30', '2025-10-30 08:02:00', '2025-10-30 16:01:00', 2),
-  (3155, 8, 1, '2025-10-31', '2025-10-31 08:02:00', '2025-10-31 16:01:00', 2),
-  (3156, 8, 1, '2025-11-01', '2025-11-01 08:02:00', '2025-11-01 16:01:00', 2),
-  (3157, 8, 2, '2025-11-03', '2025-11-03 14:01:00', '2025-11-03 22:02:00', 2),
-  (3158, 8, 2, '2025-11-04', '2025-11-04 14:01:00', '2025-11-04 22:02:00', 2),
-  (3159, 8, 2, '2025-11-05', '2025-11-05 14:01:00', '2025-11-05 22:02:00', 2),
-  (3160, 8, 2, '2025-11-06', '2025-11-06 14:01:00', '2025-11-06 22:02:00', 2),
-  (3161, 8, 2, '2025-11-07', '2025-11-07 14:01:00', '2025-11-07 22:02:00', 2),
-  (3162, 8, 2, '2025-11-08', '2025-11-08 14:01:00', '2025-11-08 22:02:00', 2),
-  (3163, 8, 1, '2025-11-10', '2025-11-10 08:02:00', '2025-11-10 16:01:00', 2),
-  (3164, 8, 1, '2025-11-11', '2025-11-11 08:02:00', '2025-11-11 16:01:00', 2),
-  (3165, 8, 1, '2025-11-12', '2025-11-12 08:02:00', '2025-11-12 16:01:00', 2),
-  (3166, 8, 1, '2025-11-13', '2025-11-13 08:02:00', '2025-11-13 16:01:00', 2),
-  (3167, 8, 1, '2025-11-14', '2025-11-14 08:02:00', '2025-11-14 16:01:00', 2),
-  (3168, 8, 1, '2025-11-15', '2025-11-15 08:02:00', '2025-11-15 16:01:00', 2),
-  (3169, 8, 2, '2025-11-17', '2025-11-17 14:01:00', '2025-11-17 22:02:00', 2),
-  (3170, 8, 2, '2025-11-18', '2025-11-18 14:01:00', '2025-11-18 22:02:00', 2),
-  (3171, 8, 2, '2025-11-19', '2025-11-19 14:01:00', '2025-11-19 22:02:00', 2),
-  (3172, 8, 2, '2025-11-20', '2025-11-20 14:01:00', '2025-11-20 22:02:00', 2),
-  (3173, 8, 2, '2025-11-21', '2025-11-21 14:01:00', '2025-11-21 22:02:00', 2),
-  (3174, 8, 2, '2025-11-22', '2025-11-22 14:01:00', '2025-11-22 22:02:00', 2),
-  (3175, 8, 1, '2025-11-24', '2025-11-24 08:02:00', '2025-11-24 16:01:00', 2),
-  (3176, 8, 1, '2025-11-25', '2025-11-25 08:02:00', '2025-11-25 16:01:00', 2),
-  (3177, 8, 1, '2025-11-26', '2025-11-26 08:02:00', '2025-11-26 16:01:00', 2),
-  (3178, 8, 1, '2025-11-27', '2025-11-27 08:02:00', '2025-11-27 16:01:00', 2),
-  (3179, 8, 1, '2025-11-28', '2025-11-28 08:02:00', '2025-11-28 16:01:00', 2),
-  (3180, 8, 1, '2025-11-29', '2025-11-29 08:02:00', '2025-11-29 16:01:00', 2),
-  (3181, 8, 2, '2025-12-01', '2025-12-01 14:01:00', '2025-12-01 22:02:00', 2),
-  (3182, 8, 2, '2025-12-02', '2025-12-02 14:01:00', '2025-12-02 22:02:00', 2),
-  (3183, 8, 2, '2025-12-03', '2025-12-03 14:01:00', '2025-12-03 22:02:00', 2),
-  (3184, 8, 2, '2025-12-04', '2025-12-04 14:01:00', '2025-12-04 22:02:00', 2),
-  (3185, 8, 2, '2025-12-05', '2025-12-05 14:01:00', '2025-12-05 22:02:00', 2),
-  (3186, 8, 2, '2025-12-06', '2025-12-06 14:01:00', '2025-12-06 22:02:00', 2),
-  (3187, 8, 1, '2025-12-08', '2025-12-08 08:02:00', '2025-12-08 16:01:00', 2),
-  (3188, 8, 1, '2025-12-09', '2025-12-09 08:02:00', '2025-12-09 16:01:00', 2),
-  (3189, 8, 1, '2025-12-10', '2025-12-10 08:02:00', '2025-12-10 16:01:00', 2),
-  (3190, 8, 1, '2025-12-11', '2025-12-11 08:02:00', '2025-12-11 16:01:00', 2),
-  (3191, 8, 1, '2025-12-12', '2025-12-12 08:02:00', '2025-12-12 16:01:00', 2),
-  (3192, 8, 1, '2025-12-13', '2025-12-13 08:02:00', '2025-12-13 16:01:00', 2),
-  (3193, 8, 2, '2025-12-15', '2025-12-15 14:01:00', '2025-12-15 22:02:00', 2),
-  (3194, 8, 2, '2025-12-16', '2025-12-16 14:01:00', '2025-12-16 22:02:00', 2),
-  (3195, 8, 2, '2025-12-17', '2025-12-17 14:01:00', '2025-12-17 22:02:00', 2),
-  (3196, 8, 2, '2025-12-18', '2025-12-18 14:01:00', '2025-12-18 22:02:00', 2),
-  (3197, 8, 2, '2025-12-19', '2025-12-19 14:01:00', '2025-12-19 22:02:00', 2),
-  (3198, 8, 2, '2025-12-20', '2025-12-20 14:01:00', '2025-12-20 22:02:00', 2),
-  (3199, 8, 1, '2025-12-22', '2025-12-22 08:02:00', '2025-12-22 16:01:00', 2),
-  (3200, 8, 1, '2025-12-23', '2025-12-23 08:02:00', '2025-12-23 16:01:00', 2);
-
-INSERT INTO `PHANCALAM` (`MPCL`, `MNV`, `MCA`, `NGAY`, `GIO_CHECKIN`, `GIO_CHECKOUT`, `TT`) VALUES
-  (3201, 8, 1, '2025-12-24', '2025-12-24 08:02:00', '2025-12-24 16:01:00', 2),
-  (3202, 8, 1, '2025-12-25', '2025-12-25 08:02:00', '2025-12-25 16:01:00', 2),
-  (3203, 8, 1, '2025-12-26', '2025-12-26 08:02:00', '2025-12-26 16:01:00', 2),
-  (3204, 8, 1, '2025-12-27', '2025-12-27 08:02:00', '2025-12-27 16:01:00', 2),
-  (3205, 8, 2, '2025-12-29', '2025-12-29 14:01:00', '2025-12-29 22:02:00', 2),
-  (3206, 8, 2, '2025-12-30', '2025-12-30 14:01:00', '2025-12-30 22:02:00', 2),
-  (3207, 8, 2, '2025-12-31', '2025-12-31 14:01:00', '2025-12-31 22:02:00', 2),
-  (3208, 8, 2, '2026-01-01', '2026-01-01 14:01:00', '2026-01-01 22:02:00', 2),
-  (3209, 8, 2, '2026-01-02', '2026-01-02 14:01:00', '2026-01-02 22:02:00', 2),
-  (3210, 8, 2, '2026-01-03', '2026-01-03 14:01:00', '2026-01-03 22:02:00', 2),
-  (3211, 8, 1, '2026-01-05', '2026-01-05 08:02:00', '2026-01-05 16:01:00', 2),
-  (3212, 8, 1, '2026-01-06', '2026-01-06 08:02:00', '2026-01-06 16:01:00', 2),
-  (3213, 8, 1, '2026-01-07', '2026-01-07 08:02:00', '2026-01-07 16:01:00', 2),
-  (3214, 8, 1, '2026-01-08', '2026-01-08 08:02:00', '2026-01-08 16:01:00', 2),
-  (3215, 8, 1, '2026-01-09', '2026-01-09 08:02:00', '2026-01-09 16:01:00', 2),
-  (3216, 8, 1, '2026-01-10', NULL, NULL, 3), -- Nghỉ không lương (MDN17) - không chấm công
-  (3217, 8, 2, '2026-01-12', '2026-01-12 14:01:00', '2026-01-12 22:02:00', 2),
-  (3218, 8, 2, '2026-01-13', '2026-01-13 14:01:00', '2026-01-13 22:02:00', 2),
-  (3219, 8, 2, '2026-01-14', '2026-01-14 14:01:00', '2026-01-14 22:02:00', 2),
-  (3220, 8, 2, '2026-01-15', '2026-01-15 14:01:00', '2026-01-15 22:02:00', 2),
-  (3221, 8, 2, '2026-01-16', '2026-01-16 14:01:00', '2026-01-16 22:02:00', 2),
-  (3222, 8, 2, '2026-01-17', '2026-01-17 14:01:00', '2026-01-17 22:02:00', 2),
-  (3223, 8, 1, '2026-01-19', '2026-01-19 08:02:00', '2026-01-19 16:01:00', 2),
-  (3224, 8, 1, '2026-01-20', '2026-01-20 08:02:00', '2026-01-20 16:01:00', 2),
-  (3225, 8, 1, '2026-01-21', '2026-01-21 08:02:00', '2026-01-21 16:01:00', 2),
-  (3226, 8, 1, '2026-01-22', '2026-01-22 08:02:00', '2026-01-22 16:01:00', 2),
-  (3227, 8, 1, '2026-01-23', '2026-01-23 08:02:00', '2026-01-23 16:01:00', 2),
-  (3228, 8, 1, '2026-01-24', '2026-01-24 08:02:00', '2026-01-24 16:01:00', 2),
-  (3229, 8, 2, '2026-01-26', '2026-01-26 14:01:00', '2026-01-26 22:02:00', 2),
-  (3230, 8, 2, '2026-01-27', '2026-01-27 14:01:00', '2026-01-27 22:02:00', 2),
-  (3231, 8, 2, '2026-01-28', '2026-01-28 14:01:00', '2026-01-28 22:02:00', 2),
-  (3232, 8, 2, '2026-01-29', '2026-01-29 14:01:00', '2026-01-29 22:02:00', 2),
-  (3233, 8, 2, '2026-01-30', '2026-01-30 14:01:00', '2026-01-30 22:02:00', 2),
-  (3234, 8, 2, '2026-01-31', '2026-01-31 14:01:00', '2026-01-31 22:02:00', 2),
-  (3235, 8, 1, '2026-02-02', '2026-02-02 08:02:00', '2026-02-02 16:01:00', 2),
-  (3236, 8, 1, '2026-02-03', '2026-02-03 08:02:00', '2026-02-03 16:01:00', 2),
-  (3237, 8, 1, '2026-02-04', '2026-02-04 08:02:00', '2026-02-04 16:01:00', 2),
-  (3238, 8, 1, '2026-02-05', '2026-02-05 08:02:00', '2026-02-05 16:01:00', 2),
-  (3239, 8, 1, '2026-02-06', '2026-02-06 08:02:00', '2026-02-06 16:01:00', 2),
-  (3240, 8, 1, '2026-02-07', '2026-02-07 08:02:00', '2026-02-07 16:01:00', 2),
-  (3241, 8, 2, '2026-02-09', '2026-02-09 14:01:00', '2026-02-09 22:02:00', 2),
-  (3242, 8, 2, '2026-02-10', '2026-02-10 14:01:00', '2026-02-10 22:02:00', 2),
-  (3243, 8, 2, '2026-02-11', '2026-02-11 14:01:00', '2026-02-11 22:02:00', 2),
-  (3244, 8, 2, '2026-02-12', '2026-02-12 14:01:00', '2026-02-12 22:02:00', 2),
-  (3245, 8, 2, '2026-02-13', '2026-02-13 14:01:00', '2026-02-13 22:02:00', 2),
-  (3246, 8, 2, '2026-02-14', '2026-02-14 14:01:00', '2026-02-14 22:02:00', 2),
-  (3247, 8, 1, '2026-02-16', '2026-02-16 08:02:00', '2026-02-16 16:01:00', 2),
-  (3248, 8, 1, '2026-02-17', '2026-02-17 08:02:00', '2026-02-17 16:01:00', 2),
-  (3249, 8, 1, '2026-02-18', '2026-02-18 08:02:00', '2026-02-18 16:01:00', 2),
-  (3250, 8, 1, '2026-02-19', '2026-02-19 08:02:00', '2026-02-19 16:01:00', 2),
-  (3251, 8, 1, '2026-02-20', '2026-02-20 08:02:00', '2026-02-20 16:01:00', 2),
-  (3252, 8, 1, '2026-02-21', '2026-02-21 08:02:00', '2026-02-21 16:01:00', 2),
-  (3253, 8, 2, '2026-02-23', '2026-02-23 14:01:00', '2026-02-23 22:02:00', 2),
-  (3254, 8, 2, '2026-02-24', '2026-02-24 14:01:00', '2026-02-24 22:02:00', 2),
-  (3255, 8, 2, '2026-02-25', '2026-02-25 14:01:00', '2026-02-25 22:02:00', 2),
-  (3256, 8, 2, '2026-02-26', '2026-02-26 14:01:00', '2026-02-26 22:02:00', 2),
-  (3257, 8, 2, '2026-02-27', '2026-02-27 14:01:00', '2026-02-27 22:02:00', 2),
-  (3258, 8, 2, '2026-02-28', '2026-02-28 14:01:00', '2026-02-28 22:02:00', 2),
-  (3259, 8, 1, '2026-03-02', '2026-03-02 08:02:00', '2026-03-02 16:01:00', 2),
-  (3260, 8, 1, '2026-03-03', '2026-03-03 08:02:00', '2026-03-03 16:01:00', 2),
-  (3261, 8, 1, '2026-03-04', '2026-03-04 08:02:00', '2026-03-04 16:01:00', 2),
-  (3262, 8, 1, '2026-03-05', '2026-03-05 08:02:00', '2026-03-05 16:01:00', 2),
-  (3263, 8, 1, '2026-03-06', '2026-03-06 08:02:00', '2026-03-06 16:01:00', 2),
-  (3264, 8, 1, '2026-03-07', '2026-03-07 08:02:00', '2026-03-07 16:01:00', 2),
-  (3265, 8, 2, '2026-03-09', '2026-03-09 14:01:00', '2026-03-09 22:02:00', 2),
-  (3266, 8, 2, '2026-03-10', '2026-03-10 14:01:00', '2026-03-10 22:02:00', 2),
-  (3267, 8, 2, '2026-03-11', '2026-03-11 14:01:00', '2026-03-11 22:02:00', 2),
-  (3268, 8, 2, '2026-03-12', '2026-03-12 14:01:00', '2026-03-12 22:02:00', 2),
-  (3269, 8, 2, '2026-03-13', '2026-03-13 14:01:00', '2026-03-13 22:02:00', 2),
-  (3270, 8, 2, '2026-03-14', '2026-03-14 14:01:00', '2026-03-14 22:02:00', 2),
-  (3271, 8, 1, '2026-03-16', '2026-03-16 08:02:00', '2026-03-16 16:01:00', 2),
-  (3272, 8, 1, '2026-03-17', '2026-03-17 08:02:00', '2026-03-17 16:01:00', 2),
-  (3273, 8, 1, '2026-03-18', '2026-03-18 08:02:00', '2026-03-18 16:01:00', 2),
-  (3274, 8, 1, '2026-03-19', '2026-03-19 08:02:00', '2026-03-19 16:01:00', 2),
-  (3275, 8, 1, '2026-03-20', '2026-03-20 08:02:00', '2026-03-20 16:01:00', 2),
-  (3276, 8, 1, '2026-03-21', '2026-03-21 08:02:00', '2026-03-21 16:01:00', 2),
-  (3277, 8, 2, '2026-03-23', '2026-03-23 14:01:00', '2026-03-23 22:02:00', 2),
-  (3278, 8, 2, '2026-03-24', '2026-03-24 14:01:00', '2026-03-24 22:02:00', 2),
-  (3279, 8, 2, '2026-03-25', '2026-03-25 14:01:00', '2026-03-25 22:02:00', 2),
-  (3280, 8, 2, '2026-03-26', '2026-03-26 14:01:00', '2026-03-26 22:02:00', 2),
-  (3281, 8, 2, '2026-03-27', '2026-03-27 14:01:00', '2026-03-27 22:02:00', 2),
-  (3282, 8, 2, '2026-03-28', '2026-03-28 14:01:00', '2026-03-28 22:02:00', 2),
-  (3283, 8, 1, '2026-03-30', '2026-03-30 08:02:00', '2026-03-30 16:01:00', 2),
-  (3284, 8, 1, '2026-03-31', '2026-03-31 08:02:00', '2026-03-31 16:01:00', 2),
-  (3285, 8, 1, '2026-04-01', '2026-04-01 08:02:00', '2026-04-01 16:01:00', 2),
-  (3286, 8, 1, '2026-04-02', '2026-04-02 08:02:00', '2026-04-02 16:01:00', 2),
-  (3287, 8, 1, '2026-04-03', '2026-04-03 08:02:00', '2026-04-03 16:01:00', 2),
-  (3288, 8, 1, '2026-04-04', '2026-04-04 08:02:00', '2026-04-04 16:01:00', 2),
-  (3289, 8, 2, '2026-04-06', '2026-04-06 14:01:00', '2026-04-06 22:02:00', 2),
-  (3290, 8, 2, '2026-04-07', '2026-04-07 14:01:00', '2026-04-07 22:02:00', 2);
-
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1,
+        1,
+        1,
+        '2024-01-10',
+        '2024-01-10 08:02:00',
+        '2024-01-10 16:01:00',
+        2
+    ),
+    (
+        2,
+        1,
+        1,
+        '2024-01-11',
+        '2024-01-11 08:02:00',
+        '2024-01-11 16:01:00',
+        2
+    ),
+    (
+        3,
+        1,
+        1,
+        '2024-01-12',
+        '2024-01-12 08:02:00',
+        '2024-01-12 16:01:00',
+        2
+    ),
+    (
+        4,
+        1,
+        1,
+        '2024-01-13',
+        '2024-01-13 08:02:00',
+        '2024-01-13 16:01:00',
+        2
+    ),
+    (
+        5,
+        1,
+        1,
+        '2024-01-15',
+        '2024-01-15 08:02:00',
+        '2024-01-15 16:01:00',
+        2
+    ),
+    (
+        6,
+        1,
+        1,
+        '2024-01-16',
+        '2024-01-16 08:02:00',
+        '2024-01-16 16:01:00',
+        2
+    ),
+    (
+        7,
+        1,
+        1,
+        '2024-01-17',
+        '2024-01-17 08:02:00',
+        '2024-01-17 16:01:00',
+        2
+    ),
+    (
+        8,
+        1,
+        1,
+        '2024-01-18',
+        '2024-01-18 08:02:00',
+        '2024-01-18 16:01:00',
+        2
+    ),
+    (
+        9,
+        1,
+        1,
+        '2024-01-19',
+        '2024-01-19 08:02:00',
+        '2024-01-19 16:01:00',
+        2
+    ),
+    (
+        10,
+        1,
+        1,
+        '2024-01-20',
+        '2024-01-20 08:02:00',
+        '2024-01-20 16:01:00',
+        2
+    ),
+    (
+        11,
+        1,
+        1,
+        '2024-01-22',
+        '2024-01-22 08:02:00',
+        '2024-01-22 16:01:00',
+        2
+    ),
+    (
+        12,
+        1,
+        1,
+        '2024-01-23',
+        '2024-01-23 08:02:00',
+        '2024-01-23 16:01:00',
+        2
+    ),
+    (
+        13,
+        1,
+        1,
+        '2024-01-24',
+        '2024-01-24 08:02:00',
+        '2024-01-24 16:01:00',
+        2
+    ),
+    (
+        14,
+        1,
+        1,
+        '2024-01-25',
+        '2024-01-25 08:02:00',
+        '2024-01-25 16:01:00',
+        2
+    ),
+    (
+        15,
+        1,
+        1,
+        '2024-01-26',
+        '2024-01-26 08:02:00',
+        '2024-01-26 16:01:00',
+        2
+    ),
+    (
+        16,
+        1,
+        1,
+        '2024-01-27',
+        '2024-01-27 08:02:00',
+        '2024-01-27 16:01:00',
+        2
+    ),
+    (
+        17,
+        1,
+        1,
+        '2024-01-29',
+        '2024-01-29 08:02:00',
+        '2024-01-29 16:01:00',
+        2
+    ),
+    (
+        18,
+        1,
+        1,
+        '2024-01-30',
+        '2024-01-30 08:02:00',
+        '2024-01-30 16:01:00',
+        2
+    ),
+    (
+        19,
+        1,
+        1,
+        '2024-01-31',
+        '2024-01-31 08:02:00',
+        '2024-01-31 16:01:00',
+        2
+    ),
+    (
+        20,
+        1,
+        1,
+        '2024-02-01',
+        '2024-02-01 08:02:00',
+        '2024-02-01 16:01:00',
+        2
+    ),
+    (
+        21,
+        1,
+        1,
+        '2024-02-02',
+        '2024-02-02 08:02:00',
+        '2024-02-02 16:01:00',
+        2
+    ),
+    (
+        22,
+        1,
+        1,
+        '2024-02-03',
+        '2024-02-03 08:02:00',
+        '2024-02-03 16:01:00',
+        2
+    ),
+    (
+        23,
+        1,
+        1,
+        '2024-02-05',
+        '2024-02-05 08:02:00',
+        '2024-02-05 16:01:00',
+        2
+    ),
+    (
+        24,
+        1,
+        1,
+        '2024-02-06',
+        '2024-02-06 08:02:00',
+        '2024-02-06 16:01:00',
+        2
+    ),
+    (
+        25,
+        1,
+        1,
+        '2024-02-07',
+        '2024-02-07 08:02:00',
+        '2024-02-07 16:01:00',
+        2
+    ),
+    (
+        26,
+        1,
+        1,
+        '2024-02-08',
+        '2024-02-08 08:02:00',
+        '2024-02-08 16:01:00',
+        2
+    ),
+    (
+        27,
+        1,
+        1,
+        '2024-02-09',
+        '2024-02-09 08:02:00',
+        '2024-02-09 16:01:00',
+        2
+    ),
+    (
+        28,
+        1,
+        1,
+        '2024-02-10',
+        '2024-02-10 08:02:00',
+        '2024-02-10 16:01:00',
+        2
+    ),
+    (
+        29,
+        1,
+        1,
+        '2024-02-12',
+        '2024-02-12 08:02:00',
+        '2024-02-12 16:01:00',
+        2
+    ),
+    (
+        30,
+        1,
+        1,
+        '2024-02-13',
+        '2024-02-13 08:02:00',
+        '2024-02-13 16:01:00',
+        2
+    ),
+    (
+        31,
+        1,
+        1,
+        '2024-02-14',
+        '2024-02-14 08:02:00',
+        '2024-02-14 16:01:00',
+        2
+    ),
+    (
+        32,
+        1,
+        1,
+        '2024-02-15',
+        '2024-02-15 08:02:00',
+        '2024-02-15 16:01:00',
+        2
+    ),
+    (
+        33,
+        1,
+        1,
+        '2024-02-16',
+        '2024-02-16 08:02:00',
+        '2024-02-16 16:01:00',
+        2
+    ),
+    (
+        34,
+        1,
+        1,
+        '2024-02-17',
+        '2024-02-17 08:02:00',
+        '2024-02-17 16:01:00',
+        2
+    ),
+    (
+        35,
+        1,
+        1,
+        '2024-02-19',
+        '2024-02-19 08:02:00',
+        '2024-02-19 16:01:00',
+        2
+    ),
+    (
+        36,
+        1,
+        1,
+        '2024-02-20',
+        '2024-02-20 08:02:00',
+        '2024-02-20 16:01:00',
+        2
+    ),
+    (
+        37,
+        1,
+        1,
+        '2024-02-21',
+        '2024-02-21 08:02:00',
+        '2024-02-21 16:01:00',
+        2
+    ),
+    (
+        38,
+        1,
+        1,
+        '2024-02-22',
+        '2024-02-22 08:02:00',
+        '2024-02-22 16:01:00',
+        2
+    ),
+    (
+        39,
+        1,
+        1,
+        '2024-02-23',
+        '2024-02-23 08:02:00',
+        '2024-02-23 16:01:00',
+        2
+    ),
+    (
+        40,
+        1,
+        1,
+        '2024-02-24',
+        '2024-02-24 08:02:00',
+        '2024-02-24 16:01:00',
+        2
+    ),
+    (
+        41,
+        1,
+        1,
+        '2024-02-26',
+        '2024-02-26 08:02:00',
+        '2024-02-26 16:01:00',
+        2
+    ),
+    (
+        42,
+        1,
+        1,
+        '2024-02-27',
+        '2024-02-27 08:02:00',
+        '2024-02-27 16:01:00',
+        2
+    ),
+    (
+        43,
+        1,
+        1,
+        '2024-02-28',
+        '2024-02-28 08:02:00',
+        '2024-02-28 16:01:00',
+        2
+    ),
+    (
+        44,
+        1,
+        1,
+        '2024-02-29',
+        '2024-02-29 08:02:00',
+        '2024-02-29 16:01:00',
+        2
+    ),
+    (
+        45,
+        1,
+        1,
+        '2024-03-01',
+        '2024-03-01 08:02:00',
+        '2024-03-01 16:01:00',
+        2
+    ),
+    (
+        46,
+        1,
+        1,
+        '2024-03-02',
+        '2024-03-02 08:02:00',
+        '2024-03-02 16:01:00',
+        2
+    ),
+    (
+        47,
+        1,
+        1,
+        '2024-03-04',
+        '2024-03-04 08:02:00',
+        '2024-03-04 16:01:00',
+        2
+    ),
+    (
+        48,
+        1,
+        1,
+        '2024-03-05',
+        '2024-03-05 08:02:00',
+        '2024-03-05 16:01:00',
+        2
+    ),
+    (
+        49,
+        1,
+        1,
+        '2024-03-06',
+        '2024-03-06 08:02:00',
+        '2024-03-06 16:01:00',
+        2
+    ),
+    (
+        50,
+        1,
+        1,
+        '2024-03-07',
+        '2024-03-07 08:02:00',
+        '2024-03-07 16:01:00',
+        2
+    ),
+    (
+        51,
+        1,
+        1,
+        '2024-03-08',
+        '2024-03-08 08:02:00',
+        '2024-03-08 16:01:00',
+        2
+    ),
+    (
+        52,
+        1,
+        1,
+        '2024-03-09',
+        '2024-03-09 08:02:00',
+        '2024-03-09 16:01:00',
+        2
+    ),
+    (
+        53,
+        1,
+        1,
+        '2024-03-11',
+        '2024-03-11 08:02:00',
+        '2024-03-11 16:01:00',
+        2
+    ),
+    (
+        54,
+        1,
+        1,
+        '2024-03-12',
+        '2024-03-12 08:02:00',
+        '2024-03-12 16:01:00',
+        2
+    ),
+    (
+        55,
+        1,
+        1,
+        '2024-03-13',
+        '2024-03-13 08:02:00',
+        '2024-03-13 16:01:00',
+        2
+    ),
+    (
+        56,
+        1,
+        1,
+        '2024-03-14',
+        '2024-03-14 08:02:00',
+        '2024-03-14 16:01:00',
+        2
+    ),
+    (
+        57,
+        1,
+        1,
+        '2024-03-15',
+        '2024-03-15 08:02:00',
+        '2024-03-15 16:01:00',
+        2
+    ),
+    (
+        58,
+        1,
+        1,
+        '2024-03-16',
+        '2024-03-16 08:02:00',
+        '2024-03-16 16:01:00',
+        2
+    ),
+    (
+        59,
+        1,
+        1,
+        '2024-03-18',
+        '2024-03-18 08:02:00',
+        '2024-03-18 16:01:00',
+        2
+    ),
+    (
+        60,
+        1,
+        1,
+        '2024-03-19',
+        '2024-03-19 08:02:00',
+        '2024-03-19 16:01:00',
+        2
+    ),
+    (
+        61,
+        1,
+        1,
+        '2024-03-20',
+        '2024-03-20 08:02:00',
+        '2024-03-20 16:01:00',
+        2
+    ),
+    (
+        62,
+        1,
+        1,
+        '2024-03-21',
+        '2024-03-21 08:02:00',
+        '2024-03-21 16:01:00',
+        2
+    ),
+    (
+        63,
+        1,
+        1,
+        '2024-03-22',
+        '2024-03-22 08:02:00',
+        '2024-03-22 16:01:00',
+        2
+    ),
+    (
+        64,
+        1,
+        1,
+        '2024-03-23',
+        '2024-03-23 08:02:00',
+        '2024-03-23 16:01:00',
+        2
+    ),
+    (
+        65,
+        1,
+        1,
+        '2024-03-25',
+        '2024-03-25 08:02:00',
+        '2024-03-25 16:01:00',
+        2
+    ),
+    (
+        66,
+        1,
+        1,
+        '2024-03-26',
+        '2024-03-26 08:02:00',
+        '2024-03-26 16:01:00',
+        2
+    ),
+    (
+        67,
+        1,
+        1,
+        '2024-03-27',
+        '2024-03-27 08:02:00',
+        '2024-03-27 16:01:00',
+        2
+    ),
+    (
+        68,
+        1,
+        1,
+        '2024-03-28',
+        '2024-03-28 08:02:00',
+        '2024-03-28 16:01:00',
+        2
+    ),
+    (
+        69,
+        1,
+        1,
+        '2024-03-29',
+        '2024-03-29 08:02:00',
+        '2024-03-29 16:01:00',
+        2
+    ),
+    (
+        70,
+        1,
+        1,
+        '2024-03-30',
+        '2024-03-30 08:02:00',
+        '2024-03-30 16:01:00',
+        2
+    ),
+    (
+        71,
+        1,
+        1,
+        '2024-04-01',
+        '2024-04-01 08:02:00',
+        '2024-04-01 16:01:00',
+        2
+    ),
+    (
+        72,
+        1,
+        1,
+        '2024-04-02',
+        '2024-04-02 08:02:00',
+        '2024-04-02 16:01:00',
+        2
+    ),
+    (
+        73,
+        1,
+        1,
+        '2024-04-03',
+        '2024-04-03 08:02:00',
+        '2024-04-03 16:01:00',
+        2
+    ),
+    (
+        74,
+        1,
+        1,
+        '2024-04-04',
+        '2024-04-04 08:02:00',
+        '2024-04-04 16:01:00',
+        2
+    ),
+    (
+        75,
+        1,
+        1,
+        '2024-04-05',
+        '2024-04-05 08:02:00',
+        '2024-04-05 16:01:00',
+        2
+    ),
+    (
+        76,
+        1,
+        1,
+        '2024-04-06',
+        '2024-04-06 08:02:00',
+        '2024-04-06 16:01:00',
+        2
+    ),
+    (
+        77,
+        1,
+        1,
+        '2024-04-08',
+        '2024-04-08 08:02:00',
+        '2024-04-08 16:01:00',
+        2
+    ),
+    (
+        78,
+        1,
+        1,
+        '2024-04-09',
+        '2024-04-09 08:02:00',
+        '2024-04-09 16:01:00',
+        2
+    ),
+    (
+        79,
+        1,
+        1,
+        '2024-04-10',
+        '2024-04-10 08:02:00',
+        '2024-04-10 16:01:00',
+        2
+    ),
+    (
+        80,
+        1,
+        1,
+        '2024-04-11',
+        '2024-04-11 08:02:00',
+        '2024-04-11 16:01:00',
+        2
+    ),
+    (
+        81,
+        1,
+        1,
+        '2024-04-12',
+        '2024-04-12 08:02:00',
+        '2024-04-12 16:01:00',
+        2
+    ),
+    (
+        82,
+        1,
+        1,
+        '2024-04-13',
+        '2024-04-13 08:02:00',
+        '2024-04-13 16:01:00',
+        2
+    ),
+    (
+        83,
+        1,
+        1,
+        '2024-04-15',
+        '2024-04-15 08:02:00',
+        '2024-04-15 16:01:00',
+        2
+    ),
+    (
+        84,
+        1,
+        1,
+        '2024-04-16',
+        '2024-04-16 08:02:00',
+        '2024-04-16 16:01:00',
+        2
+    ),
+    (
+        85,
+        1,
+        1,
+        '2024-04-17',
+        '2024-04-17 08:02:00',
+        '2024-04-17 16:01:00',
+        2
+    ),
+    (
+        86,
+        1,
+        1,
+        '2024-04-18',
+        '2024-04-18 08:02:00',
+        '2024-04-18 16:01:00',
+        2
+    ),
+    (
+        87,
+        1,
+        1,
+        '2024-04-19',
+        '2024-04-19 08:02:00',
+        '2024-04-19 16:01:00',
+        2
+    ),
+    (
+        88,
+        1,
+        1,
+        '2024-04-20',
+        '2024-04-20 08:02:00',
+        '2024-04-20 16:01:00',
+        2
+    ),
+    (
+        89,
+        1,
+        1,
+        '2024-04-22',
+        '2024-04-22 08:02:00',
+        '2024-04-22 16:01:00',
+        2
+    ),
+    (
+        90,
+        1,
+        1,
+        '2024-04-23',
+        '2024-04-23 08:02:00',
+        '2024-04-23 16:01:00',
+        2
+    ),
+    (
+        91,
+        1,
+        1,
+        '2024-04-24',
+        '2024-04-24 08:02:00',
+        '2024-04-24 16:01:00',
+        2
+    ),
+    (
+        92,
+        1,
+        1,
+        '2024-04-25',
+        '2024-04-25 08:02:00',
+        '2024-04-25 16:01:00',
+        2
+    ),
+    (
+        93,
+        1,
+        1,
+        '2024-04-26',
+        '2024-04-26 08:02:00',
+        '2024-04-26 16:01:00',
+        2
+    ),
+    (
+        94,
+        1,
+        1,
+        '2024-04-27',
+        '2024-04-27 08:02:00',
+        '2024-04-27 16:01:00',
+        2
+    ),
+    (
+        95,
+        1,
+        1,
+        '2024-04-29',
+        '2024-04-29 08:02:00',
+        '2024-04-29 16:01:00',
+        2
+    ),
+    (
+        96,
+        1,
+        1,
+        '2024-04-30',
+        '2024-04-30 08:02:00',
+        '2024-04-30 16:01:00',
+        2
+    ),
+    (
+        97,
+        1,
+        1,
+        '2024-05-01',
+        '2024-05-01 08:02:00',
+        '2024-05-01 16:01:00',
+        2
+    ),
+    (
+        98,
+        1,
+        1,
+        '2024-05-02',
+        '2024-05-02 08:02:00',
+        '2024-05-02 16:01:00',
+        2
+    ),
+    (
+        99,
+        1,
+        1,
+        '2024-05-03',
+        '2024-05-03 08:02:00',
+        '2024-05-03 16:01:00',
+        2
+    ),
+    (
+        100,
+        1,
+        1,
+        '2024-05-04',
+        '2024-05-04 08:02:00',
+        '2024-05-04 16:01:00',
+        2
+    ),
+    (
+        101,
+        1,
+        1,
+        '2024-05-06',
+        '2024-05-06 08:02:00',
+        '2024-05-06 16:01:00',
+        2
+    ),
+    (
+        102,
+        1,
+        1,
+        '2024-05-07',
+        '2024-05-07 08:02:00',
+        '2024-05-07 16:01:00',
+        2
+    ),
+    (
+        103,
+        1,
+        1,
+        '2024-05-08',
+        '2024-05-08 08:02:00',
+        '2024-05-08 16:01:00',
+        2
+    ),
+    (
+        104,
+        1,
+        1,
+        '2024-05-09',
+        '2024-05-09 08:02:00',
+        '2024-05-09 16:01:00',
+        2
+    ),
+    (
+        105,
+        1,
+        1,
+        '2024-05-10',
+        '2024-05-10 08:02:00',
+        '2024-05-10 16:01:00',
+        2
+    ),
+    (
+        106,
+        1,
+        1,
+        '2024-05-11',
+        '2024-05-11 08:02:00',
+        '2024-05-11 16:01:00',
+        2
+    ),
+    (
+        107,
+        1,
+        1,
+        '2024-05-13',
+        '2024-05-13 08:02:00',
+        '2024-05-13 16:01:00',
+        2
+    ),
+    (
+        108,
+        1,
+        1,
+        '2024-05-14',
+        '2024-05-14 08:02:00',
+        '2024-05-14 16:01:00',
+        2
+    ),
+    (
+        109,
+        1,
+        1,
+        '2024-05-15',
+        '2024-05-15 08:02:00',
+        '2024-05-15 16:01:00',
+        2
+    ),
+    (
+        110,
+        1,
+        1,
+        '2024-05-16',
+        '2024-05-16 08:02:00',
+        '2024-05-16 16:01:00',
+        2
+    ),
+    (
+        111,
+        1,
+        1,
+        '2024-05-17',
+        '2024-05-17 08:02:00',
+        '2024-05-17 16:01:00',
+        2
+    ),
+    (
+        112,
+        1,
+        1,
+        '2024-05-18',
+        '2024-05-18 08:02:00',
+        '2024-05-18 16:01:00',
+        2
+    ),
+    (
+        113,
+        1,
+        1,
+        '2024-05-20',
+        '2024-05-20 08:02:00',
+        '2024-05-20 16:01:00',
+        2
+    ),
+    (
+        114,
+        1,
+        1,
+        '2024-05-21',
+        '2024-05-21 08:02:00',
+        '2024-05-21 16:01:00',
+        2
+    ),
+    (
+        115,
+        1,
+        1,
+        '2024-05-22',
+        '2024-05-22 08:02:00',
+        '2024-05-22 16:01:00',
+        2
+    ),
+    (
+        116,
+        1,
+        1,
+        '2024-05-23',
+        '2024-05-23 08:02:00',
+        '2024-05-23 16:01:00',
+        2
+    ),
+    (
+        117,
+        1,
+        1,
+        '2024-05-24',
+        '2024-05-24 08:02:00',
+        '2024-05-24 16:01:00',
+        2
+    ),
+    (
+        118,
+        1,
+        1,
+        '2024-05-25',
+        '2024-05-25 08:02:00',
+        '2024-05-25 16:01:00',
+        2
+    ),
+    (
+        119,
+        1,
+        1,
+        '2024-05-27',
+        '2024-05-27 08:02:00',
+        '2024-05-27 16:01:00',
+        2
+    ),
+    (
+        120,
+        1,
+        1,
+        '2024-05-28',
+        '2024-05-28 08:02:00',
+        '2024-05-28 16:01:00',
+        2
+    ),
+    (
+        121,
+        1,
+        1,
+        '2024-05-29',
+        '2024-05-29 08:02:00',
+        '2024-05-29 16:01:00',
+        2
+    ),
+    (
+        122,
+        1,
+        1,
+        '2024-05-30',
+        '2024-05-30 08:02:00',
+        '2024-05-30 16:01:00',
+        2
+    ),
+    (
+        123,
+        1,
+        1,
+        '2024-05-31',
+        '2024-05-31 08:02:00',
+        '2024-05-31 16:01:00',
+        2
+    ),
+    (
+        124,
+        1,
+        1,
+        '2024-06-01',
+        '2024-06-01 08:02:00',
+        '2024-06-01 16:01:00',
+        2
+    ),
+    (
+        125,
+        1,
+        1,
+        '2024-06-03',
+        '2024-06-03 08:02:00',
+        '2024-06-03 16:01:00',
+        2
+    ),
+    (
+        126,
+        1,
+        1,
+        '2024-06-04',
+        '2024-06-04 08:02:00',
+        '2024-06-04 16:01:00',
+        2
+    ),
+    (
+        127,
+        1,
+        1,
+        '2024-06-05',
+        '2024-06-05 08:02:00',
+        '2024-06-05 16:01:00',
+        2
+    ),
+    (
+        128,
+        1,
+        1,
+        '2024-06-06',
+        '2024-06-06 08:02:00',
+        '2024-06-06 16:01:00',
+        2
+    ),
+    (
+        129,
+        1,
+        1,
+        '2024-06-07',
+        '2024-06-07 08:02:00',
+        '2024-06-07 16:01:00',
+        2
+    ),
+    (
+        130,
+        1,
+        1,
+        '2024-06-08',
+        '2024-06-08 08:02:00',
+        '2024-06-08 16:01:00',
+        2
+    ),
+    (
+        131,
+        1,
+        1,
+        '2024-06-10',
+        '2024-06-10 08:02:00',
+        '2024-06-10 16:01:00',
+        2
+    ),
+    (
+        132,
+        1,
+        1,
+        '2024-06-11',
+        '2024-06-11 08:02:00',
+        '2024-06-11 16:01:00',
+        2
+    ),
+    (
+        133,
+        1,
+        1,
+        '2024-06-12',
+        '2024-06-12 08:02:00',
+        '2024-06-12 16:01:00',
+        2
+    ),
+    (
+        134,
+        1,
+        1,
+        '2024-06-13',
+        '2024-06-13 08:02:00',
+        '2024-06-13 16:01:00',
+        2
+    ),
+    (
+        135,
+        1,
+        1,
+        '2024-06-14',
+        '2024-06-14 08:02:00',
+        '2024-06-14 16:01:00',
+        2
+    ),
+    (
+        136,
+        1,
+        1,
+        '2024-06-15',
+        '2024-06-15 08:02:00',
+        '2024-06-15 16:01:00',
+        2
+    ),
+    (
+        137,
+        1,
+        1,
+        '2024-06-17',
+        '2024-06-17 08:02:00',
+        '2024-06-17 16:01:00',
+        2
+    ),
+    (
+        138,
+        1,
+        1,
+        '2024-06-18',
+        '2024-06-18 08:02:00',
+        '2024-06-18 16:01:00',
+        2
+    ),
+    (
+        139,
+        1,
+        1,
+        '2024-06-19',
+        '2024-06-19 08:02:00',
+        '2024-06-19 16:01:00',
+        2
+    ),
+    (
+        140,
+        1,
+        1,
+        '2024-06-20',
+        '2024-06-20 08:02:00',
+        '2024-06-20 16:01:00',
+        2
+    ),
+    (
+        141,
+        1,
+        1,
+        '2024-06-21',
+        '2024-06-21 08:02:00',
+        '2024-06-21 16:01:00',
+        2
+    ),
+    (
+        142,
+        1,
+        1,
+        '2024-06-22',
+        '2024-06-22 08:02:00',
+        '2024-06-22 16:01:00',
+        2
+    ),
+    (
+        143,
+        1,
+        1,
+        '2024-06-24',
+        '2024-06-24 08:02:00',
+        '2024-06-24 16:01:00',
+        2
+    ),
+    (
+        144,
+        1,
+        1,
+        '2024-06-25',
+        '2024-06-25 08:02:00',
+        '2024-06-25 16:01:00',
+        2
+    ),
+    (
+        145,
+        1,
+        1,
+        '2024-06-26',
+        '2024-06-26 08:02:00',
+        '2024-06-26 16:01:00',
+        2
+    ),
+    (
+        146,
+        1,
+        1,
+        '2024-06-27',
+        '2024-06-27 08:02:00',
+        '2024-06-27 16:01:00',
+        2
+    ),
+    (
+        147,
+        1,
+        1,
+        '2024-06-28',
+        '2024-06-28 08:02:00',
+        '2024-06-28 16:01:00',
+        2
+    ),
+    (
+        148,
+        1,
+        1,
+        '2024-06-29',
+        '2024-06-29 08:02:00',
+        '2024-06-29 16:01:00',
+        2
+    ),
+    (
+        149,
+        1,
+        1,
+        '2024-07-01',
+        '2024-07-01 08:02:00',
+        '2024-07-01 16:01:00',
+        2
+    ),
+    (
+        150,
+        1,
+        1,
+        '2024-07-02',
+        '2024-07-02 08:02:00',
+        '2024-07-02 16:01:00',
+        2
+    ),
+    (
+        151,
+        1,
+        1,
+        '2024-07-03',
+        '2024-07-03 08:02:00',
+        '2024-07-03 16:01:00',
+        2
+    ),
+    (
+        152,
+        1,
+        1,
+        '2024-07-04',
+        '2024-07-04 08:02:00',
+        '2024-07-04 16:01:00',
+        2
+    ),
+    (
+        153,
+        1,
+        1,
+        '2024-07-05',
+        '2024-07-05 08:02:00',
+        '2024-07-05 16:01:00',
+        2
+    ),
+    (
+        154,
+        1,
+        1,
+        '2024-07-06',
+        '2024-07-06 08:02:00',
+        '2024-07-06 16:01:00',
+        2
+    ),
+    (
+        155,
+        1,
+        1,
+        '2024-07-08',
+        '2024-07-08 08:02:00',
+        '2024-07-08 16:01:00',
+        2
+    ),
+    (
+        156,
+        1,
+        1,
+        '2024-07-09',
+        '2024-07-09 08:02:00',
+        '2024-07-09 16:01:00',
+        2
+    ),
+    (
+        157,
+        1,
+        1,
+        '2024-07-10',
+        '2024-07-10 08:02:00',
+        '2024-07-10 16:01:00',
+        2
+    ),
+    (
+        158,
+        1,
+        1,
+        '2024-07-11',
+        '2024-07-11 08:02:00',
+        '2024-07-11 16:01:00',
+        2
+    ),
+    (
+        159,
+        1,
+        1,
+        '2024-07-12',
+        '2024-07-12 08:02:00',
+        '2024-07-12 16:01:00',
+        2
+    ),
+    (
+        160,
+        1,
+        1,
+        '2024-07-13',
+        '2024-07-13 08:02:00',
+        '2024-07-13 16:01:00',
+        2
+    ),
+    (
+        161,
+        1,
+        1,
+        '2024-07-15',
+        '2024-07-15 08:02:00',
+        '2024-07-15 16:01:00',
+        2
+    ),
+    (
+        162,
+        1,
+        1,
+        '2024-07-16',
+        '2024-07-16 08:02:00',
+        '2024-07-16 16:01:00',
+        2
+    ),
+    (
+        163,
+        1,
+        1,
+        '2024-07-17',
+        '2024-07-17 08:02:00',
+        '2024-07-17 16:01:00',
+        2
+    ),
+    (
+        164,
+        1,
+        1,
+        '2024-07-18',
+        '2024-07-18 08:02:00',
+        '2024-07-18 16:01:00',
+        2
+    ),
+    (
+        165,
+        1,
+        1,
+        '2024-07-19',
+        '2024-07-19 08:02:00',
+        '2024-07-19 16:01:00',
+        2
+    ),
+    (
+        166,
+        1,
+        1,
+        '2024-07-20',
+        '2024-07-20 08:02:00',
+        '2024-07-20 16:01:00',
+        2
+    ),
+    (
+        167,
+        1,
+        1,
+        '2024-07-22',
+        '2024-07-22 08:02:00',
+        '2024-07-22 16:01:00',
+        2
+    ),
+    (
+        168,
+        1,
+        1,
+        '2024-07-23',
+        '2024-07-23 08:02:00',
+        '2024-07-23 16:01:00',
+        2
+    ),
+    (
+        169,
+        1,
+        1,
+        '2024-07-24',
+        '2024-07-24 08:02:00',
+        '2024-07-24 16:01:00',
+        2
+    ),
+    (
+        170,
+        1,
+        1,
+        '2024-07-25',
+        '2024-07-25 08:02:00',
+        '2024-07-25 16:01:00',
+        2
+    ),
+    (
+        171,
+        1,
+        1,
+        '2024-07-26',
+        '2024-07-26 08:02:00',
+        '2024-07-26 16:01:00',
+        2
+    ),
+    (
+        172,
+        1,
+        1,
+        '2024-07-27',
+        '2024-07-27 08:02:00',
+        '2024-07-27 16:01:00',
+        2
+    ),
+    (
+        173,
+        1,
+        1,
+        '2024-07-29',
+        '2024-07-29 08:02:00',
+        '2024-07-29 16:01:00',
+        2
+    ),
+    (
+        174,
+        1,
+        1,
+        '2024-07-30',
+        '2024-07-30 08:02:00',
+        '2024-07-30 16:01:00',
+        2
+    ),
+    (
+        175,
+        1,
+        1,
+        '2024-07-31',
+        '2024-07-31 08:02:00',
+        '2024-07-31 16:01:00',
+        2
+    ),
+    (
+        176,
+        1,
+        1,
+        '2024-08-01',
+        '2024-08-01 08:02:00',
+        '2024-08-01 16:01:00',
+        2
+    ),
+    (
+        177,
+        1,
+        1,
+        '2024-08-02',
+        '2024-08-02 08:02:00',
+        '2024-08-02 16:01:00',
+        2
+    ),
+    (
+        178,
+        1,
+        1,
+        '2024-08-03',
+        '2024-08-03 08:02:00',
+        '2024-08-03 16:01:00',
+        2
+    ),
+    (
+        179,
+        1,
+        1,
+        '2024-08-05',
+        '2024-08-05 08:02:00',
+        '2024-08-05 16:01:00',
+        2
+    ),
+    (
+        180,
+        1,
+        1,
+        '2024-08-06',
+        '2024-08-06 08:02:00',
+        '2024-08-06 16:01:00',
+        2
+    ),
+    (
+        181,
+        1,
+        1,
+        '2024-08-07',
+        '2024-08-07 08:02:00',
+        '2024-08-07 16:01:00',
+        2
+    ),
+    (
+        182,
+        1,
+        1,
+        '2024-08-08',
+        '2024-08-08 08:02:00',
+        '2024-08-08 16:01:00',
+        2
+    ),
+    (
+        183,
+        1,
+        1,
+        '2024-08-09',
+        '2024-08-09 08:02:00',
+        '2024-08-09 16:01:00',
+        2
+    ),
+    (
+        184,
+        1,
+        1,
+        '2024-08-10',
+        '2024-08-10 08:02:00',
+        '2024-08-10 16:01:00',
+        2
+    ),
+    (
+        185,
+        1,
+        1,
+        '2024-08-12',
+        '2024-08-12 08:02:00',
+        '2024-08-12 16:01:00',
+        2
+    ),
+    (
+        186,
+        1,
+        1,
+        '2024-08-13',
+        '2024-08-13 08:02:00',
+        '2024-08-13 16:01:00',
+        2
+    ),
+    (
+        187,
+        1,
+        1,
+        '2024-08-14',
+        '2024-08-14 08:02:00',
+        '2024-08-14 16:01:00',
+        2
+    ),
+    (
+        188,
+        1,
+        1,
+        '2024-08-15',
+        '2024-08-15 08:02:00',
+        '2024-08-15 16:01:00',
+        2
+    ),
+    (
+        189,
+        1,
+        1,
+        '2024-08-16',
+        '2024-08-16 08:02:00',
+        '2024-08-16 16:01:00',
+        2
+    ),
+    (
+        190,
+        1,
+        1,
+        '2024-08-17',
+        '2024-08-17 08:02:00',
+        '2024-08-17 16:01:00',
+        2
+    ),
+    (
+        191,
+        1,
+        1,
+        '2024-08-19',
+        '2024-08-19 08:02:00',
+        '2024-08-19 16:01:00',
+        2
+    ),
+    (
+        192,
+        1,
+        1,
+        '2024-08-20',
+        '2024-08-20 08:02:00',
+        '2024-08-20 16:01:00',
+        2
+    ),
+    (
+        193,
+        1,
+        1,
+        '2024-08-21',
+        '2024-08-21 08:02:00',
+        '2024-08-21 16:01:00',
+        2
+    ),
+    (
+        194,
+        1,
+        1,
+        '2024-08-22',
+        '2024-08-22 08:02:00',
+        '2024-08-22 16:01:00',
+        2
+    ),
+    (
+        195,
+        1,
+        1,
+        '2024-08-23',
+        '2024-08-23 08:02:00',
+        '2024-08-23 16:01:00',
+        2
+    ),
+    (
+        196,
+        1,
+        1,
+        '2024-08-24',
+        '2024-08-24 08:02:00',
+        '2024-08-24 16:01:00',
+        2
+    ),
+    (
+        197,
+        1,
+        1,
+        '2024-08-26',
+        '2024-08-26 08:02:00',
+        '2024-08-26 16:01:00',
+        2
+    ),
+    (
+        198,
+        1,
+        1,
+        '2024-08-27',
+        '2024-08-27 08:02:00',
+        '2024-08-27 16:01:00',
+        2
+    ),
+    (
+        199,
+        1,
+        1,
+        '2024-08-28',
+        '2024-08-28 08:02:00',
+        '2024-08-28 16:01:00',
+        2
+    ),
+    (
+        200,
+        1,
+        1,
+        '2024-08-29',
+        '2024-08-29 08:02:00',
+        '2024-08-29 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        201,
+        1,
+        1,
+        '2024-08-30',
+        '2024-08-30 08:02:00',
+        '2024-08-30 16:01:00',
+        2
+    ),
+    (
+        202,
+        1,
+        1,
+        '2024-08-31',
+        '2024-08-31 08:02:00',
+        '2024-08-31 16:01:00',
+        2
+    ),
+    (
+        203,
+        1,
+        1,
+        '2024-09-02',
+        '2024-09-02 08:02:00',
+        '2024-09-02 16:01:00',
+        2
+    ),
+    (
+        204,
+        1,
+        1,
+        '2024-09-03',
+        '2024-09-03 08:02:00',
+        '2024-09-03 16:01:00',
+        2
+    ),
+    (
+        205,
+        1,
+        1,
+        '2024-09-04',
+        '2024-09-04 08:02:00',
+        '2024-09-04 16:01:00',
+        2
+    ),
+    (
+        206,
+        1,
+        1,
+        '2024-09-05',
+        '2024-09-05 08:02:00',
+        '2024-09-05 16:01:00',
+        2
+    ),
+    (
+        207,
+        1,
+        1,
+        '2024-09-06',
+        '2024-09-06 08:02:00',
+        '2024-09-06 16:01:00',
+        2
+    ),
+    (
+        208,
+        1,
+        1,
+        '2024-09-07',
+        '2024-09-07 08:02:00',
+        '2024-09-07 16:01:00',
+        2
+    ),
+    (
+        209,
+        1,
+        1,
+        '2024-09-09',
+        '2024-09-09 08:02:00',
+        '2024-09-09 16:01:00',
+        2
+    ),
+    (
+        210,
+        1,
+        1,
+        '2024-09-10',
+        '2024-09-10 08:02:00',
+        '2024-09-10 16:01:00',
+        2
+    ),
+    (
+        211,
+        1,
+        1,
+        '2024-09-11',
+        '2024-09-11 08:02:00',
+        '2024-09-11 16:01:00',
+        2
+    ),
+    (
+        212,
+        1,
+        1,
+        '2024-09-12',
+        '2024-09-12 08:02:00',
+        '2024-09-12 16:01:00',
+        2
+    ),
+    (
+        213,
+        1,
+        1,
+        '2024-09-13',
+        '2024-09-13 08:02:00',
+        '2024-09-13 16:01:00',
+        2
+    ),
+    (
+        214,
+        1,
+        1,
+        '2024-09-14',
+        '2024-09-14 08:02:00',
+        '2024-09-14 16:01:00',
+        2
+    ),
+    (
+        215,
+        1,
+        1,
+        '2024-09-16',
+        '2024-09-16 08:02:00',
+        '2024-09-16 16:01:00',
+        2
+    ),
+    (
+        216,
+        1,
+        1,
+        '2024-09-17',
+        '2024-09-17 08:02:00',
+        '2024-09-17 16:01:00',
+        2
+    ),
+    (
+        217,
+        1,
+        1,
+        '2024-09-18',
+        '2024-09-18 08:02:00',
+        '2024-09-18 16:01:00',
+        2
+    ),
+    (
+        218,
+        1,
+        1,
+        '2024-09-19',
+        '2024-09-19 08:02:00',
+        '2024-09-19 16:01:00',
+        2
+    ),
+    (
+        219,
+        1,
+        1,
+        '2024-09-20',
+        '2024-09-20 08:02:00',
+        '2024-09-20 16:01:00',
+        2
+    ),
+    (
+        220,
+        1,
+        1,
+        '2024-09-21',
+        '2024-09-21 08:02:00',
+        '2024-09-21 16:01:00',
+        2
+    ),
+    (
+        221,
+        1,
+        1,
+        '2024-09-23',
+        '2024-09-23 08:02:00',
+        '2024-09-23 16:01:00',
+        2
+    ),
+    (
+        222,
+        1,
+        1,
+        '2024-09-24',
+        '2024-09-24 08:02:00',
+        '2024-09-24 16:01:00',
+        2
+    ),
+    (
+        223,
+        1,
+        1,
+        '2024-09-25',
+        '2024-09-25 08:02:00',
+        '2024-09-25 16:01:00',
+        2
+    ),
+    (
+        224,
+        1,
+        1,
+        '2024-09-26',
+        '2024-09-26 08:02:00',
+        '2024-09-26 16:01:00',
+        2
+    ),
+    (
+        225,
+        1,
+        1,
+        '2024-09-27',
+        '2024-09-27 08:02:00',
+        '2024-09-27 16:01:00',
+        2
+    ),
+    (
+        226,
+        1,
+        1,
+        '2024-09-28',
+        '2024-09-28 08:02:00',
+        '2024-09-28 16:01:00',
+        2
+    ),
+    (
+        227,
+        1,
+        1,
+        '2024-09-30',
+        '2024-09-30 08:02:00',
+        '2024-09-30 16:01:00',
+        2
+    ),
+    (
+        228,
+        1,
+        1,
+        '2024-10-01',
+        '2024-10-01 08:02:00',
+        '2024-10-01 16:01:00',
+        2
+    ),
+    (
+        229,
+        1,
+        1,
+        '2024-10-02',
+        '2024-10-02 08:02:00',
+        '2024-10-02 16:01:00',
+        2
+    ),
+    (
+        230,
+        1,
+        1,
+        '2024-10-03',
+        '2024-10-03 08:02:00',
+        '2024-10-03 16:01:00',
+        2
+    ),
+    (
+        231,
+        1,
+        1,
+        '2024-10-04',
+        '2024-10-04 08:02:00',
+        '2024-10-04 16:01:00',
+        2
+    ),
+    (
+        232,
+        1,
+        1,
+        '2024-10-05',
+        '2024-10-05 08:02:00',
+        '2024-10-05 16:01:00',
+        2
+    ),
+    (
+        233,
+        1,
+        1,
+        '2024-10-07',
+        '2024-10-07 08:02:00',
+        '2024-10-07 16:01:00',
+        2
+    ),
+    (
+        234,
+        1,
+        1,
+        '2024-10-08',
+        '2024-10-08 08:02:00',
+        '2024-10-08 16:01:00',
+        2
+    ),
+    (
+        235,
+        1,
+        1,
+        '2024-10-09',
+        '2024-10-09 08:02:00',
+        '2024-10-09 16:01:00',
+        2
+    ),
+    (
+        236,
+        1,
+        1,
+        '2024-10-10',
+        '2024-10-10 08:02:00',
+        '2024-10-10 16:01:00',
+        2
+    ),
+    (
+        237,
+        1,
+        1,
+        '2024-10-11',
+        '2024-10-11 08:02:00',
+        '2024-10-11 16:01:00',
+        2
+    ),
+    (
+        238,
+        1,
+        1,
+        '2024-10-12',
+        '2024-10-12 08:02:00',
+        '2024-10-12 16:01:00',
+        2
+    ),
+    (
+        239,
+        1,
+        1,
+        '2024-10-14',
+        '2024-10-14 08:02:00',
+        '2024-10-14 16:01:00',
+        2
+    ),
+    (
+        240,
+        1,
+        1,
+        '2024-10-15',
+        '2024-10-15 08:02:00',
+        '2024-10-15 16:01:00',
+        2
+    ),
+    (
+        241,
+        1,
+        1,
+        '2024-10-16',
+        '2024-10-16 08:02:00',
+        '2024-10-16 16:01:00',
+        2
+    ),
+    (
+        242,
+        1,
+        1,
+        '2024-10-17',
+        '2024-10-17 08:02:00',
+        '2024-10-17 16:01:00',
+        2
+    ),
+    (
+        243,
+        1,
+        1,
+        '2024-10-18',
+        '2024-10-18 08:02:00',
+        '2024-10-18 16:01:00',
+        2
+    ),
+    (
+        244,
+        1,
+        1,
+        '2024-10-19',
+        '2024-10-19 08:02:00',
+        '2024-10-19 16:01:00',
+        2
+    ),
+    (
+        245,
+        1,
+        1,
+        '2024-10-21',
+        '2024-10-21 08:02:00',
+        '2024-10-21 16:01:00',
+        2
+    ),
+    (
+        246,
+        1,
+        1,
+        '2024-10-22',
+        '2024-10-22 08:02:00',
+        '2024-10-22 16:01:00',
+        2
+    ),
+    (
+        247,
+        1,
+        1,
+        '2024-10-23',
+        '2024-10-23 08:02:00',
+        '2024-10-23 16:01:00',
+        2
+    ),
+    (
+        248,
+        1,
+        1,
+        '2024-10-24',
+        '2024-10-24 08:02:00',
+        '2024-10-24 16:01:00',
+        2
+    ),
+    (
+        249,
+        1,
+        1,
+        '2024-10-25',
+        '2024-10-25 08:02:00',
+        '2024-10-25 16:01:00',
+        2
+    ),
+    (
+        250,
+        1,
+        1,
+        '2024-10-26',
+        '2024-10-26 08:02:00',
+        '2024-10-26 16:01:00',
+        2
+    ),
+    (
+        251,
+        1,
+        1,
+        '2024-10-28',
+        '2024-10-28 08:02:00',
+        '2024-10-28 16:01:00',
+        2
+    ),
+    (
+        252,
+        1,
+        1,
+        '2024-10-29',
+        '2024-10-29 08:02:00',
+        '2024-10-29 16:01:00',
+        2
+    ),
+    (
+        253,
+        1,
+        1,
+        '2024-10-30',
+        '2024-10-30 08:02:00',
+        '2024-10-30 16:01:00',
+        2
+    ),
+    (
+        254,
+        1,
+        1,
+        '2024-10-31',
+        '2024-10-31 08:02:00',
+        '2024-10-31 16:01:00',
+        2
+    ),
+    (
+        255,
+        1,
+        1,
+        '2024-11-01',
+        '2024-11-01 08:02:00',
+        '2024-11-01 16:01:00',
+        2
+    ),
+    (
+        256,
+        1,
+        1,
+        '2024-11-02',
+        '2024-11-02 08:02:00',
+        '2024-11-02 16:01:00',
+        2
+    ),
+    (
+        257,
+        1,
+        1,
+        '2024-11-04',
+        '2024-11-04 08:02:00',
+        '2024-11-04 16:01:00',
+        2
+    ),
+    (
+        258,
+        1,
+        1,
+        '2024-11-05',
+        '2024-11-05 08:02:00',
+        '2024-11-05 16:01:00',
+        2
+    ),
+    (
+        259,
+        1,
+        1,
+        '2024-11-06',
+        '2024-11-06 08:02:00',
+        '2024-11-06 16:01:00',
+        2
+    ),
+    (
+        260,
+        1,
+        1,
+        '2024-11-07',
+        '2024-11-07 08:02:00',
+        '2024-11-07 16:01:00',
+        2
+    ),
+    (
+        261,
+        1,
+        1,
+        '2024-11-08',
+        '2024-11-08 08:02:00',
+        '2024-11-08 16:01:00',
+        2
+    ),
+    (
+        262,
+        1,
+        1,
+        '2024-11-09',
+        '2024-11-09 08:02:00',
+        '2024-11-09 16:01:00',
+        2
+    ),
+    (
+        263,
+        1,
+        1,
+        '2024-11-11',
+        '2024-11-11 08:02:00',
+        '2024-11-11 16:01:00',
+        2
+    ),
+    (
+        264,
+        1,
+        1,
+        '2024-11-12',
+        '2024-11-12 08:02:00',
+        '2024-11-12 16:01:00',
+        2
+    ),
+    (
+        265,
+        1,
+        1,
+        '2024-11-13',
+        '2024-11-13 08:02:00',
+        '2024-11-13 16:01:00',
+        2
+    ),
+    (
+        266,
+        1,
+        1,
+        '2024-11-14',
+        '2024-11-14 08:02:00',
+        '2024-11-14 16:01:00',
+        2
+    ),
+    (
+        267,
+        1,
+        1,
+        '2024-11-15',
+        '2024-11-15 08:02:00',
+        '2024-11-15 16:01:00',
+        2
+    ),
+    (
+        268,
+        1,
+        1,
+        '2024-11-16',
+        '2024-11-16 08:02:00',
+        '2024-11-16 16:01:00',
+        2
+    ),
+    (
+        269,
+        1,
+        1,
+        '2024-11-18',
+        '2024-11-18 08:02:00',
+        '2024-11-18 16:01:00',
+        2
+    ),
+    (
+        270,
+        1,
+        1,
+        '2024-11-19',
+        '2024-11-19 08:02:00',
+        '2024-11-19 16:01:00',
+        2
+    ),
+    (
+        271,
+        1,
+        1,
+        '2024-11-20',
+        '2024-11-20 08:02:00',
+        '2024-11-20 16:01:00',
+        2
+    ),
+    (
+        272,
+        1,
+        1,
+        '2024-11-21',
+        '2024-11-21 08:02:00',
+        '2024-11-21 16:01:00',
+        2
+    ),
+    (
+        273,
+        1,
+        1,
+        '2024-11-22',
+        '2024-11-22 08:02:00',
+        '2024-11-22 16:01:00',
+        2
+    ),
+    (
+        274,
+        1,
+        1,
+        '2024-11-23',
+        '2024-11-23 08:02:00',
+        '2024-11-23 16:01:00',
+        2
+    ),
+    (
+        275,
+        1,
+        1,
+        '2024-11-25',
+        '2024-11-25 08:02:00',
+        '2024-11-25 16:01:00',
+        2
+    ),
+    (
+        276,
+        1,
+        1,
+        '2024-11-26',
+        '2024-11-26 08:02:00',
+        '2024-11-26 16:01:00',
+        2
+    ),
+    (
+        277,
+        1,
+        1,
+        '2024-11-27',
+        '2024-11-27 08:02:00',
+        '2024-11-27 16:01:00',
+        2
+    ),
+    (
+        278,
+        1,
+        1,
+        '2024-11-28',
+        '2024-11-28 08:02:00',
+        '2024-11-28 16:01:00',
+        2
+    ),
+    (
+        279,
+        1,
+        1,
+        '2024-11-29',
+        '2024-11-29 08:02:00',
+        '2024-11-29 16:01:00',
+        2
+    ),
+    (
+        280,
+        1,
+        1,
+        '2024-11-30',
+        '2024-11-30 08:02:00',
+        '2024-11-30 16:01:00',
+        2
+    ),
+    (
+        281,
+        1,
+        1,
+        '2024-12-02',
+        '2024-12-02 08:02:00',
+        '2024-12-02 16:01:00',
+        2
+    ),
+    (
+        282,
+        1,
+        1,
+        '2024-12-03',
+        '2024-12-03 08:02:00',
+        '2024-12-03 16:01:00',
+        2
+    ),
+    (
+        283,
+        1,
+        1,
+        '2024-12-04',
+        '2024-12-04 08:02:00',
+        '2024-12-04 16:01:00',
+        2
+    ),
+    (
+        284,
+        1,
+        1,
+        '2024-12-05',
+        '2024-12-05 08:02:00',
+        '2024-12-05 16:01:00',
+        2
+    ),
+    (
+        285,
+        1,
+        1,
+        '2024-12-06',
+        '2024-12-06 08:02:00',
+        '2024-12-06 16:01:00',
+        2
+    ),
+    (
+        286,
+        1,
+        1,
+        '2024-12-07',
+        '2024-12-07 08:02:00',
+        '2024-12-07 16:01:00',
+        2
+    ),
+    (
+        287,
+        1,
+        1,
+        '2024-12-09',
+        '2024-12-09 08:02:00',
+        '2024-12-09 16:01:00',
+        2
+    ),
+    (
+        288,
+        1,
+        1,
+        '2024-12-10',
+        '2024-12-10 08:02:00',
+        '2024-12-10 16:01:00',
+        2
+    ),
+    (
+        289,
+        1,
+        1,
+        '2024-12-11',
+        '2024-12-11 08:02:00',
+        '2024-12-11 16:01:00',
+        2
+    ),
+    (
+        290,
+        1,
+        1,
+        '2024-12-12',
+        '2024-12-12 08:02:00',
+        '2024-12-12 16:01:00',
+        2
+    ),
+    (
+        291,
+        1,
+        1,
+        '2024-12-13',
+        '2024-12-13 08:02:00',
+        '2024-12-13 16:01:00',
+        2
+    ),
+    (
+        292,
+        1,
+        1,
+        '2024-12-14',
+        '2024-12-14 08:02:00',
+        '2024-12-14 16:01:00',
+        2
+    ),
+    (
+        293,
+        1,
+        1,
+        '2024-12-16',
+        '2024-12-16 08:02:00',
+        '2024-12-16 16:01:00',
+        2
+    ),
+    (
+        294,
+        1,
+        1,
+        '2024-12-17',
+        '2024-12-17 08:02:00',
+        '2024-12-17 16:01:00',
+        2
+    ),
+    (
+        295,
+        1,
+        1,
+        '2024-12-18',
+        '2024-12-18 08:02:00',
+        '2024-12-18 16:01:00',
+        2
+    ),
+    (
+        296,
+        1,
+        1,
+        '2024-12-19',
+        '2024-12-19 08:02:00',
+        '2024-12-19 16:01:00',
+        2
+    ),
+    (
+        297,
+        1,
+        1,
+        '2024-12-20',
+        '2024-12-20 08:02:00',
+        '2024-12-20 16:01:00',
+        2
+    ),
+    (
+        298,
+        1,
+        1,
+        '2024-12-21',
+        '2024-12-21 08:02:00',
+        '2024-12-21 16:01:00',
+        2
+    ),
+    (
+        299,
+        1,
+        1,
+        '2024-12-23',
+        '2024-12-23 08:02:00',
+        '2024-12-23 16:01:00',
+        2
+    ),
+    (
+        300,
+        1,
+        1,
+        '2024-12-24',
+        '2024-12-24 08:02:00',
+        '2024-12-24 16:01:00',
+        2
+    ),
+    (
+        301,
+        1,
+        1,
+        '2024-12-25',
+        '2024-12-25 08:02:00',
+        '2024-12-25 16:01:00',
+        2
+    ),
+    (
+        302,
+        1,
+        1,
+        '2024-12-26',
+        '2024-12-26 08:02:00',
+        '2024-12-26 16:01:00',
+        2
+    ),
+    (
+        303,
+        1,
+        1,
+        '2024-12-27',
+        '2024-12-27 08:02:00',
+        '2024-12-27 16:01:00',
+        2
+    ),
+    (
+        304,
+        1,
+        1,
+        '2024-12-28',
+        '2024-12-28 08:02:00',
+        '2024-12-28 16:01:00',
+        2
+    ),
+    (
+        305,
+        1,
+        1,
+        '2024-12-30',
+        '2024-12-30 08:02:00',
+        '2024-12-30 16:01:00',
+        2
+    ),
+    (
+        306,
+        1,
+        1,
+        '2024-12-31',
+        '2024-12-31 08:02:00',
+        '2024-12-31 16:01:00',
+        2
+    ),
+    (
+        307,
+        1,
+        1,
+        '2025-01-01',
+        '2025-01-01 08:02:00',
+        '2025-01-01 16:01:00',
+        2
+    ),
+    (
+        308,
+        1,
+        1,
+        '2025-01-02',
+        '2025-01-02 08:02:00',
+        '2025-01-02 16:01:00',
+        2
+    ),
+    (
+        309,
+        1,
+        1,
+        '2025-01-03',
+        '2025-01-03 08:02:00',
+        '2025-01-03 16:01:00',
+        2
+    ),
+    (
+        310,
+        1,
+        1,
+        '2025-01-04',
+        '2025-01-04 08:02:00',
+        '2025-01-04 16:01:00',
+        2
+    ),
+    (
+        311,
+        1,
+        1,
+        '2025-01-06',
+        '2025-01-06 08:02:00',
+        '2025-01-06 16:01:00',
+        2
+    ),
+    (
+        312,
+        1,
+        1,
+        '2025-01-07',
+        '2025-01-07 08:02:00',
+        '2025-01-07 16:01:00',
+        2
+    ),
+    (
+        313,
+        1,
+        1,
+        '2025-01-08',
+        '2025-01-08 08:02:00',
+        '2025-01-08 16:01:00',
+        2
+    ),
+    (
+        314,
+        1,
+        1,
+        '2025-01-09',
+        '2025-01-09 08:02:00',
+        '2025-01-09 16:01:00',
+        2
+    ),
+    (
+        315,
+        1,
+        1,
+        '2025-01-10',
+        '2025-01-10 08:02:00',
+        '2025-01-10 16:01:00',
+        2
+    ),
+    (
+        316,
+        1,
+        1,
+        '2025-01-11',
+        '2025-01-11 08:02:00',
+        '2025-01-11 16:01:00',
+        2
+    ),
+    (
+        317,
+        1,
+        1,
+        '2025-01-13',
+        '2025-01-13 08:02:00',
+        '2025-01-13 16:01:00',
+        2
+    ),
+    (
+        318,
+        1,
+        1,
+        '2025-01-14',
+        '2025-01-14 08:02:00',
+        '2025-01-14 16:01:00',
+        2
+    ),
+    (
+        319,
+        1,
+        1,
+        '2025-01-15',
+        '2025-01-15 08:02:00',
+        '2025-01-15 16:01:00',
+        2
+    ),
+    (
+        320,
+        1,
+        1,
+        '2025-01-16',
+        '2025-01-16 08:02:00',
+        '2025-01-16 16:01:00',
+        2
+    ),
+    (
+        321,
+        1,
+        1,
+        '2025-01-17',
+        '2025-01-17 08:02:00',
+        '2025-01-17 16:01:00',
+        2
+    ),
+    (
+        322,
+        1,
+        1,
+        '2025-01-18',
+        '2025-01-18 08:02:00',
+        '2025-01-18 16:01:00',
+        2
+    ),
+    (
+        323,
+        1,
+        1,
+        '2025-01-20',
+        '2025-01-20 08:02:00',
+        '2025-01-20 16:01:00',
+        2
+    ),
+    (
+        324,
+        1,
+        1,
+        '2025-01-21',
+        '2025-01-21 08:02:00',
+        '2025-01-21 16:01:00',
+        2
+    ),
+    (
+        325,
+        1,
+        1,
+        '2025-01-22',
+        '2025-01-22 08:02:00',
+        '2025-01-22 16:01:00',
+        2
+    ),
+    (
+        326,
+        1,
+        1,
+        '2025-01-23',
+        '2025-01-23 08:02:00',
+        '2025-01-23 16:01:00',
+        2
+    ),
+    (
+        327,
+        1,
+        1,
+        '2025-01-24',
+        '2025-01-24 08:02:00',
+        '2025-01-24 16:01:00',
+        2
+    ),
+    (
+        328,
+        1,
+        1,
+        '2025-01-25',
+        '2025-01-25 08:02:00',
+        '2025-01-25 16:01:00',
+        2
+    ),
+    (
+        329,
+        1,
+        1,
+        '2025-01-27',
+        '2025-01-27 08:02:00',
+        '2025-01-27 16:01:00',
+        2
+    ),
+    (
+        330,
+        1,
+        1,
+        '2025-01-28',
+        '2025-01-28 08:02:00',
+        '2025-01-28 16:01:00',
+        2
+    ),
+    (
+        331,
+        1,
+        1,
+        '2025-01-29',
+        '2025-01-29 08:02:00',
+        '2025-01-29 16:01:00',
+        2
+    ),
+    (
+        332,
+        1,
+        1,
+        '2025-01-30',
+        '2025-01-30 08:02:00',
+        '2025-01-30 16:01:00',
+        2
+    ),
+    (
+        333,
+        1,
+        1,
+        '2025-01-31',
+        '2025-01-31 08:02:00',
+        '2025-01-31 16:01:00',
+        2
+    ),
+    (
+        334,
+        1,
+        1,
+        '2025-02-01',
+        '2025-02-01 08:02:00',
+        '2025-02-01 16:01:00',
+        2
+    ),
+    (
+        335,
+        1,
+        1,
+        '2025-02-03',
+        '2025-02-03 08:02:00',
+        '2025-02-03 16:01:00',
+        2
+    ),
+    (
+        336,
+        1,
+        1,
+        '2025-02-04',
+        '2025-02-04 08:02:00',
+        '2025-02-04 16:01:00',
+        2
+    ),
+    (
+        337,
+        1,
+        1,
+        '2025-02-05',
+        '2025-02-05 08:02:00',
+        '2025-02-05 16:01:00',
+        2
+    ),
+    (
+        338,
+        1,
+        1,
+        '2025-02-06',
+        '2025-02-06 08:02:00',
+        '2025-02-06 16:01:00',
+        2
+    ),
+    (
+        339,
+        1,
+        1,
+        '2025-02-07',
+        '2025-02-07 08:02:00',
+        '2025-02-07 16:01:00',
+        2
+    ),
+    (
+        340,
+        1,
+        1,
+        '2025-02-08',
+        '2025-02-08 08:02:00',
+        '2025-02-08 16:01:00',
+        2
+    ),
+    (
+        341,
+        1,
+        1,
+        '2025-02-10',
+        '2025-02-10 08:02:00',
+        '2025-02-10 16:01:00',
+        2
+    ),
+    (
+        342,
+        1,
+        1,
+        '2025-02-11',
+        '2025-02-11 08:02:00',
+        '2025-02-11 16:01:00',
+        2
+    ),
+    (
+        343,
+        1,
+        1,
+        '2025-02-12',
+        '2025-02-12 08:02:00',
+        '2025-02-12 16:01:00',
+        2
+    ),
+    (
+        344,
+        1,
+        1,
+        '2025-02-13',
+        '2025-02-13 08:02:00',
+        '2025-02-13 16:01:00',
+        2
+    ),
+    (
+        345,
+        1,
+        1,
+        '2025-02-14',
+        '2025-02-14 08:02:00',
+        '2025-02-14 16:01:00',
+        2
+    ),
+    (
+        346,
+        1,
+        1,
+        '2025-02-15',
+        '2025-02-15 08:02:00',
+        '2025-02-15 16:01:00',
+        2
+    ),
+    (
+        347,
+        1,
+        1,
+        '2025-02-17',
+        '2025-02-17 08:02:00',
+        '2025-02-17 16:01:00',
+        2
+    ),
+    (
+        348,
+        1,
+        1,
+        '2025-02-18',
+        '2025-02-18 08:02:00',
+        '2025-02-18 16:01:00',
+        2
+    ),
+    (
+        349,
+        1,
+        1,
+        '2025-02-19',
+        '2025-02-19 08:02:00',
+        '2025-02-19 16:01:00',
+        2
+    ),
+    (
+        350,
+        1,
+        1,
+        '2025-02-20',
+        '2025-02-20 08:02:00',
+        '2025-02-20 16:01:00',
+        2
+    ),
+    (
+        351,
+        1,
+        1,
+        '2025-02-21',
+        '2025-02-21 08:02:00',
+        '2025-02-21 16:01:00',
+        2
+    ),
+    (
+        352,
+        1,
+        1,
+        '2025-02-22',
+        '2025-02-22 08:02:00',
+        '2025-02-22 16:01:00',
+        2
+    ),
+    (
+        353,
+        1,
+        1,
+        '2025-02-24',
+        '2025-02-24 08:02:00',
+        '2025-02-24 16:01:00',
+        2
+    ),
+    (
+        354,
+        1,
+        1,
+        '2025-02-25',
+        '2025-02-25 08:02:00',
+        '2025-02-25 16:01:00',
+        2
+    ),
+    (
+        355,
+        1,
+        1,
+        '2025-02-26',
+        '2025-02-26 08:02:00',
+        '2025-02-26 16:01:00',
+        2
+    ),
+    (
+        356,
+        1,
+        1,
+        '2025-02-27',
+        '2025-02-27 08:02:00',
+        '2025-02-27 16:01:00',
+        2
+    ),
+    (
+        357,
+        1,
+        1,
+        '2025-02-28',
+        '2025-02-28 08:02:00',
+        '2025-02-28 16:01:00',
+        2
+    ),
+    (
+        358,
+        1,
+        1,
+        '2025-03-01',
+        '2025-03-01 08:02:00',
+        '2025-03-01 16:01:00',
+        2
+    ),
+    (
+        359,
+        1,
+        1,
+        '2025-03-03',
+        '2025-03-03 08:02:00',
+        '2025-03-03 16:01:00',
+        2
+    ),
+    (
+        360,
+        1,
+        1,
+        '2025-03-04',
+        '2025-03-04 08:02:00',
+        '2025-03-04 16:01:00',
+        2
+    ),
+    (
+        361,
+        1,
+        1,
+        '2025-03-05',
+        '2025-03-05 08:02:00',
+        '2025-03-05 16:01:00',
+        2
+    ),
+    (
+        362,
+        1,
+        1,
+        '2025-03-06',
+        '2025-03-06 08:02:00',
+        '2025-03-06 16:01:00',
+        2
+    ),
+    (
+        363,
+        1,
+        1,
+        '2025-03-07',
+        '2025-03-07 08:02:00',
+        '2025-03-07 16:01:00',
+        2
+    ),
+    (
+        364,
+        1,
+        1,
+        '2025-03-08',
+        '2025-03-08 08:02:00',
+        '2025-03-08 16:01:00',
+        2
+    ),
+    (
+        365,
+        1,
+        1,
+        '2025-03-10',
+        '2025-03-10 08:02:00',
+        '2025-03-10 16:01:00',
+        2
+    ),
+    (
+        366,
+        1,
+        1,
+        '2025-03-11',
+        '2025-03-11 08:02:00',
+        '2025-03-11 16:01:00',
+        2
+    ),
+    (
+        367,
+        1,
+        1,
+        '2025-03-12',
+        '2025-03-12 08:02:00',
+        '2025-03-12 16:01:00',
+        2
+    ),
+    (
+        368,
+        1,
+        1,
+        '2025-03-13',
+        '2025-03-13 08:02:00',
+        '2025-03-13 16:01:00',
+        2
+    ),
+    (
+        369,
+        1,
+        1,
+        '2025-03-14',
+        '2025-03-14 08:02:00',
+        '2025-03-14 16:01:00',
+        2
+    ),
+    (
+        370,
+        1,
+        1,
+        '2025-03-15',
+        '2025-03-15 08:02:00',
+        '2025-03-15 16:01:00',
+        2
+    ),
+    (
+        371,
+        1,
+        1,
+        '2025-03-17',
+        '2025-03-17 08:02:00',
+        '2025-03-17 16:01:00',
+        2
+    ),
+    (
+        372,
+        1,
+        1,
+        '2025-03-18',
+        '2025-03-18 08:02:00',
+        '2025-03-18 16:01:00',
+        2
+    ),
+    (
+        373,
+        1,
+        1,
+        '2025-03-19',
+        '2025-03-19 08:02:00',
+        '2025-03-19 16:01:00',
+        2
+    ),
+    (
+        374,
+        1,
+        1,
+        '2025-03-20',
+        '2025-03-20 08:02:00',
+        '2025-03-20 16:01:00',
+        2
+    ),
+    (
+        375,
+        1,
+        1,
+        '2025-03-21',
+        '2025-03-21 08:02:00',
+        '2025-03-21 16:01:00',
+        2
+    ),
+    (
+        376,
+        1,
+        1,
+        '2025-03-22',
+        '2025-03-22 08:02:00',
+        '2025-03-22 16:01:00',
+        2
+    ),
+    (
+        377,
+        1,
+        1,
+        '2025-03-24',
+        '2025-03-24 08:02:00',
+        '2025-03-24 16:01:00',
+        2
+    ),
+    (
+        378,
+        1,
+        1,
+        '2025-03-25',
+        '2025-03-25 08:02:00',
+        '2025-03-25 16:01:00',
+        2
+    ),
+    (
+        379,
+        1,
+        1,
+        '2025-03-26',
+        '2025-03-26 08:02:00',
+        '2025-03-26 16:01:00',
+        2
+    ),
+    (
+        380,
+        1,
+        1,
+        '2025-03-27',
+        '2025-03-27 08:02:00',
+        '2025-03-27 16:01:00',
+        2
+    ),
+    (
+        381,
+        1,
+        1,
+        '2025-03-28',
+        '2025-03-28 08:02:00',
+        '2025-03-28 16:01:00',
+        2
+    ),
+    (
+        382,
+        1,
+        1,
+        '2025-03-29',
+        '2025-03-29 08:02:00',
+        '2025-03-29 16:01:00',
+        2
+    ),
+    (
+        383,
+        1,
+        1,
+        '2025-03-31',
+        '2025-03-31 08:02:00',
+        '2025-03-31 16:01:00',
+        2
+    ),
+    (
+        384,
+        1,
+        1,
+        '2025-04-01',
+        '2025-04-01 08:02:00',
+        '2025-04-01 16:01:00',
+        2
+    ),
+    (
+        385,
+        1,
+        1,
+        '2025-04-02',
+        '2025-04-02 08:02:00',
+        '2025-04-02 16:01:00',
+        2
+    ),
+    (
+        386,
+        1,
+        1,
+        '2025-04-03',
+        '2025-04-03 08:02:00',
+        '2025-04-03 16:01:00',
+        2
+    ),
+    (
+        387,
+        1,
+        1,
+        '2025-04-04',
+        '2025-04-04 08:02:00',
+        '2025-04-04 16:01:00',
+        2
+    ),
+    (
+        388,
+        1,
+        1,
+        '2025-04-05',
+        '2025-04-05 08:02:00',
+        '2025-04-05 16:01:00',
+        2
+    ),
+    (
+        389,
+        1,
+        1,
+        '2025-04-07',
+        '2025-04-07 08:02:00',
+        '2025-04-07 16:01:00',
+        2
+    ),
+    (
+        390,
+        1,
+        1,
+        '2025-04-08',
+        '2025-04-08 08:02:00',
+        '2025-04-08 16:01:00',
+        2
+    ),
+    (
+        391,
+        1,
+        1,
+        '2025-04-09',
+        '2025-04-09 08:02:00',
+        '2025-04-09 16:01:00',
+        2
+    ),
+    (
+        392,
+        1,
+        1,
+        '2025-04-10',
+        '2025-04-10 08:02:00',
+        '2025-04-10 16:01:00',
+        2
+    ),
+    (
+        393,
+        1,
+        1,
+        '2025-04-11',
+        '2025-04-11 08:02:00',
+        '2025-04-11 16:01:00',
+        2
+    ),
+    (
+        394,
+        1,
+        1,
+        '2025-04-12',
+        '2025-04-12 08:02:00',
+        '2025-04-12 16:01:00',
+        2
+    ),
+    (
+        395,
+        1,
+        1,
+        '2025-04-14',
+        '2025-04-14 08:02:00',
+        '2025-04-14 16:01:00',
+        2
+    ),
+    (
+        396,
+        1,
+        1,
+        '2025-04-15',
+        '2025-04-15 08:02:00',
+        '2025-04-15 16:01:00',
+        2
+    ),
+    (
+        397,
+        1,
+        1,
+        '2025-04-16',
+        '2025-04-16 08:02:00',
+        '2025-04-16 16:01:00',
+        2
+    ),
+    (
+        398,
+        1,
+        1,
+        '2025-04-17',
+        '2025-04-17 08:02:00',
+        '2025-04-17 16:01:00',
+        2
+    ),
+    (
+        399,
+        1,
+        1,
+        '2025-04-18',
+        '2025-04-18 08:02:00',
+        '2025-04-18 16:01:00',
+        2
+    ),
+    (
+        400,
+        1,
+        1,
+        '2025-04-19',
+        '2025-04-19 08:02:00',
+        '2025-04-19 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        401,
+        1,
+        1,
+        '2025-04-21',
+        '2025-04-21 08:02:00',
+        '2025-04-21 16:01:00',
+        2
+    ),
+    (
+        402,
+        1,
+        1,
+        '2025-04-22',
+        '2025-04-22 08:02:00',
+        '2025-04-22 16:01:00',
+        2
+    ),
+    (
+        403,
+        1,
+        1,
+        '2025-04-23',
+        '2025-04-23 08:02:00',
+        '2025-04-23 16:01:00',
+        2
+    ),
+    (
+        404,
+        1,
+        1,
+        '2025-04-24',
+        '2025-04-24 08:02:00',
+        '2025-04-24 16:01:00',
+        2
+    ),
+    (
+        405,
+        1,
+        1,
+        '2025-04-25',
+        '2025-04-25 08:02:00',
+        '2025-04-25 16:01:00',
+        2
+    ),
+    (
+        406,
+        1,
+        1,
+        '2025-04-26',
+        '2025-04-26 08:02:00',
+        '2025-04-26 16:01:00',
+        2
+    ),
+    (
+        407,
+        1,
+        1,
+        '2025-04-28',
+        '2025-04-28 08:02:00',
+        '2025-04-28 16:01:00',
+        2
+    ),
+    (
+        408,
+        1,
+        1,
+        '2025-04-29',
+        '2025-04-29 08:02:00',
+        '2025-04-29 16:01:00',
+        2
+    ),
+    (
+        409,
+        1,
+        1,
+        '2025-04-30',
+        '2025-04-30 08:02:00',
+        '2025-04-30 16:01:00',
+        2
+    ),
+    (
+        410,
+        1,
+        1,
+        '2025-05-01',
+        '2025-05-01 08:02:00',
+        '2025-05-01 16:01:00',
+        2
+    ),
+    (
+        411,
+        1,
+        1,
+        '2025-05-02',
+        '2025-05-02 08:02:00',
+        '2025-05-02 16:01:00',
+        2
+    ),
+    (
+        412,
+        1,
+        1,
+        '2025-05-03',
+        '2025-05-03 08:02:00',
+        '2025-05-03 16:01:00',
+        2
+    ),
+    (
+        413,
+        1,
+        1,
+        '2025-05-05',
+        '2025-05-05 08:02:00',
+        '2025-05-05 16:01:00',
+        2
+    ),
+    (
+        414,
+        1,
+        1,
+        '2025-05-06',
+        '2025-05-06 08:02:00',
+        '2025-05-06 16:01:00',
+        2
+    ),
+    (
+        415,
+        1,
+        1,
+        '2025-05-07',
+        '2025-05-07 08:02:00',
+        '2025-05-07 16:01:00',
+        2
+    ),
+    (
+        416,
+        1,
+        1,
+        '2025-05-08',
+        '2025-05-08 08:02:00',
+        '2025-05-08 16:01:00',
+        2
+    ),
+    (
+        417,
+        1,
+        1,
+        '2025-05-09',
+        '2025-05-09 08:02:00',
+        '2025-05-09 16:01:00',
+        2
+    ),
+    (
+        418,
+        1,
+        1,
+        '2025-05-10',
+        '2025-05-10 08:02:00',
+        '2025-05-10 16:01:00',
+        2
+    ),
+    (
+        419,
+        1,
+        1,
+        '2025-05-12',
+        '2025-05-12 08:02:00',
+        '2025-05-12 16:01:00',
+        2
+    ),
+    (
+        420,
+        1,
+        1,
+        '2025-05-13',
+        '2025-05-13 08:02:00',
+        '2025-05-13 16:01:00',
+        2
+    ),
+    (
+        421,
+        1,
+        1,
+        '2025-05-14',
+        '2025-05-14 08:02:00',
+        '2025-05-14 16:01:00',
+        2
+    ),
+    (
+        422,
+        1,
+        1,
+        '2025-05-15',
+        '2025-05-15 08:02:00',
+        '2025-05-15 16:01:00',
+        2
+    ),
+    (
+        423,
+        1,
+        1,
+        '2025-05-16',
+        '2025-05-16 08:02:00',
+        '2025-05-16 16:01:00',
+        2
+    ),
+    (
+        424,
+        1,
+        1,
+        '2025-05-17',
+        '2025-05-17 08:02:00',
+        '2025-05-17 16:01:00',
+        2
+    ),
+    (
+        425,
+        1,
+        1,
+        '2025-05-19',
+        '2025-05-19 08:02:00',
+        '2025-05-19 16:01:00',
+        2
+    ),
+    (
+        426,
+        1,
+        1,
+        '2025-05-20',
+        '2025-05-20 08:02:00',
+        '2025-05-20 16:01:00',
+        2
+    ),
+    (
+        427,
+        1,
+        1,
+        '2025-05-21',
+        '2025-05-21 08:02:00',
+        '2025-05-21 16:01:00',
+        2
+    ),
+    (
+        428,
+        1,
+        1,
+        '2025-05-22',
+        '2025-05-22 08:02:00',
+        '2025-05-22 16:01:00',
+        2
+    ),
+    (
+        429,
+        1,
+        1,
+        '2025-05-23',
+        '2025-05-23 08:02:00',
+        '2025-05-23 16:01:00',
+        2
+    ),
+    (
+        430,
+        1,
+        1,
+        '2025-05-24',
+        '2025-05-24 08:02:00',
+        '2025-05-24 16:01:00',
+        2
+    ),
+    (
+        431,
+        1,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        432,
+        1,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        433,
+        1,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        434,
+        1,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        435,
+        1,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        436,
+        1,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        437,
+        1,
+        1,
+        '2025-06-02',
+        '2025-06-02 08:02:00',
+        '2025-06-02 16:01:00',
+        2
+    ),
+    (
+        438,
+        1,
+        1,
+        '2025-06-03',
+        '2025-06-03 08:02:00',
+        '2025-06-03 16:01:00',
+        2
+    ),
+    (
+        439,
+        1,
+        1,
+        '2025-06-04',
+        '2025-06-04 08:02:00',
+        '2025-06-04 16:01:00',
+        2
+    ),
+    (
+        440,
+        1,
+        1,
+        '2025-06-05',
+        '2025-06-05 08:02:00',
+        '2025-06-05 16:01:00',
+        2
+    ),
+    (
+        441,
+        1,
+        1,
+        '2025-06-06',
+        '2025-06-06 08:02:00',
+        '2025-06-06 16:01:00',
+        2
+    ),
+    (
+        442,
+        1,
+        1,
+        '2025-06-07',
+        '2025-06-07 08:02:00',
+        '2025-06-07 16:01:00',
+        2
+    ),
+    (
+        443,
+        1,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        444,
+        1,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        445,
+        1,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        446,
+        1,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        447,
+        1,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        448,
+        1,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        449,
+        1,
+        1,
+        '2025-06-16',
+        '2025-06-16 08:02:00',
+        '2025-06-16 16:01:00',
+        2
+    ),
+    (
+        450,
+        1,
+        1,
+        '2025-06-17',
+        '2025-06-17 08:02:00',
+        '2025-06-17 16:01:00',
+        2
+    ),
+    (
+        451,
+        1,
+        1,
+        '2025-06-18',
+        '2025-06-18 08:02:00',
+        '2025-06-18 16:01:00',
+        2
+    ),
+    (
+        452,
+        1,
+        1,
+        '2025-06-19',
+        '2025-06-19 08:02:00',
+        '2025-06-19 16:01:00',
+        2
+    ),
+    (
+        453,
+        1,
+        1,
+        '2025-06-20',
+        '2025-06-20 08:02:00',
+        '2025-06-20 16:01:00',
+        2
+    ),
+    (
+        454,
+        1,
+        1,
+        '2025-06-21',
+        '2025-06-21 08:02:00',
+        '2025-06-21 16:01:00',
+        2
+    ),
+    (
+        455,
+        1,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        456,
+        1,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        457,
+        1,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        458,
+        1,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    ),
+    (
+        459,
+        1,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        460,
+        1,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        461,
+        1,
+        1,
+        '2025-06-30',
+        '2025-06-30 08:02:00',
+        '2025-06-30 16:01:00',
+        2
+    ),
+    (
+        462,
+        1,
+        1,
+        '2025-07-01',
+        '2025-07-01 08:02:00',
+        '2025-07-01 16:01:00',
+        2
+    ),
+    (
+        463,
+        1,
+        1,
+        '2025-07-02',
+        '2025-07-02 08:02:00',
+        '2025-07-02 16:01:00',
+        2
+    ),
+    (
+        464,
+        1,
+        1,
+        '2025-07-03',
+        '2025-07-03 08:02:00',
+        '2025-07-03 16:01:00',
+        2
+    ),
+    (
+        465,
+        1,
+        1,
+        '2025-07-04',
+        '2025-07-04 08:02:00',
+        '2025-07-04 16:01:00',
+        2
+    ),
+    (
+        466,
+        1,
+        1,
+        '2025-07-05',
+        '2025-07-05 08:02:00',
+        '2025-07-05 16:01:00',
+        2
+    ),
+    (
+        467,
+        1,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        468,
+        1,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        469,
+        1,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        470,
+        1,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        471,
+        1,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        472,
+        1,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        473,
+        1,
+        1,
+        '2025-07-14',
+        '2025-07-14 08:02:00',
+        '2025-07-14 16:01:00',
+        2
+    ),
+    (
+        474,
+        1,
+        1,
+        '2025-07-15',
+        '2025-07-15 08:02:00',
+        '2025-07-15 16:01:00',
+        2
+    ),
+    (
+        475,
+        1,
+        1,
+        '2025-07-16',
+        '2025-07-16 08:02:00',
+        '2025-07-16 16:01:00',
+        2
+    ),
+    (
+        476,
+        1,
+        1,
+        '2025-07-17',
+        '2025-07-17 08:02:00',
+        '2025-07-17 16:01:00',
+        2
+    ),
+    (
+        477,
+        1,
+        1,
+        '2025-07-18',
+        '2025-07-18 08:02:00',
+        '2025-07-18 16:01:00',
+        2
+    ),
+    (
+        478,
+        1,
+        1,
+        '2025-07-19',
+        '2025-07-19 08:02:00',
+        '2025-07-19 16:01:00',
+        2
+    ),
+    (
+        479,
+        1,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        480,
+        1,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        481,
+        1,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        482,
+        1,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        483,
+        1,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        484,
+        1,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        485,
+        1,
+        1,
+        '2025-07-28',
+        '2025-07-28 08:02:00',
+        '2025-07-28 16:01:00',
+        2
+    ),
+    (
+        486,
+        1,
+        1,
+        '2025-07-29',
+        '2025-07-29 08:02:00',
+        '2025-07-29 16:01:00',
+        2
+    ),
+    (
+        487,
+        1,
+        1,
+        '2025-07-30',
+        '2025-07-30 08:02:00',
+        '2025-07-30 16:01:00',
+        2
+    ),
+    (
+        488,
+        1,
+        1,
+        '2025-07-31',
+        '2025-07-31 08:02:00',
+        '2025-07-31 16:01:00',
+        2
+    ),
+    (
+        489,
+        1,
+        1,
+        '2025-08-01',
+        '2025-08-01 08:02:00',
+        '2025-08-01 16:01:00',
+        2
+    ),
+    (
+        490,
+        1,
+        1,
+        '2025-08-02',
+        '2025-08-02 08:02:00',
+        '2025-08-02 16:01:00',
+        2
+    ),
+    (
+        491,
+        1,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        492,
+        1,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        493,
+        1,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        494,
+        1,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        495,
+        1,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        496,
+        1,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        497,
+        1,
+        1,
+        '2025-08-11',
+        '2025-08-11 08:02:00',
+        '2025-08-11 16:01:00',
+        2
+    ),
+    (
+        498,
+        1,
+        1,
+        '2025-08-12',
+        '2025-08-12 08:02:00',
+        '2025-08-12 16:01:00',
+        2
+    ),
+    (
+        499,
+        1,
+        1,
+        '2025-08-13',
+        '2025-08-13 08:02:00',
+        '2025-08-13 16:01:00',
+        2
+    ),
+    (
+        500,
+        1,
+        1,
+        '2025-08-14',
+        '2025-08-14 08:02:00',
+        '2025-08-14 16:01:00',
+        2
+    ),
+    (
+        501,
+        1,
+        1,
+        '2025-08-15',
+        '2025-08-15 08:02:00',
+        '2025-08-15 16:01:00',
+        2
+    ),
+    (
+        502,
+        1,
+        1,
+        '2025-08-16',
+        '2025-08-16 08:02:00',
+        '2025-08-16 16:01:00',
+        2
+    ),
+    (
+        503,
+        1,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        504,
+        1,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        505,
+        1,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        506,
+        1,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        507,
+        1,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        508,
+        1,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        509,
+        1,
+        1,
+        '2025-08-25',
+        '2025-08-25 08:02:00',
+        '2025-08-25 16:01:00',
+        2
+    ),
+    (
+        510,
+        1,
+        1,
+        '2025-08-26',
+        '2025-08-26 08:02:00',
+        '2025-08-26 16:01:00',
+        2
+    ),
+    (
+        511,
+        1,
+        1,
+        '2025-08-27',
+        '2025-08-27 08:02:00',
+        '2025-08-27 16:01:00',
+        2
+    ),
+    (
+        512,
+        1,
+        1,
+        '2025-08-28',
+        '2025-08-28 08:02:00',
+        '2025-08-28 16:01:00',
+        2
+    ),
+    (
+        513,
+        1,
+        1,
+        '2025-08-29',
+        '2025-08-29 08:02:00',
+        '2025-08-29 16:01:00',
+        2
+    ),
+    (
+        514,
+        1,
+        1,
+        '2025-08-30',
+        '2025-08-30 08:02:00',
+        '2025-08-30 16:01:00',
+        2
+    ),
+    (
+        515,
+        1,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        516,
+        1,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        517,
+        1,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        518,
+        1,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        519,
+        1,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        520,
+        1,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        521,
+        1,
+        1,
+        '2025-09-08',
+        '2025-09-08 08:02:00',
+        '2025-09-08 16:01:00',
+        2
+    ),
+    (
+        522,
+        1,
+        1,
+        '2025-09-09',
+        '2025-09-09 08:02:00',
+        '2025-09-09 16:01:00',
+        2
+    ),
+    (
+        523,
+        1,
+        1,
+        '2025-09-10',
+        '2025-09-10 08:02:00',
+        '2025-09-10 16:01:00',
+        2
+    ),
+    (
+        524,
+        1,
+        1,
+        '2025-09-11',
+        '2025-09-11 08:02:00',
+        '2025-09-11 16:01:00',
+        2
+    ),
+    (
+        525,
+        1,
+        1,
+        '2025-09-12',
+        '2025-09-12 08:02:00',
+        '2025-09-12 16:01:00',
+        2
+    ),
+    (
+        526,
+        1,
+        1,
+        '2025-09-13',
+        '2025-09-13 08:02:00',
+        '2025-09-13 16:01:00',
+        2
+    ),
+    (
+        527,
+        1,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        528,
+        1,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        529,
+        1,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    ),
+    (
+        530,
+        1,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        531,
+        1,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        532,
+        1,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        533,
+        1,
+        1,
+        '2025-09-22',
+        '2025-09-22 08:02:00',
+        '2025-09-22 16:01:00',
+        2
+    ),
+    (
+        534,
+        1,
+        1,
+        '2025-09-23',
+        '2025-09-23 08:02:00',
+        '2025-09-23 16:01:00',
+        2
+    ),
+    (
+        535,
+        1,
+        1,
+        '2025-09-24',
+        '2025-09-24 08:02:00',
+        '2025-09-24 16:01:00',
+        2
+    ),
+    (
+        536,
+        1,
+        1,
+        '2025-09-25',
+        '2025-09-25 08:02:00',
+        '2025-09-25 16:01:00',
+        2
+    ),
+    (
+        537,
+        1,
+        1,
+        '2025-09-26',
+        '2025-09-26 08:02:00',
+        '2025-09-26 16:01:00',
+        2
+    ),
+    (
+        538,
+        1,
+        1,
+        '2025-09-27',
+        '2025-09-27 08:02:00',
+        '2025-09-27 16:01:00',
+        2
+    ),
+    (
+        539,
+        1,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        540,
+        1,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        541,
+        1,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        542,
+        1,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        543,
+        1,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        544,
+        1,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        545,
+        1,
+        1,
+        '2025-10-06',
+        '2025-10-06 08:02:00',
+        '2025-10-06 16:01:00',
+        2
+    ),
+    (
+        546,
+        1,
+        1,
+        '2025-10-07',
+        '2025-10-07 08:02:00',
+        '2025-10-07 16:01:00',
+        2
+    ),
+    (
+        547,
+        1,
+        1,
+        '2025-10-08',
+        '2025-10-08 08:02:00',
+        '2025-10-08 16:01:00',
+        2
+    ),
+    (
+        548,
+        1,
+        1,
+        '2025-10-09',
+        '2025-10-09 08:02:00',
+        '2025-10-09 16:01:00',
+        2
+    ),
+    (
+        549,
+        1,
+        1,
+        '2025-10-10',
+        '2025-10-10 08:02:00',
+        '2025-10-10 16:01:00',
+        2
+    ),
+    (
+        550,
+        1,
+        1,
+        '2025-10-11',
+        '2025-10-11 08:02:00',
+        '2025-10-11 16:01:00',
+        2
+    ),
+    (
+        551,
+        1,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        552,
+        1,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        553,
+        1,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        554,
+        1,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        555,
+        1,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        556,
+        1,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        557,
+        1,
+        1,
+        '2025-10-20',
+        '2025-10-20 08:02:00',
+        '2025-10-20 16:01:00',
+        2
+    ),
+    (
+        558,
+        1,
+        1,
+        '2025-10-21',
+        '2025-10-21 08:02:00',
+        '2025-10-21 16:01:00',
+        2
+    ),
+    (
+        559,
+        1,
+        1,
+        '2025-10-22',
+        '2025-10-22 08:02:00',
+        '2025-10-22 16:01:00',
+        2
+    ),
+    (
+        560,
+        1,
+        1,
+        '2025-10-23',
+        '2025-10-23 08:02:00',
+        '2025-10-23 16:01:00',
+        2
+    ),
+    (
+        561,
+        1,
+        1,
+        '2025-10-24',
+        '2025-10-24 08:02:00',
+        '2025-10-24 16:01:00',
+        2
+    ),
+    (
+        562,
+        1,
+        1,
+        '2025-10-25',
+        '2025-10-25 08:02:00',
+        '2025-10-25 16:01:00',
+        2
+    ),
+    (
+        563,
+        1,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        564,
+        1,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        565,
+        1,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        566,
+        1,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        567,
+        1,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        568,
+        1,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        569,
+        1,
+        1,
+        '2025-11-03',
+        '2025-11-03 08:02:00',
+        '2025-11-03 16:01:00',
+        2
+    ),
+    (
+        570,
+        1,
+        1,
+        '2025-11-04',
+        '2025-11-04 08:02:00',
+        '2025-11-04 16:01:00',
+        2
+    ),
+    (
+        571,
+        1,
+        1,
+        '2025-11-05',
+        '2025-11-05 08:02:00',
+        '2025-11-05 16:01:00',
+        2
+    ),
+    (
+        572,
+        1,
+        1,
+        '2025-11-06',
+        '2025-11-06 08:02:00',
+        '2025-11-06 16:01:00',
+        2
+    ),
+    (
+        573,
+        1,
+        1,
+        '2025-11-07',
+        '2025-11-07 08:02:00',
+        '2025-11-07 16:01:00',
+        2
+    ),
+    (
+        574,
+        1,
+        1,
+        '2025-11-08',
+        '2025-11-08 08:02:00',
+        '2025-11-08 16:01:00',
+        2
+    ),
+    (
+        575,
+        1,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        576,
+        1,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        577,
+        1,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        578,
+        1,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        579,
+        1,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        580,
+        1,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        581,
+        1,
+        1,
+        '2025-11-17',
+        '2025-11-17 08:02:00',
+        '2025-11-17 16:01:00',
+        2
+    ),
+    (
+        582,
+        1,
+        1,
+        '2025-11-18',
+        '2025-11-18 08:02:00',
+        '2025-11-18 16:01:00',
+        2
+    ),
+    (
+        583,
+        1,
+        1,
+        '2025-11-19',
+        '2025-11-19 08:02:00',
+        '2025-11-19 16:01:00',
+        2
+    ),
+    (
+        584,
+        1,
+        1,
+        '2025-11-20',
+        '2025-11-20 08:02:00',
+        '2025-11-20 16:01:00',
+        2
+    ),
+    (
+        585,
+        1,
+        1,
+        '2025-11-21',
+        '2025-11-21 08:02:00',
+        '2025-11-21 16:01:00',
+        2
+    ),
+    (
+        586,
+        1,
+        1,
+        '2025-11-22',
+        '2025-11-22 08:02:00',
+        '2025-11-22 16:01:00',
+        2
+    ),
+    (
+        587,
+        1,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        588,
+        1,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        589,
+        1,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        590,
+        1,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        591,
+        1,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        592,
+        1,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        593,
+        1,
+        1,
+        '2025-12-01',
+        '2025-12-01 08:02:00',
+        '2025-12-01 16:01:00',
+        2
+    ),
+    (
+        594,
+        1,
+        1,
+        '2025-12-02',
+        '2025-12-02 08:02:00',
+        '2025-12-02 16:01:00',
+        2
+    ),
+    (
+        595,
+        1,
+        1,
+        '2025-12-03',
+        '2025-12-03 08:02:00',
+        '2025-12-03 16:01:00',
+        2
+    ),
+    (
+        596,
+        1,
+        1,
+        '2025-12-04',
+        '2025-12-04 08:02:00',
+        '2025-12-04 16:01:00',
+        2
+    ),
+    (
+        597,
+        1,
+        1,
+        '2025-12-05',
+        '2025-12-05 08:02:00',
+        '2025-12-05 16:01:00',
+        2
+    ),
+    (
+        598,
+        1,
+        1,
+        '2025-12-06',
+        '2025-12-06 08:02:00',
+        '2025-12-06 16:01:00',
+        2
+    ),
+    (
+        599,
+        1,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        600,
+        1,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        601,
+        1,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        602,
+        1,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        603,
+        1,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        604,
+        1,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        605,
+        1,
+        1,
+        '2025-12-15',
+        '2025-12-15 08:02:00',
+        '2025-12-15 16:01:00',
+        2
+    ),
+    (
+        606,
+        1,
+        1,
+        '2025-12-16',
+        '2025-12-16 08:02:00',
+        '2025-12-16 16:01:00',
+        2
+    ),
+    (
+        607,
+        1,
+        1,
+        '2025-12-17',
+        '2025-12-17 08:02:00',
+        '2025-12-17 16:01:00',
+        2
+    ),
+    (
+        608,
+        1,
+        1,
+        '2025-12-18',
+        '2025-12-18 08:02:00',
+        '2025-12-18 16:01:00',
+        2
+    ),
+    (
+        609,
+        1,
+        1,
+        '2025-12-19',
+        '2025-12-19 08:02:00',
+        '2025-12-19 16:01:00',
+        2
+    ),
+    (
+        610,
+        1,
+        1,
+        '2025-12-20',
+        '2025-12-20 08:02:00',
+        '2025-12-20 16:01:00',
+        2
+    ),
+    (
+        611,
+        1,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        612,
+        1,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    ),
+    (
+        613,
+        1,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        614,
+        1,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        615,
+        1,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        616,
+        1,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        617,
+        1,
+        1,
+        '2025-12-29',
+        '2025-12-29 08:02:00',
+        '2025-12-29 16:01:00',
+        2
+    ),
+    (
+        618,
+        1,
+        1,
+        '2025-12-30',
+        '2025-12-30 08:02:00',
+        '2025-12-30 16:01:00',
+        2
+    ),
+    (
+        619,
+        1,
+        1,
+        '2025-12-31',
+        '2025-12-31 08:02:00',
+        '2025-12-31 16:01:00',
+        2
+    ),
+    (
+        620,
+        1,
+        1,
+        '2026-01-01',
+        '2026-01-01 08:02:00',
+        '2026-01-01 16:01:00',
+        2
+    ),
+    (
+        621,
+        1,
+        1,
+        '2026-01-02',
+        '2026-01-02 08:02:00',
+        '2026-01-02 16:01:00',
+        2
+    ),
+    (
+        622,
+        1,
+        1,
+        '2026-01-03',
+        '2026-01-03 08:02:00',
+        '2026-01-03 16:01:00',
+        2
+    ),
+    (
+        623,
+        1,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        624,
+        1,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        625,
+        1,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        626,
+        1,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        627,
+        1,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        628,
+        1,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        629,
+        1,
+        1,
+        '2026-01-12',
+        '2026-01-12 08:02:00',
+        '2026-01-12 16:01:00',
+        2
+    ),
+    (
+        630,
+        1,
+        1,
+        '2026-01-13',
+        '2026-01-13 08:02:00',
+        '2026-01-13 16:01:00',
+        2
+    ),
+    (
+        631,
+        1,
+        1,
+        '2026-01-14',
+        '2026-01-14 08:02:00',
+        '2026-01-14 16:01:00',
+        2
+    ),
+    (
+        632,
+        1,
+        1,
+        '2026-01-15',
+        '2026-01-15 08:02:00',
+        '2026-01-15 16:01:00',
+        2
+    ),
+    (
+        633,
+        1,
+        1,
+        '2026-01-16',
+        '2026-01-16 08:02:00',
+        '2026-01-16 16:01:00',
+        2
+    ),
+    (
+        634,
+        1,
+        1,
+        '2026-01-17',
+        '2026-01-17 08:02:00',
+        '2026-01-17 16:01:00',
+        2
+    ),
+    (
+        635,
+        1,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        636,
+        1,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        637,
+        1,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        638,
+        1,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        639,
+        1,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        640,
+        1,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        641,
+        1,
+        1,
+        '2026-01-26',
+        '2026-01-26 08:02:00',
+        '2026-01-26 16:01:00',
+        2
+    ),
+    (
+        642,
+        1,
+        1,
+        '2026-01-27',
+        '2026-01-27 08:02:00',
+        '2026-01-27 16:01:00',
+        2
+    ),
+    (
+        643,
+        1,
+        1,
+        '2026-01-28',
+        '2026-01-28 08:02:00',
+        '2026-01-28 16:01:00',
+        2
+    ),
+    (
+        644,
+        1,
+        1,
+        '2026-01-29',
+        '2026-01-29 08:02:00',
+        '2026-01-29 16:01:00',
+        2
+    ),
+    (
+        645,
+        1,
+        1,
+        '2026-01-30',
+        '2026-01-30 08:02:00',
+        '2026-01-30 16:01:00',
+        2
+    ),
+    (
+        646,
+        1,
+        1,
+        '2026-01-31',
+        '2026-01-31 08:02:00',
+        '2026-01-31 16:01:00',
+        2
+    ),
+    (
+        647,
+        1,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        648,
+        1,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        649,
+        1,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        650,
+        1,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        651,
+        1,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        652,
+        1,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        653,
+        1,
+        1,
+        '2026-02-09',
+        '2026-02-09 08:02:00',
+        '2026-02-09 16:01:00',
+        2
+    ),
+    (
+        654,
+        1,
+        1,
+        '2026-02-10',
+        '2026-02-10 08:02:00',
+        '2026-02-10 16:01:00',
+        2
+    ),
+    (
+        655,
+        1,
+        1,
+        '2026-02-11',
+        '2026-02-11 08:02:00',
+        '2026-02-11 16:01:00',
+        2
+    ),
+    (
+        656,
+        1,
+        1,
+        '2026-02-12',
+        '2026-02-12 08:02:00',
+        '2026-02-12 16:01:00',
+        2
+    ),
+    (
+        657,
+        1,
+        1,
+        '2026-02-13',
+        '2026-02-13 08:02:00',
+        '2026-02-13 16:01:00',
+        2
+    ),
+    (
+        658,
+        1,
+        1,
+        '2026-02-14',
+        '2026-02-14 08:02:00',
+        '2026-02-14 16:01:00',
+        2
+    ),
+    (
+        659,
+        1,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        660,
+        1,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        661,
+        1,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        662,
+        1,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        663,
+        1,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        664,
+        1,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        665,
+        1,
+        1,
+        '2026-02-23',
+        '2026-02-23 08:02:00',
+        '2026-02-23 16:01:00',
+        2
+    ),
+    (
+        666,
+        1,
+        1,
+        '2026-02-24',
+        '2026-02-24 08:02:00',
+        '2026-02-24 16:01:00',
+        2
+    ),
+    (
+        667,
+        1,
+        1,
+        '2026-02-25',
+        '2026-02-25 08:02:00',
+        '2026-02-25 16:01:00',
+        2
+    ),
+    (
+        668,
+        1,
+        1,
+        '2026-02-26',
+        '2026-02-26 08:02:00',
+        '2026-02-26 16:01:00',
+        2
+    ),
+    (
+        669,
+        1,
+        1,
+        '2026-02-27',
+        '2026-02-27 08:02:00',
+        '2026-02-27 16:01:00',
+        2
+    ),
+    (
+        670,
+        1,
+        1,
+        '2026-02-28',
+        '2026-02-28 08:02:00',
+        '2026-02-28 16:01:00',
+        2
+    ),
+    (
+        671,
+        1,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        672,
+        1,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        673,
+        1,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        674,
+        1,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        675,
+        1,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        676,
+        1,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        677,
+        1,
+        1,
+        '2026-03-09',
+        '2026-03-09 08:02:00',
+        '2026-03-09 16:01:00',
+        2
+    ),
+    (
+        678,
+        1,
+        1,
+        '2026-03-10',
+        '2026-03-10 08:02:00',
+        '2026-03-10 16:01:00',
+        2
+    ),
+    (
+        679,
+        1,
+        1,
+        '2026-03-11',
+        '2026-03-11 08:02:00',
+        '2026-03-11 16:01:00',
+        2
+    ),
+    (
+        680,
+        1,
+        1,
+        '2026-03-12',
+        '2026-03-12 08:02:00',
+        '2026-03-12 16:01:00',
+        2
+    ),
+    (
+        681,
+        1,
+        1,
+        '2026-03-13',
+        '2026-03-13 08:02:00',
+        '2026-03-13 16:01:00',
+        2
+    ),
+    (
+        682,
+        1,
+        1,
+        '2026-03-14',
+        '2026-03-14 08:02:00',
+        '2026-03-14 16:01:00',
+        2
+    ),
+    (
+        683,
+        1,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        684,
+        1,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        685,
+        1,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        686,
+        1,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        687,
+        1,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        688,
+        1,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        689,
+        1,
+        1,
+        '2026-03-23',
+        '2026-03-23 08:02:00',
+        '2026-03-23 16:01:00',
+        2
+    ),
+    (
+        690,
+        1,
+        1,
+        '2026-03-24',
+        '2026-03-24 08:02:00',
+        '2026-03-24 16:01:00',
+        2
+    ),
+    (
+        691,
+        1,
+        1,
+        '2026-03-25',
+        '2026-03-25 08:02:00',
+        '2026-03-25 16:01:00',
+        2
+    ),
+    (
+        692,
+        1,
+        1,
+        '2026-03-26',
+        '2026-03-26 08:02:00',
+        '2026-03-26 16:01:00',
+        2
+    ),
+    (
+        693,
+        1,
+        1,
+        '2026-03-27',
+        '2026-03-27 08:02:00',
+        '2026-03-27 16:01:00',
+        2
+    ),
+    (
+        694,
+        1,
+        1,
+        '2026-03-28',
+        '2026-03-28 08:02:00',
+        '2026-03-28 16:01:00',
+        2
+    ),
+    (
+        695,
+        1,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        696,
+        1,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        697,
+        1,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        698,
+        1,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        699,
+        1,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        700,
+        1,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        701,
+        1,
+        1,
+        '2026-04-06',
+        '2026-04-06 08:02:00',
+        '2026-04-06 16:01:00',
+        2
+    ),
+    (
+        702,
+        1,
+        1,
+        '2026-04-07',
+        '2026-04-07 08:02:00',
+        '2026-04-07 16:01:00',
+        2
+    ),
+    (
+        703,
+        2,
+        2,
+        '2024-02-15',
+        '2024-02-15 14:01:00',
+        '2024-02-15 22:02:00',
+        2
+    ),
+    (
+        704,
+        2,
+        2,
+        '2024-02-16',
+        '2024-02-16 14:01:00',
+        '2024-02-16 22:02:00',
+        2
+    ),
+    (
+        705,
+        2,
+        2,
+        '2024-02-17',
+        '2024-02-17 14:01:00',
+        '2024-02-17 22:02:00',
+        2
+    ),
+    (
+        706,
+        2,
+        1,
+        '2024-02-19',
+        '2024-02-19 08:02:00',
+        '2024-02-19 16:01:00',
+        2
+    ),
+    (
+        707,
+        2,
+        1,
+        '2024-02-20',
+        '2024-02-20 08:02:00',
+        '2024-02-20 16:01:00',
+        2
+    ),
+    (
+        708,
+        2,
+        1,
+        '2024-02-21',
+        '2024-02-21 08:02:00',
+        '2024-02-21 16:01:00',
+        2
+    ),
+    (
+        709,
+        2,
+        1,
+        '2024-02-22',
+        '2024-02-22 08:02:00',
+        '2024-02-22 16:01:00',
+        2
+    ),
+    (
+        710,
+        2,
+        1,
+        '2024-02-23',
+        '2024-02-23 08:02:00',
+        '2024-02-23 16:01:00',
+        2
+    ),
+    (
+        711,
+        2,
+        1,
+        '2024-02-24',
+        '2024-02-24 08:02:00',
+        '2024-02-24 16:01:00',
+        2
+    ),
+    (
+        712,
+        2,
+        2,
+        '2024-02-26',
+        '2024-02-26 14:01:00',
+        '2024-02-26 22:02:00',
+        2
+    ),
+    (
+        713,
+        2,
+        2,
+        '2024-02-27',
+        '2024-02-27 14:01:00',
+        '2024-02-27 22:02:00',
+        2
+    ),
+    (
+        714,
+        2,
+        2,
+        '2024-02-28',
+        '2024-02-28 14:01:00',
+        '2024-02-28 22:02:00',
+        2
+    ),
+    (
+        715,
+        2,
+        2,
+        '2024-02-29',
+        '2024-02-29 14:01:00',
+        '2024-02-29 22:02:00',
+        2
+    ),
+    (
+        716,
+        2,
+        2,
+        '2024-03-01',
+        '2024-03-01 14:01:00',
+        '2024-03-01 22:02:00',
+        2
+    ),
+    (
+        717,
+        2,
+        2,
+        '2024-03-02',
+        '2024-03-02 14:01:00',
+        '2024-03-02 22:02:00',
+        2
+    ),
+    (
+        718,
+        2,
+        1,
+        '2024-03-04',
+        '2024-03-04 08:02:00',
+        '2024-03-04 16:01:00',
+        2
+    ),
+    (
+        719,
+        2,
+        1,
+        '2024-03-05',
+        '2024-03-05 08:02:00',
+        '2024-03-05 16:01:00',
+        2
+    ),
+    (
+        720,
+        2,
+        1,
+        '2024-03-06',
+        '2024-03-06 08:02:00',
+        '2024-03-06 16:01:00',
+        2
+    ),
+    (
+        721,
+        2,
+        1,
+        '2024-03-07',
+        '2024-03-07 08:02:00',
+        '2024-03-07 16:01:00',
+        2
+    ),
+    (
+        722,
+        2,
+        1,
+        '2024-03-08',
+        '2024-03-08 08:02:00',
+        '2024-03-08 16:01:00',
+        2
+    ),
+    (
+        723,
+        2,
+        1,
+        '2024-03-09',
+        '2024-03-09 08:02:00',
+        '2024-03-09 16:01:00',
+        2
+    ),
+    (
+        724,
+        2,
+        2,
+        '2024-03-11',
+        '2024-03-11 14:01:00',
+        '2024-03-11 22:02:00',
+        2
+    ),
+    (
+        725,
+        2,
+        2,
+        '2024-03-12',
+        '2024-03-12 14:01:00',
+        '2024-03-12 22:02:00',
+        2
+    ),
+    (
+        726,
+        2,
+        2,
+        '2024-03-13',
+        '2024-03-13 14:01:00',
+        '2024-03-13 22:02:00',
+        2
+    ),
+    (
+        727,
+        2,
+        2,
+        '2024-03-14',
+        '2024-03-14 14:01:00',
+        '2024-03-14 22:02:00',
+        2
+    ),
+    (
+        728,
+        2,
+        2,
+        '2024-03-15',
+        '2024-03-15 14:01:00',
+        '2024-03-15 22:02:00',
+        2
+    ),
+    (
+        729,
+        2,
+        2,
+        '2024-03-16',
+        '2024-03-16 14:01:00',
+        '2024-03-16 22:02:00',
+        2
+    ),
+    (
+        730,
+        2,
+        1,
+        '2024-03-18',
+        '2024-03-18 08:02:00',
+        '2024-03-18 16:01:00',
+        2
+    ),
+    (
+        731,
+        2,
+        1,
+        '2024-03-19',
+        '2024-03-19 08:02:00',
+        '2024-03-19 16:01:00',
+        2
+    ),
+    (
+        732,
+        2,
+        1,
+        '2024-03-20',
+        '2024-03-20 08:02:00',
+        '2024-03-20 16:01:00',
+        2
+    ),
+    (
+        733,
+        2,
+        1,
+        '2024-03-21',
+        '2024-03-21 08:02:00',
+        '2024-03-21 16:01:00',
+        2
+    ),
+    (
+        734,
+        2,
+        1,
+        '2024-03-22',
+        '2024-03-22 08:02:00',
+        '2024-03-22 16:01:00',
+        2
+    ),
+    (
+        735,
+        2,
+        1,
+        '2024-03-23',
+        '2024-03-23 08:02:00',
+        '2024-03-23 16:01:00',
+        2
+    ),
+    (
+        736,
+        2,
+        2,
+        '2024-03-25',
+        '2024-03-25 14:01:00',
+        '2024-03-25 22:02:00',
+        2
+    ),
+    (
+        737,
+        2,
+        2,
+        '2024-03-26',
+        '2024-03-26 14:01:00',
+        '2024-03-26 22:02:00',
+        2
+    ),
+    (
+        738,
+        2,
+        2,
+        '2024-03-27',
+        '2024-03-27 14:01:00',
+        '2024-03-27 22:02:00',
+        2
+    ),
+    (
+        739,
+        2,
+        2,
+        '2024-03-28',
+        '2024-03-28 14:01:00',
+        '2024-03-28 22:02:00',
+        2
+    ),
+    (
+        740,
+        2,
+        2,
+        '2024-03-29',
+        '2024-03-29 14:01:00',
+        '2024-03-29 22:02:00',
+        2
+    ),
+    (
+        741,
+        2,
+        2,
+        '2024-03-30',
+        '2024-03-30 14:01:00',
+        '2024-03-30 22:02:00',
+        2
+    ),
+    (
+        742,
+        2,
+        1,
+        '2024-04-01',
+        '2024-04-01 08:02:00',
+        '2024-04-01 16:01:00',
+        2
+    ),
+    (
+        743,
+        2,
+        1,
+        '2024-04-02',
+        '2024-04-02 08:02:00',
+        '2024-04-02 16:01:00',
+        2
+    ),
+    (
+        744,
+        2,
+        1,
+        '2024-04-03',
+        '2024-04-03 08:02:00',
+        '2024-04-03 16:01:00',
+        2
+    ),
+    (
+        745,
+        2,
+        1,
+        '2024-04-04',
+        '2024-04-04 08:02:00',
+        '2024-04-04 16:01:00',
+        2
+    ),
+    (
+        746,
+        2,
+        1,
+        '2024-04-05',
+        '2024-04-05 08:02:00',
+        '2024-04-05 16:01:00',
+        2
+    ),
+    (
+        747,
+        2,
+        1,
+        '2024-04-06',
+        '2024-04-06 08:02:00',
+        '2024-04-06 16:01:00',
+        2
+    ),
+    (
+        748,
+        2,
+        2,
+        '2024-04-08',
+        '2024-04-08 14:01:00',
+        '2024-04-08 22:02:00',
+        2
+    ),
+    (
+        749,
+        2,
+        2,
+        '2024-04-09',
+        '2024-04-09 14:01:00',
+        '2024-04-09 22:02:00',
+        2
+    ),
+    (
+        750,
+        2,
+        2,
+        '2024-04-10',
+        '2024-04-10 14:01:00',
+        '2024-04-10 22:02:00',
+        2
+    ),
+    (
+        751,
+        2,
+        2,
+        '2024-04-11',
+        '2024-04-11 14:01:00',
+        '2024-04-11 22:02:00',
+        2
+    ),
+    (
+        752,
+        2,
+        2,
+        '2024-04-12',
+        '2024-04-12 14:01:00',
+        '2024-04-12 22:02:00',
+        2
+    ),
+    (
+        753,
+        2,
+        2,
+        '2024-04-13',
+        '2024-04-13 14:01:00',
+        '2024-04-13 22:02:00',
+        2
+    ),
+    (
+        754,
+        2,
+        1,
+        '2024-04-15',
+        '2024-04-15 08:02:00',
+        '2024-04-15 16:01:00',
+        2
+    ),
+    (
+        755,
+        2,
+        1,
+        '2024-04-16',
+        '2024-04-16 08:02:00',
+        '2024-04-16 16:01:00',
+        2
+    ),
+    (
+        756,
+        2,
+        1,
+        '2024-04-17',
+        '2024-04-17 08:02:00',
+        '2024-04-17 16:01:00',
+        2
+    ),
+    (
+        757,
+        2,
+        1,
+        '2024-04-18',
+        '2024-04-18 08:02:00',
+        '2024-04-18 16:01:00',
+        2
+    ),
+    (
+        758,
+        2,
+        1,
+        '2024-04-19',
+        '2024-04-19 08:02:00',
+        '2024-04-19 16:01:00',
+        2
+    ),
+    (
+        759,
+        2,
+        1,
+        '2024-04-20',
+        '2024-04-20 08:02:00',
+        '2024-04-20 16:01:00',
+        2
+    ),
+    (
+        760,
+        2,
+        2,
+        '2024-04-22',
+        '2024-04-22 14:01:00',
+        '2024-04-22 22:02:00',
+        2
+    ),
+    (
+        761,
+        2,
+        2,
+        '2024-04-23',
+        '2024-04-23 14:01:00',
+        '2024-04-23 22:02:00',
+        2
+    ),
+    (
+        762,
+        2,
+        2,
+        '2024-04-24',
+        '2024-04-24 14:01:00',
+        '2024-04-24 22:02:00',
+        2
+    ),
+    (
+        763,
+        2,
+        2,
+        '2024-04-25',
+        '2024-04-25 14:01:00',
+        '2024-04-25 22:02:00',
+        2
+    ),
+    (
+        764,
+        2,
+        2,
+        '2024-04-26',
+        '2024-04-26 14:01:00',
+        '2024-04-26 22:02:00',
+        2
+    ),
+    (
+        765,
+        2,
+        2,
+        '2024-04-27',
+        '2024-04-27 14:01:00',
+        '2024-04-27 22:02:00',
+        2
+    ),
+    (
+        766,
+        2,
+        1,
+        '2024-04-29',
+        '2024-04-29 08:02:00',
+        '2024-04-29 16:01:00',
+        2
+    ),
+    (
+        767,
+        2,
+        1,
+        '2024-04-30',
+        '2024-04-30 08:02:00',
+        '2024-04-30 16:01:00',
+        2
+    ),
+    (
+        768,
+        2,
+        1,
+        '2024-05-01',
+        '2024-05-01 08:02:00',
+        '2024-05-01 16:01:00',
+        2
+    ),
+    (
+        769,
+        2,
+        1,
+        '2024-05-02',
+        '2024-05-02 08:02:00',
+        '2024-05-02 16:01:00',
+        2
+    ),
+    (
+        770,
+        2,
+        1,
+        '2024-05-03',
+        '2024-05-03 08:02:00',
+        '2024-05-03 16:01:00',
+        2
+    ),
+    (
+        771,
+        2,
+        1,
+        '2024-05-04',
+        '2024-05-04 08:02:00',
+        '2024-05-04 16:01:00',
+        2
+    ),
+    (
+        772,
+        2,
+        2,
+        '2024-05-06',
+        '2024-05-06 14:01:00',
+        '2024-05-06 22:02:00',
+        2
+    ),
+    (
+        773,
+        2,
+        2,
+        '2024-05-07',
+        '2024-05-07 14:01:00',
+        '2024-05-07 22:02:00',
+        2
+    ),
+    (
+        774,
+        2,
+        2,
+        '2024-05-08',
+        '2024-05-08 14:01:00',
+        '2024-05-08 22:02:00',
+        2
+    ),
+    (
+        775,
+        2,
+        2,
+        '2024-05-09',
+        '2024-05-09 14:01:00',
+        '2024-05-09 22:02:00',
+        2
+    ),
+    (
+        776,
+        2,
+        2,
+        '2024-05-10',
+        '2024-05-10 14:01:00',
+        '2024-05-10 22:02:00',
+        2
+    ),
+    (
+        777,
+        2,
+        2,
+        '2024-05-11',
+        '2024-05-11 14:01:00',
+        '2024-05-11 22:02:00',
+        2
+    ),
+    (
+        778,
+        2,
+        1,
+        '2024-05-13',
+        '2024-05-13 08:02:00',
+        '2024-05-13 16:01:00',
+        2
+    ),
+    (
+        779,
+        2,
+        1,
+        '2024-05-14',
+        '2024-05-14 08:02:00',
+        '2024-05-14 16:01:00',
+        2
+    ),
+    (
+        780,
+        2,
+        1,
+        '2024-05-15',
+        '2024-05-15 08:02:00',
+        '2024-05-15 16:01:00',
+        2
+    ),
+    (
+        781,
+        2,
+        1,
+        '2024-05-16',
+        '2024-05-16 08:02:00',
+        '2024-05-16 16:01:00',
+        2
+    ),
+    (
+        782,
+        2,
+        1,
+        '2024-05-17',
+        '2024-05-17 08:02:00',
+        '2024-05-17 16:01:00',
+        2
+    ),
+    (
+        783,
+        2,
+        1,
+        '2024-05-18',
+        '2024-05-18 08:02:00',
+        '2024-05-18 16:01:00',
+        2
+    ),
+    (
+        784,
+        2,
+        2,
+        '2024-05-20',
+        '2024-05-20 14:01:00',
+        '2024-05-20 22:02:00',
+        2
+    ),
+    (
+        785,
+        2,
+        2,
+        '2024-05-21',
+        '2024-05-21 14:01:00',
+        '2024-05-21 22:02:00',
+        2
+    ),
+    (
+        786,
+        2,
+        2,
+        '2024-05-22',
+        '2024-05-22 14:01:00',
+        '2024-05-22 22:02:00',
+        2
+    ),
+    (
+        787,
+        2,
+        2,
+        '2024-05-23',
+        '2024-05-23 14:01:00',
+        '2024-05-23 22:02:00',
+        2
+    ),
+    (
+        788,
+        2,
+        2,
+        '2024-05-24',
+        '2024-05-24 14:01:00',
+        '2024-05-24 22:02:00',
+        2
+    ),
+    (
+        789,
+        2,
+        2,
+        '2024-05-25',
+        '2024-05-25 14:01:00',
+        '2024-05-25 22:02:00',
+        2
+    ),
+    (
+        790,
+        2,
+        1,
+        '2024-05-27',
+        '2024-05-27 08:02:00',
+        '2024-05-27 16:01:00',
+        2
+    ),
+    (
+        791,
+        2,
+        1,
+        '2024-05-28',
+        '2024-05-28 08:02:00',
+        '2024-05-28 16:01:00',
+        2
+    ),
+    (
+        792,
+        2,
+        1,
+        '2024-05-29',
+        '2024-05-29 08:02:00',
+        '2024-05-29 16:01:00',
+        2
+    ),
+    (
+        793,
+        2,
+        1,
+        '2024-05-30',
+        '2024-05-30 08:02:00',
+        '2024-05-30 16:01:00',
+        2
+    ),
+    (
+        794,
+        2,
+        1,
+        '2024-05-31',
+        '2024-05-31 08:02:00',
+        '2024-05-31 16:01:00',
+        2
+    ),
+    (
+        795,
+        2,
+        1,
+        '2024-06-01',
+        '2024-06-01 08:02:00',
+        '2024-06-01 16:01:00',
+        2
+    ),
+    (
+        796,
+        2,
+        2,
+        '2024-06-03',
+        '2024-06-03 14:01:00',
+        '2024-06-03 22:02:00',
+        2
+    ),
+    (
+        797,
+        2,
+        2,
+        '2024-06-04',
+        '2024-06-04 14:01:00',
+        '2024-06-04 22:02:00',
+        2
+    ),
+    (
+        798,
+        2,
+        2,
+        '2024-06-05',
+        '2024-06-05 14:01:00',
+        '2024-06-05 22:02:00',
+        2
+    ),
+    (
+        799,
+        2,
+        2,
+        '2024-06-06',
+        '2024-06-06 14:01:00',
+        '2024-06-06 22:02:00',
+        2
+    ),
+    (
+        800,
+        2,
+        2,
+        '2024-06-07',
+        '2024-06-07 14:01:00',
+        '2024-06-07 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        801,
+        2,
+        2,
+        '2024-06-08',
+        '2024-06-08 14:01:00',
+        '2024-06-08 22:02:00',
+        2
+    ),
+    (
+        802,
+        2,
+        1,
+        '2024-06-10',
+        '2024-06-10 08:02:00',
+        '2024-06-10 16:01:00',
+        2
+    ),
+    (
+        803,
+        2,
+        1,
+        '2024-06-11',
+        '2024-06-11 08:02:00',
+        '2024-06-11 16:01:00',
+        2
+    ),
+    (
+        804,
+        2,
+        1,
+        '2024-06-12',
+        '2024-06-12 08:02:00',
+        '2024-06-12 16:01:00',
+        2
+    ),
+    (
+        805,
+        2,
+        1,
+        '2024-06-13',
+        '2024-06-13 08:02:00',
+        '2024-06-13 16:01:00',
+        2
+    ),
+    (
+        806,
+        2,
+        1,
+        '2024-06-14',
+        '2024-06-14 08:02:00',
+        '2024-06-14 16:01:00',
+        2
+    ),
+    (
+        807,
+        2,
+        1,
+        '2024-06-15',
+        '2024-06-15 08:02:00',
+        '2024-06-15 16:01:00',
+        2
+    ),
+    (
+        808,
+        2,
+        2,
+        '2024-06-17',
+        '2024-06-17 14:01:00',
+        '2024-06-17 22:02:00',
+        2
+    ),
+    (
+        809,
+        2,
+        2,
+        '2024-06-18',
+        '2024-06-18 14:01:00',
+        '2024-06-18 22:02:00',
+        2
+    ),
+    (
+        810,
+        2,
+        2,
+        '2024-06-19',
+        '2024-06-19 14:01:00',
+        '2024-06-19 22:02:00',
+        2
+    ),
+    (
+        811,
+        2,
+        2,
+        '2024-06-20',
+        '2024-06-20 14:01:00',
+        '2024-06-20 22:02:00',
+        2
+    ),
+    (
+        812,
+        2,
+        2,
+        '2024-06-21',
+        '2024-06-21 14:01:00',
+        '2024-06-21 22:02:00',
+        2
+    ),
+    (
+        813,
+        2,
+        2,
+        '2024-06-22',
+        '2024-06-22 14:01:00',
+        '2024-06-22 22:02:00',
+        2
+    ),
+    (
+        814,
+        2,
+        1,
+        '2024-06-24',
+        '2024-06-24 08:02:00',
+        '2024-06-24 16:01:00',
+        2
+    ),
+    (
+        815,
+        2,
+        1,
+        '2024-06-25',
+        '2024-06-25 08:02:00',
+        '2024-06-25 16:01:00',
+        2
+    ),
+    (
+        816,
+        2,
+        1,
+        '2024-06-26',
+        '2024-06-26 08:02:00',
+        '2024-06-26 16:01:00',
+        2
+    ),
+    (
+        817,
+        2,
+        1,
+        '2024-06-27',
+        '2024-06-27 08:02:00',
+        '2024-06-27 16:01:00',
+        2
+    ),
+    (
+        818,
+        2,
+        1,
+        '2024-06-28',
+        '2024-06-28 08:02:00',
+        '2024-06-28 16:01:00',
+        2
+    ),
+    (
+        819,
+        2,
+        1,
+        '2024-06-29',
+        '2024-06-29 08:02:00',
+        '2024-06-29 16:01:00',
+        2
+    ),
+    (
+        820,
+        2,
+        2,
+        '2024-07-01',
+        '2024-07-01 14:01:00',
+        '2024-07-01 22:02:00',
+        2
+    ),
+    (
+        821,
+        2,
+        2,
+        '2024-07-02',
+        '2024-07-02 14:01:00',
+        '2024-07-02 22:02:00',
+        2
+    ),
+    (
+        822,
+        2,
+        2,
+        '2024-07-03',
+        '2024-07-03 14:01:00',
+        '2024-07-03 22:02:00',
+        2
+    ),
+    (
+        823,
+        2,
+        2,
+        '2024-07-04',
+        '2024-07-04 14:01:00',
+        '2024-07-04 22:02:00',
+        2
+    ),
+    (
+        824,
+        2,
+        2,
+        '2024-07-05',
+        '2024-07-05 14:01:00',
+        '2024-07-05 22:02:00',
+        2
+    ),
+    (
+        825,
+        2,
+        2,
+        '2024-07-06',
+        '2024-07-06 14:01:00',
+        '2024-07-06 22:02:00',
+        2
+    ),
+    (
+        826,
+        2,
+        1,
+        '2024-07-08',
+        '2024-07-08 08:02:00',
+        '2024-07-08 16:01:00',
+        2
+    ),
+    (
+        827,
+        2,
+        1,
+        '2024-07-09',
+        '2024-07-09 08:02:00',
+        '2024-07-09 16:01:00',
+        2
+    ),
+    (
+        828,
+        2,
+        1,
+        '2024-07-10',
+        '2024-07-10 08:02:00',
+        '2024-07-10 16:01:00',
+        2
+    ),
+    (
+        829,
+        2,
+        1,
+        '2024-07-11',
+        '2024-07-11 08:02:00',
+        '2024-07-11 16:01:00',
+        2
+    ),
+    (
+        830,
+        2,
+        1,
+        '2024-07-12',
+        '2024-07-12 08:02:00',
+        '2024-07-12 16:01:00',
+        2
+    ),
+    (
+        831,
+        2,
+        1,
+        '2024-07-13',
+        '2024-07-13 08:02:00',
+        '2024-07-13 16:01:00',
+        2
+    ),
+    (
+        832,
+        2,
+        2,
+        '2024-07-15',
+        '2024-07-15 14:01:00',
+        '2024-07-15 22:02:00',
+        2
+    ),
+    (
+        833,
+        2,
+        2,
+        '2024-07-16',
+        '2024-07-16 14:01:00',
+        '2024-07-16 22:02:00',
+        2
+    ),
+    (
+        834,
+        2,
+        2,
+        '2024-07-17',
+        '2024-07-17 14:01:00',
+        '2024-07-17 22:02:00',
+        2
+    ),
+    (
+        835,
+        2,
+        2,
+        '2024-07-18',
+        '2024-07-18 14:01:00',
+        '2024-07-18 22:02:00',
+        2
+    ),
+    (
+        836,
+        2,
+        2,
+        '2024-07-19',
+        '2024-07-19 14:01:00',
+        '2024-07-19 22:02:00',
+        2
+    ),
+    (
+        837,
+        2,
+        2,
+        '2024-07-20',
+        '2024-07-20 14:01:00',
+        '2024-07-20 22:02:00',
+        2
+    ),
+    (
+        838,
+        2,
+        1,
+        '2024-07-22',
+        '2024-07-22 08:02:00',
+        '2024-07-22 16:01:00',
+        2
+    ),
+    (
+        839,
+        2,
+        1,
+        '2024-07-23',
+        '2024-07-23 08:02:00',
+        '2024-07-23 16:01:00',
+        2
+    ),
+    (
+        840,
+        2,
+        1,
+        '2024-07-24',
+        '2024-07-24 08:02:00',
+        '2024-07-24 16:01:00',
+        2
+    ),
+    (
+        841,
+        2,
+        1,
+        '2024-07-25',
+        '2024-07-25 08:02:00',
+        '2024-07-25 16:01:00',
+        2
+    ),
+    (
+        842,
+        2,
+        1,
+        '2024-07-26',
+        '2024-07-26 08:02:00',
+        '2024-07-26 16:01:00',
+        2
+    ),
+    (
+        843,
+        2,
+        1,
+        '2024-07-27',
+        '2024-07-27 08:02:00',
+        '2024-07-27 16:01:00',
+        2
+    ),
+    (
+        844,
+        2,
+        2,
+        '2024-07-29',
+        '2024-07-29 14:01:00',
+        '2024-07-29 22:02:00',
+        2
+    ),
+    (
+        845,
+        2,
+        2,
+        '2024-07-30',
+        '2024-07-30 14:01:00',
+        '2024-07-30 22:02:00',
+        2
+    ),
+    (
+        846,
+        2,
+        2,
+        '2024-07-31',
+        '2024-07-31 14:01:00',
+        '2024-07-31 22:02:00',
+        2
+    ),
+    (
+        847,
+        2,
+        2,
+        '2024-08-01',
+        '2024-08-01 14:01:00',
+        '2024-08-01 22:02:00',
+        2
+    ),
+    (
+        848,
+        2,
+        2,
+        '2024-08-02',
+        '2024-08-02 14:01:00',
+        '2024-08-02 22:02:00',
+        2
+    ),
+    (
+        849,
+        2,
+        2,
+        '2024-08-03',
+        '2024-08-03 14:01:00',
+        '2024-08-03 22:02:00',
+        2
+    ),
+    (
+        850,
+        2,
+        1,
+        '2024-08-05',
+        '2024-08-05 08:02:00',
+        '2024-08-05 16:01:00',
+        2
+    ),
+    (
+        851,
+        2,
+        1,
+        '2024-08-06',
+        '2024-08-06 08:02:00',
+        '2024-08-06 16:01:00',
+        2
+    ),
+    (
+        852,
+        2,
+        1,
+        '2024-08-07',
+        '2024-08-07 08:02:00',
+        '2024-08-07 16:01:00',
+        2
+    ),
+    (
+        853,
+        2,
+        1,
+        '2024-08-08',
+        '2024-08-08 08:02:00',
+        '2024-08-08 16:01:00',
+        2
+    ),
+    (
+        854,
+        2,
+        1,
+        '2024-08-09',
+        '2024-08-09 08:02:00',
+        '2024-08-09 16:01:00',
+        2
+    ),
+    (
+        855,
+        2,
+        1,
+        '2024-08-10',
+        '2024-08-10 08:02:00',
+        '2024-08-10 16:01:00',
+        2
+    ),
+    (
+        856,
+        2,
+        2,
+        '2024-08-12',
+        '2024-08-12 14:01:00',
+        '2024-08-12 22:02:00',
+        2
+    ),
+    (
+        857,
+        2,
+        2,
+        '2024-08-13',
+        '2024-08-13 14:01:00',
+        '2024-08-13 22:02:00',
+        2
+    ),
+    (
+        858,
+        2,
+        2,
+        '2024-08-14',
+        '2024-08-14 14:01:00',
+        '2024-08-14 22:02:00',
+        2
+    ),
+    (
+        859,
+        2,
+        2,
+        '2024-08-15',
+        '2024-08-15 14:01:00',
+        '2024-08-15 22:02:00',
+        2
+    ),
+    (
+        860,
+        2,
+        2,
+        '2024-08-16',
+        '2024-08-16 14:01:00',
+        '2024-08-16 22:02:00',
+        2
+    ),
+    (
+        861,
+        2,
+        2,
+        '2024-08-17',
+        '2024-08-17 14:01:00',
+        '2024-08-17 22:02:00',
+        2
+    ),
+    (
+        862,
+        2,
+        1,
+        '2024-08-19',
+        '2024-08-19 08:02:00',
+        '2024-08-19 16:01:00',
+        2
+    ),
+    (
+        863,
+        2,
+        1,
+        '2024-08-20',
+        '2024-08-20 08:02:00',
+        '2024-08-20 16:01:00',
+        2
+    ),
+    (
+        864,
+        2,
+        1,
+        '2024-08-21',
+        '2024-08-21 08:02:00',
+        '2024-08-21 16:01:00',
+        2
+    ),
+    (
+        865,
+        2,
+        1,
+        '2024-08-22',
+        '2024-08-22 08:02:00',
+        '2024-08-22 16:01:00',
+        2
+    ),
+    (
+        866,
+        2,
+        1,
+        '2024-08-23',
+        '2024-08-23 08:02:00',
+        '2024-08-23 16:01:00',
+        2
+    ),
+    (
+        867,
+        2,
+        1,
+        '2024-08-24',
+        '2024-08-24 08:02:00',
+        '2024-08-24 16:01:00',
+        2
+    ),
+    (
+        868,
+        2,
+        2,
+        '2024-08-26',
+        '2024-08-26 14:01:00',
+        '2024-08-26 22:02:00',
+        2
+    ),
+    (
+        869,
+        2,
+        2,
+        '2024-08-27',
+        '2024-08-27 14:01:00',
+        '2024-08-27 22:02:00',
+        2
+    ),
+    (
+        870,
+        2,
+        2,
+        '2024-08-28',
+        '2024-08-28 14:01:00',
+        '2024-08-28 22:02:00',
+        2
+    ),
+    (
+        871,
+        2,
+        2,
+        '2024-08-29',
+        '2024-08-29 14:01:00',
+        '2024-08-29 22:02:00',
+        2
+    ),
+    (
+        872,
+        2,
+        2,
+        '2024-08-30',
+        '2024-08-30 14:01:00',
+        '2024-08-30 22:02:00',
+        2
+    ),
+    (
+        873,
+        2,
+        2,
+        '2024-08-31',
+        '2024-08-31 14:01:00',
+        '2024-08-31 22:02:00',
+        2
+    ),
+    (
+        874,
+        2,
+        1,
+        '2024-09-02',
+        '2024-09-02 08:02:00',
+        '2024-09-02 16:01:00',
+        2
+    ),
+    (
+        875,
+        2,
+        1,
+        '2024-09-03',
+        '2024-09-03 08:02:00',
+        '2024-09-03 16:01:00',
+        2
+    ),
+    (
+        876,
+        2,
+        1,
+        '2024-09-04',
+        '2024-09-04 08:02:00',
+        '2024-09-04 16:01:00',
+        2
+    ),
+    (
+        877,
+        2,
+        1,
+        '2024-09-05',
+        '2024-09-05 08:02:00',
+        '2024-09-05 16:01:00',
+        2
+    ),
+    (
+        878,
+        2,
+        1,
+        '2024-09-06',
+        '2024-09-06 08:02:00',
+        '2024-09-06 16:01:00',
+        2
+    ),
+    (
+        879,
+        2,
+        1,
+        '2024-09-07',
+        '2024-09-07 08:02:00',
+        '2024-09-07 16:01:00',
+        2
+    ),
+    (
+        880,
+        2,
+        2,
+        '2024-09-09',
+        '2024-09-09 14:01:00',
+        '2024-09-09 22:02:00',
+        2
+    ),
+    (
+        881,
+        2,
+        2,
+        '2024-09-10',
+        '2024-09-10 14:01:00',
+        '2024-09-10 22:02:00',
+        2
+    ),
+    (
+        882,
+        2,
+        2,
+        '2024-09-11',
+        '2024-09-11 14:01:00',
+        '2024-09-11 22:02:00',
+        2
+    ),
+    (
+        883,
+        2,
+        2,
+        '2024-09-12',
+        '2024-09-12 14:01:00',
+        '2024-09-12 22:02:00',
+        2
+    ),
+    (
+        884,
+        2,
+        2,
+        '2024-09-13',
+        '2024-09-13 14:01:00',
+        '2024-09-13 22:02:00',
+        2
+    ),
+    (
+        885,
+        2,
+        2,
+        '2024-09-14',
+        '2024-09-14 14:01:00',
+        '2024-09-14 22:02:00',
+        2
+    ),
+    (
+        886,
+        2,
+        1,
+        '2024-09-16',
+        '2024-09-16 08:02:00',
+        '2024-09-16 16:01:00',
+        2
+    ),
+    (
+        887,
+        2,
+        1,
+        '2024-09-17',
+        '2024-09-17 08:02:00',
+        '2024-09-17 16:01:00',
+        2
+    ),
+    (
+        888,
+        2,
+        1,
+        '2024-09-18',
+        '2024-09-18 08:02:00',
+        '2024-09-18 16:01:00',
+        2
+    ),
+    (
+        889,
+        2,
+        1,
+        '2024-09-19',
+        '2024-09-19 08:02:00',
+        '2024-09-19 16:01:00',
+        2
+    ),
+    (
+        890,
+        2,
+        1,
+        '2024-09-20',
+        '2024-09-20 08:02:00',
+        '2024-09-20 16:01:00',
+        2
+    ),
+    (
+        891,
+        2,
+        1,
+        '2024-09-21',
+        '2024-09-21 08:02:00',
+        '2024-09-21 16:01:00',
+        2
+    ),
+    (
+        892,
+        2,
+        2,
+        '2024-09-23',
+        '2024-09-23 14:01:00',
+        '2024-09-23 22:02:00',
+        2
+    ),
+    (
+        893,
+        2,
+        2,
+        '2024-09-24',
+        '2024-09-24 14:01:00',
+        '2024-09-24 22:02:00',
+        2
+    ),
+    (
+        894,
+        2,
+        2,
+        '2024-09-25',
+        '2024-09-25 14:01:00',
+        '2024-09-25 22:02:00',
+        2
+    ),
+    (
+        895,
+        2,
+        2,
+        '2024-09-26',
+        '2024-09-26 14:01:00',
+        '2024-09-26 22:02:00',
+        2
+    ),
+    (
+        896,
+        2,
+        2,
+        '2024-09-27',
+        '2024-09-27 14:01:00',
+        '2024-09-27 22:02:00',
+        2
+    ),
+    (
+        897,
+        2,
+        2,
+        '2024-09-28',
+        '2024-09-28 14:01:00',
+        '2024-09-28 22:02:00',
+        2
+    ),
+    (
+        898,
+        2,
+        1,
+        '2024-09-30',
+        '2024-09-30 08:02:00',
+        '2024-09-30 16:01:00',
+        2
+    ),
+    (
+        899,
+        2,
+        1,
+        '2024-10-01',
+        '2024-10-01 08:02:00',
+        '2024-10-01 16:01:00',
+        2
+    ),
+    (
+        900,
+        2,
+        1,
+        '2024-10-02',
+        '2024-10-02 08:02:00',
+        '2024-10-02 16:01:00',
+        2
+    ),
+    (
+        901,
+        2,
+        1,
+        '2024-10-03',
+        '2024-10-03 08:02:00',
+        '2024-10-03 16:01:00',
+        2
+    ),
+    (
+        902,
+        2,
+        1,
+        '2024-10-04',
+        '2024-10-04 08:02:00',
+        '2024-10-04 16:01:00',
+        2
+    ),
+    (
+        903,
+        2,
+        1,
+        '2024-10-05',
+        '2024-10-05 08:02:00',
+        '2024-10-05 16:01:00',
+        2
+    ),
+    (
+        904,
+        2,
+        2,
+        '2024-10-07',
+        '2024-10-07 14:01:00',
+        '2024-10-07 22:02:00',
+        2
+    ),
+    (
+        905,
+        2,
+        2,
+        '2024-10-08',
+        '2024-10-08 14:01:00',
+        '2024-10-08 22:02:00',
+        2
+    ),
+    (
+        906,
+        2,
+        2,
+        '2024-10-09',
+        '2024-10-09 14:01:00',
+        '2024-10-09 22:02:00',
+        2
+    ),
+    (
+        907,
+        2,
+        2,
+        '2024-10-10',
+        '2024-10-10 14:01:00',
+        '2024-10-10 22:02:00',
+        2
+    ),
+    (
+        908,
+        2,
+        2,
+        '2024-10-11',
+        '2024-10-11 14:01:00',
+        '2024-10-11 22:02:00',
+        2
+    ),
+    (
+        909,
+        2,
+        2,
+        '2024-10-12',
+        '2024-10-12 14:01:00',
+        '2024-10-12 22:02:00',
+        2
+    ),
+    (
+        910,
+        2,
+        1,
+        '2024-10-14',
+        '2024-10-14 08:02:00',
+        '2024-10-14 16:01:00',
+        2
+    ),
+    (
+        911,
+        2,
+        1,
+        '2024-10-15',
+        '2024-10-15 08:02:00',
+        '2024-10-15 16:01:00',
+        2
+    ),
+    (
+        912,
+        2,
+        1,
+        '2024-10-16',
+        '2024-10-16 08:02:00',
+        '2024-10-16 16:01:00',
+        2
+    ),
+    (
+        913,
+        2,
+        1,
+        '2024-10-17',
+        '2024-10-17 08:02:00',
+        '2024-10-17 16:01:00',
+        2
+    ),
+    (
+        914,
+        2,
+        1,
+        '2024-10-18',
+        '2024-10-18 08:02:00',
+        '2024-10-18 16:01:00',
+        2
+    ),
+    (
+        915,
+        2,
+        1,
+        '2024-10-19',
+        '2024-10-19 08:02:00',
+        '2024-10-19 16:01:00',
+        2
+    ),
+    (
+        916,
+        2,
+        2,
+        '2024-10-21',
+        '2024-10-21 14:01:00',
+        '2024-10-21 22:02:00',
+        2
+    ),
+    (
+        917,
+        2,
+        2,
+        '2024-10-22',
+        '2024-10-22 14:01:00',
+        '2024-10-22 22:02:00',
+        2
+    ),
+    (
+        918,
+        2,
+        2,
+        '2024-10-23',
+        '2024-10-23 14:01:00',
+        '2024-10-23 22:02:00',
+        2
+    ),
+    (
+        919,
+        2,
+        2,
+        '2024-10-24',
+        '2024-10-24 14:01:00',
+        '2024-10-24 22:02:00',
+        2
+    ),
+    (
+        920,
+        2,
+        2,
+        '2024-10-25',
+        '2024-10-25 14:01:00',
+        '2024-10-25 22:02:00',
+        2
+    ),
+    (
+        921,
+        2,
+        2,
+        '2024-10-26',
+        '2024-10-26 14:01:00',
+        '2024-10-26 22:02:00',
+        2
+    ),
+    (
+        922,
+        2,
+        1,
+        '2024-10-28',
+        '2024-10-28 08:02:00',
+        '2024-10-28 16:01:00',
+        2
+    ),
+    (
+        923,
+        2,
+        1,
+        '2024-10-29',
+        '2024-10-29 08:02:00',
+        '2024-10-29 16:01:00',
+        2
+    ),
+    (
+        924,
+        2,
+        1,
+        '2024-10-30',
+        '2024-10-30 08:02:00',
+        '2024-10-30 16:01:00',
+        2
+    ),
+    (
+        925,
+        2,
+        1,
+        '2024-10-31',
+        '2024-10-31 08:02:00',
+        '2024-10-31 16:01:00',
+        2
+    ),
+    (
+        926,
+        2,
+        1,
+        '2024-11-01',
+        '2024-11-01 08:02:00',
+        '2024-11-01 16:01:00',
+        2
+    ),
+    (
+        927,
+        2,
+        1,
+        '2024-11-02',
+        '2024-11-02 08:02:00',
+        '2024-11-02 16:01:00',
+        2
+    ),
+    (
+        928,
+        2,
+        2,
+        '2024-11-04',
+        '2024-11-04 14:01:00',
+        '2024-11-04 22:02:00',
+        2
+    ),
+    (
+        929,
+        2,
+        2,
+        '2024-11-05',
+        '2024-11-05 14:01:00',
+        '2024-11-05 22:02:00',
+        2
+    ),
+    (
+        930,
+        2,
+        2,
+        '2024-11-06',
+        '2024-11-06 14:01:00',
+        '2024-11-06 22:02:00',
+        2
+    ),
+    (
+        931,
+        2,
+        2,
+        '2024-11-07',
+        '2024-11-07 14:01:00',
+        '2024-11-07 22:02:00',
+        2
+    ),
+    (
+        932,
+        2,
+        2,
+        '2024-11-08',
+        '2024-11-08 14:01:00',
+        '2024-11-08 22:02:00',
+        2
+    ),
+    (
+        933,
+        2,
+        2,
+        '2024-11-09',
+        '2024-11-09 14:01:00',
+        '2024-11-09 22:02:00',
+        2
+    ),
+    (
+        934,
+        2,
+        1,
+        '2024-11-11',
+        '2024-11-11 08:02:00',
+        '2024-11-11 16:01:00',
+        2
+    ),
+    (
+        935,
+        2,
+        1,
+        '2024-11-12',
+        '2024-11-12 08:02:00',
+        '2024-11-12 16:01:00',
+        2
+    ),
+    (
+        936,
+        2,
+        1,
+        '2024-11-13',
+        '2024-11-13 08:02:00',
+        '2024-11-13 16:01:00',
+        2
+    ),
+    (
+        937,
+        2,
+        1,
+        '2024-11-14',
+        '2024-11-14 08:02:00',
+        '2024-11-14 16:01:00',
+        2
+    ),
+    (
+        938,
+        2,
+        1,
+        '2024-11-15',
+        '2024-11-15 08:02:00',
+        '2024-11-15 16:01:00',
+        2
+    ),
+    (
+        939,
+        2,
+        1,
+        '2024-11-16',
+        '2024-11-16 08:02:00',
+        '2024-11-16 16:01:00',
+        2
+    ),
+    (
+        940,
+        2,
+        2,
+        '2024-11-18',
+        '2024-11-18 14:01:00',
+        '2024-11-18 22:02:00',
+        2
+    ),
+    (
+        941,
+        2,
+        2,
+        '2024-11-19',
+        '2024-11-19 14:01:00',
+        '2024-11-19 22:02:00',
+        2
+    ),
+    (
+        942,
+        2,
+        2,
+        '2024-11-20',
+        '2024-11-20 14:01:00',
+        '2024-11-20 22:02:00',
+        2
+    ),
+    (
+        943,
+        2,
+        2,
+        '2024-11-21',
+        '2024-11-21 14:01:00',
+        '2024-11-21 22:02:00',
+        2
+    ),
+    (
+        944,
+        2,
+        2,
+        '2024-11-22',
+        '2024-11-22 14:01:00',
+        '2024-11-22 22:02:00',
+        2
+    ),
+    (
+        945,
+        2,
+        2,
+        '2024-11-23',
+        '2024-11-23 14:01:00',
+        '2024-11-23 22:02:00',
+        2
+    ),
+    (
+        946,
+        2,
+        1,
+        '2024-11-25',
+        '2024-11-25 08:02:00',
+        '2024-11-25 16:01:00',
+        2
+    ),
+    (
+        947,
+        2,
+        1,
+        '2024-11-26',
+        '2024-11-26 08:02:00',
+        '2024-11-26 16:01:00',
+        2
+    ),
+    (
+        948,
+        2,
+        1,
+        '2024-11-27',
+        '2024-11-27 08:02:00',
+        '2024-11-27 16:01:00',
+        2
+    ),
+    (
+        949,
+        2,
+        1,
+        '2024-11-28',
+        '2024-11-28 08:02:00',
+        '2024-11-28 16:01:00',
+        2
+    ),
+    (
+        950,
+        2,
+        1,
+        '2024-11-29',
+        '2024-11-29 08:02:00',
+        '2024-11-29 16:01:00',
+        2
+    ),
+    (
+        951,
+        2,
+        1,
+        '2024-11-30',
+        '2024-11-30 08:02:00',
+        '2024-11-30 16:01:00',
+        2
+    ),
+    (
+        952,
+        2,
+        2,
+        '2024-12-02',
+        '2024-12-02 14:01:00',
+        '2024-12-02 22:02:00',
+        2
+    ),
+    (
+        953,
+        2,
+        2,
+        '2024-12-03',
+        '2024-12-03 14:01:00',
+        '2024-12-03 22:02:00',
+        2
+    ),
+    (
+        954,
+        2,
+        2,
+        '2024-12-04',
+        '2024-12-04 14:01:00',
+        '2024-12-04 22:02:00',
+        2
+    ),
+    (
+        955,
+        2,
+        2,
+        '2024-12-05',
+        '2024-12-05 14:01:00',
+        '2024-12-05 22:02:00',
+        2
+    ),
+    (
+        956,
+        2,
+        2,
+        '2024-12-06',
+        '2024-12-06 14:01:00',
+        '2024-12-06 22:02:00',
+        2
+    ),
+    (
+        957,
+        2,
+        2,
+        '2024-12-07',
+        '2024-12-07 14:01:00',
+        '2024-12-07 22:02:00',
+        2
+    ),
+    (
+        958,
+        2,
+        1,
+        '2024-12-09',
+        '2024-12-09 08:02:00',
+        '2024-12-09 16:01:00',
+        2
+    ),
+    (
+        959,
+        2,
+        1,
+        '2024-12-10',
+        '2024-12-10 08:02:00',
+        '2024-12-10 16:01:00',
+        2
+    ),
+    (
+        960,
+        2,
+        1,
+        '2024-12-11',
+        '2024-12-11 08:02:00',
+        '2024-12-11 16:01:00',
+        2
+    ),
+    (
+        961,
+        2,
+        1,
+        '2024-12-12',
+        '2024-12-12 08:02:00',
+        '2024-12-12 16:01:00',
+        2
+    ),
+    (
+        962,
+        2,
+        1,
+        '2024-12-13',
+        '2024-12-13 08:02:00',
+        '2024-12-13 16:01:00',
+        2
+    ),
+    (
+        963,
+        2,
+        1,
+        '2024-12-14',
+        '2024-12-14 08:02:00',
+        '2024-12-14 16:01:00',
+        2
+    ),
+    (
+        964,
+        2,
+        2,
+        '2024-12-16',
+        '2024-12-16 14:01:00',
+        '2024-12-16 22:02:00',
+        2
+    ),
+    (
+        965,
+        2,
+        2,
+        '2024-12-17',
+        '2024-12-17 14:01:00',
+        '2024-12-17 22:02:00',
+        2
+    ),
+    (
+        966,
+        2,
+        2,
+        '2024-12-18',
+        '2024-12-18 14:01:00',
+        '2024-12-18 22:02:00',
+        2
+    ),
+    (
+        967,
+        2,
+        2,
+        '2024-12-19',
+        '2024-12-19 14:01:00',
+        '2024-12-19 22:02:00',
+        2
+    ),
+    (
+        968,
+        2,
+        2,
+        '2024-12-20',
+        '2024-12-20 14:01:00',
+        '2024-12-20 22:02:00',
+        2
+    ),
+    (
+        969,
+        2,
+        2,
+        '2024-12-21',
+        '2024-12-21 14:01:00',
+        '2024-12-21 22:02:00',
+        2
+    ),
+    (
+        970,
+        2,
+        1,
+        '2024-12-23',
+        '2024-12-23 08:02:00',
+        '2024-12-23 16:01:00',
+        2
+    ),
+    (
+        971,
+        2,
+        1,
+        '2024-12-24',
+        '2024-12-24 08:02:00',
+        '2024-12-24 16:01:00',
+        2
+    ),
+    (
+        972,
+        2,
+        1,
+        '2024-12-25',
+        '2024-12-25 08:02:00',
+        '2024-12-25 16:01:00',
+        2
+    ),
+    (
+        973,
+        2,
+        1,
+        '2024-12-26',
+        '2024-12-26 08:02:00',
+        '2024-12-26 16:01:00',
+        2
+    ),
+    (
+        974,
+        2,
+        1,
+        '2024-12-27',
+        '2024-12-27 08:02:00',
+        '2024-12-27 16:01:00',
+        2
+    ),
+    (
+        975,
+        2,
+        1,
+        '2024-12-28',
+        '2024-12-28 08:02:00',
+        '2024-12-28 16:01:00',
+        2
+    ),
+    (
+        976,
+        2,
+        2,
+        '2024-12-30',
+        '2024-12-30 14:01:00',
+        '2024-12-30 22:02:00',
+        2
+    ),
+    (
+        977,
+        2,
+        2,
+        '2024-12-31',
+        '2024-12-31 14:01:00',
+        '2024-12-31 22:02:00',
+        2
+    ),
+    (
+        978,
+        2,
+        2,
+        '2025-01-01',
+        '2025-01-01 14:01:00',
+        '2025-01-01 22:02:00',
+        2
+    ),
+    (
+        979,
+        2,
+        2,
+        '2025-01-02',
+        '2025-01-02 14:01:00',
+        '2025-01-02 22:02:00',
+        2
+    ),
+    (
+        980,
+        2,
+        2,
+        '2025-01-03',
+        '2025-01-03 14:01:00',
+        '2025-01-03 22:02:00',
+        2
+    ),
+    (
+        981,
+        2,
+        2,
+        '2025-01-04',
+        '2025-01-04 14:01:00',
+        '2025-01-04 22:02:00',
+        2
+    ),
+    (
+        982,
+        2,
+        1,
+        '2025-01-06',
+        '2025-01-06 08:02:00',
+        '2025-01-06 16:01:00',
+        2
+    ),
+    (
+        983,
+        2,
+        1,
+        '2025-01-07',
+        '2025-01-07 08:02:00',
+        '2025-01-07 16:01:00',
+        2
+    ),
+    (
+        984,
+        2,
+        1,
+        '2025-01-08',
+        '2025-01-08 08:02:00',
+        '2025-01-08 16:01:00',
+        2
+    ),
+    (
+        985,
+        2,
+        1,
+        '2025-01-09',
+        '2025-01-09 08:02:00',
+        '2025-01-09 16:01:00',
+        2
+    ),
+    (
+        986,
+        2,
+        1,
+        '2025-01-10',
+        '2025-01-10 08:02:00',
+        '2025-01-10 16:01:00',
+        2
+    ),
+    (
+        987,
+        2,
+        1,
+        '2025-01-11',
+        '2025-01-11 08:02:00',
+        '2025-01-11 16:01:00',
+        2
+    ),
+    (
+        988,
+        2,
+        2,
+        '2025-01-13',
+        '2025-01-13 14:01:00',
+        '2025-01-13 22:02:00',
+        2
+    ),
+    (
+        989,
+        2,
+        2,
+        '2025-01-14',
+        '2025-01-14 14:01:00',
+        '2025-01-14 22:02:00',
+        2
+    ),
+    (
+        990,
+        2,
+        2,
+        '2025-01-15',
+        '2025-01-15 14:01:00',
+        '2025-01-15 22:02:00',
+        2
+    ),
+    (
+        991,
+        2,
+        2,
+        '2025-01-16',
+        '2025-01-16 14:01:00',
+        '2025-01-16 22:02:00',
+        2
+    ),
+    (
+        992,
+        2,
+        2,
+        '2025-01-17',
+        '2025-01-17 14:01:00',
+        '2025-01-17 22:02:00',
+        2
+    ),
+    (
+        993,
+        2,
+        2,
+        '2025-01-18',
+        '2025-01-18 14:01:00',
+        '2025-01-18 22:02:00',
+        2
+    ),
+    (
+        994,
+        2,
+        1,
+        '2025-01-20',
+        '2025-01-20 08:02:00',
+        '2025-01-20 16:01:00',
+        2
+    ),
+    (
+        995,
+        2,
+        1,
+        '2025-01-21',
+        '2025-01-21 08:02:00',
+        '2025-01-21 16:01:00',
+        2
+    ),
+    (
+        996,
+        2,
+        1,
+        '2025-01-22',
+        '2025-01-22 08:02:00',
+        '2025-01-22 16:01:00',
+        2
+    ),
+    (
+        997,
+        2,
+        1,
+        '2025-01-23',
+        '2025-01-23 08:02:00',
+        '2025-01-23 16:01:00',
+        2
+    ),
+    (
+        998,
+        2,
+        1,
+        '2025-01-24',
+        '2025-01-24 08:02:00',
+        '2025-01-24 16:01:00',
+        2
+    ),
+    (
+        999,
+        2,
+        1,
+        '2025-01-25',
+        '2025-01-25 08:02:00',
+        '2025-01-25 16:01:00',
+        2
+    ),
+    (
+        1000,
+        2,
+        2,
+        '2025-01-27',
+        '2025-01-27 14:01:00',
+        '2025-01-27 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1001,
+        2,
+        2,
+        '2025-01-28',
+        '2025-01-28 14:01:00',
+        '2025-01-28 22:02:00',
+        2
+    ),
+    (
+        1002,
+        2,
+        2,
+        '2025-01-29',
+        '2025-01-29 14:01:00',
+        '2025-01-29 22:02:00',
+        2
+    ),
+    (
+        1003,
+        2,
+        2,
+        '2025-01-30',
+        '2025-01-30 14:01:00',
+        '2025-01-30 22:02:00',
+        2
+    ),
+    (
+        1004,
+        2,
+        2,
+        '2025-01-31',
+        '2025-01-31 14:01:00',
+        '2025-01-31 22:02:00',
+        2
+    ),
+    (
+        1005,
+        2,
+        2,
+        '2025-02-01',
+        '2025-02-01 14:01:00',
+        '2025-02-01 22:02:00',
+        2
+    ),
+    (
+        1006,
+        2,
+        1,
+        '2025-02-03',
+        '2025-02-03 08:02:00',
+        '2025-02-03 16:01:00',
+        2
+    ),
+    (
+        1007,
+        2,
+        1,
+        '2025-02-04',
+        '2025-02-04 08:02:00',
+        '2025-02-04 16:01:00',
+        2
+    ),
+    (
+        1008,
+        2,
+        1,
+        '2025-02-05',
+        '2025-02-05 08:02:00',
+        '2025-02-05 16:01:00',
+        2
+    ),
+    (
+        1009,
+        2,
+        1,
+        '2025-02-06',
+        '2025-02-06 08:02:00',
+        '2025-02-06 16:01:00',
+        2
+    ),
+    (
+        1010,
+        2,
+        1,
+        '2025-02-07',
+        '2025-02-07 08:02:00',
+        '2025-02-07 16:01:00',
+        2
+    ),
+    (
+        1011,
+        2,
+        1,
+        '2025-02-08',
+        '2025-02-08 08:02:00',
+        '2025-02-08 16:01:00',
+        2
+    ),
+    (
+        1012,
+        2,
+        2,
+        '2025-02-10',
+        '2025-02-10 14:01:00',
+        '2025-02-10 22:02:00',
+        2
+    ),
+    (
+        1013,
+        2,
+        2,
+        '2025-02-11',
+        '2025-02-11 14:01:00',
+        '2025-02-11 22:02:00',
+        2
+    ),
+    (
+        1014,
+        2,
+        2,
+        '2025-02-12',
+        '2025-02-12 14:01:00',
+        '2025-02-12 22:02:00',
+        2
+    ),
+    (
+        1015,
+        2,
+        2,
+        '2025-02-13',
+        '2025-02-13 14:01:00',
+        '2025-02-13 22:02:00',
+        2
+    ),
+    (
+        1016,
+        2,
+        2,
+        '2025-02-14',
+        '2025-02-14 14:01:00',
+        '2025-02-14 22:02:00',
+        2
+    ),
+    (
+        1017,
+        2,
+        2,
+        '2025-02-15',
+        '2025-02-15 14:01:00',
+        '2025-02-15 22:02:00',
+        2
+    ),
+    (
+        1018,
+        2,
+        1,
+        '2025-02-17',
+        '2025-02-17 08:02:00',
+        '2025-02-17 16:01:00',
+        2
+    ),
+    (
+        1019,
+        2,
+        1,
+        '2025-02-18',
+        '2025-02-18 08:02:00',
+        '2025-02-18 16:01:00',
+        2
+    ),
+    (
+        1020,
+        2,
+        1,
+        '2025-02-19',
+        '2025-02-19 08:02:00',
+        '2025-02-19 16:01:00',
+        2
+    ),
+    (
+        1021,
+        2,
+        1,
+        '2025-02-20',
+        '2025-02-20 08:02:00',
+        '2025-02-20 16:01:00',
+        2
+    ),
+    (
+        1022,
+        2,
+        1,
+        '2025-02-21',
+        '2025-02-21 08:02:00',
+        '2025-02-21 16:01:00',
+        2
+    ),
+    (
+        1023,
+        2,
+        1,
+        '2025-02-22',
+        '2025-02-22 08:02:00',
+        '2025-02-22 16:01:00',
+        2
+    ),
+    (
+        1024,
+        2,
+        2,
+        '2025-02-24',
+        '2025-02-24 14:01:00',
+        '2025-02-24 22:02:00',
+        2
+    ),
+    (
+        1025,
+        2,
+        2,
+        '2025-02-25',
+        '2025-02-25 14:01:00',
+        '2025-02-25 22:02:00',
+        2
+    ),
+    (
+        1026,
+        2,
+        2,
+        '2025-02-26',
+        '2025-02-26 14:01:00',
+        '2025-02-26 22:02:00',
+        2
+    ),
+    (
+        1027,
+        2,
+        2,
+        '2025-02-27',
+        '2025-02-27 14:01:00',
+        '2025-02-27 22:02:00',
+        2
+    ),
+    (
+        1028,
+        2,
+        2,
+        '2025-02-28',
+        '2025-02-28 14:01:00',
+        '2025-02-28 22:02:00',
+        2
+    ),
+    (
+        1029,
+        2,
+        2,
+        '2025-03-01',
+        '2025-03-01 14:01:00',
+        '2025-03-01 22:02:00',
+        2
+    ),
+    (
+        1030,
+        2,
+        1,
+        '2025-03-03',
+        '2025-03-03 08:02:00',
+        '2025-03-03 16:01:00',
+        2
+    ),
+    (
+        1031,
+        2,
+        1,
+        '2025-03-04',
+        '2025-03-04 08:02:00',
+        '2025-03-04 16:01:00',
+        2
+    ),
+    (
+        1032,
+        2,
+        1,
+        '2025-03-05',
+        '2025-03-05 08:02:00',
+        '2025-03-05 16:01:00',
+        2
+    ),
+    (
+        1033,
+        2,
+        1,
+        '2025-03-06',
+        '2025-03-06 08:02:00',
+        '2025-03-06 16:01:00',
+        2
+    ),
+    (
+        1034,
+        2,
+        1,
+        '2025-03-07',
+        '2025-03-07 08:02:00',
+        '2025-03-07 16:01:00',
+        2
+    ),
+    (
+        1035,
+        2,
+        1,
+        '2025-03-08',
+        '2025-03-08 08:02:00',
+        '2025-03-08 16:01:00',
+        2
+    ),
+    (
+        1036,
+        2,
+        2,
+        '2025-03-10',
+        '2025-03-10 14:01:00',
+        '2025-03-10 22:02:00',
+        2
+    ),
+    (
+        1037,
+        2,
+        2,
+        '2025-03-11',
+        '2025-03-11 14:01:00',
+        '2025-03-11 22:02:00',
+        2
+    ),
+    (
+        1038,
+        2,
+        2,
+        '2025-03-12',
+        '2025-03-12 14:01:00',
+        '2025-03-12 22:02:00',
+        2
+    ),
+    (
+        1039,
+        2,
+        2,
+        '2025-03-13',
+        '2025-03-13 14:01:00',
+        '2025-03-13 22:02:00',
+        2
+    ),
+    (
+        1040,
+        2,
+        2,
+        '2025-03-14',
+        '2025-03-14 14:01:00',
+        '2025-03-14 22:02:00',
+        2
+    ),
+    (
+        1041,
+        2,
+        2,
+        '2025-03-15',
+        '2025-03-15 14:01:00',
+        '2025-03-15 22:02:00',
+        2
+    ),
+    (
+        1042,
+        2,
+        1,
+        '2025-03-17',
+        '2025-03-17 08:02:00',
+        '2025-03-17 16:01:00',
+        2
+    ),
+    (
+        1043,
+        2,
+        1,
+        '2025-03-18',
+        '2025-03-18 08:02:00',
+        '2025-03-18 16:01:00',
+        2
+    ),
+    (
+        1044,
+        2,
+        1,
+        '2025-03-19',
+        '2025-03-19 08:02:00',
+        '2025-03-19 16:01:00',
+        2
+    ),
+    (
+        1045,
+        2,
+        1,
+        '2025-03-20',
+        '2025-03-20 08:02:00',
+        '2025-03-20 16:01:00',
+        2
+    ),
+    (
+        1046,
+        2,
+        1,
+        '2025-03-21',
+        '2025-03-21 08:02:00',
+        '2025-03-21 16:01:00',
+        2
+    ),
+    (
+        1047,
+        2,
+        1,
+        '2025-03-22',
+        '2025-03-22 08:02:00',
+        '2025-03-22 16:01:00',
+        2
+    ),
+    (
+        1048,
+        2,
+        2,
+        '2025-03-24',
+        '2025-03-24 14:01:00',
+        '2025-03-24 22:02:00',
+        2
+    ),
+    (
+        1049,
+        2,
+        2,
+        '2025-03-25',
+        '2025-03-25 14:01:00',
+        '2025-03-25 22:02:00',
+        2
+    ),
+    (
+        1050,
+        2,
+        2,
+        '2025-03-26',
+        '2025-03-26 14:01:00',
+        '2025-03-26 22:02:00',
+        2
+    ),
+    (
+        1051,
+        2,
+        2,
+        '2025-03-27',
+        '2025-03-27 14:01:00',
+        '2025-03-27 22:02:00',
+        2
+    ),
+    (
+        1052,
+        2,
+        2,
+        '2025-03-28',
+        '2025-03-28 14:01:00',
+        '2025-03-28 22:02:00',
+        2
+    ),
+    (
+        1053,
+        2,
+        2,
+        '2025-03-29',
+        '2025-03-29 14:01:00',
+        '2025-03-29 22:02:00',
+        2
+    ),
+    (
+        1054,
+        2,
+        1,
+        '2025-03-31',
+        '2025-03-31 08:02:00',
+        '2025-03-31 16:01:00',
+        2
+    ),
+    (
+        1055,
+        2,
+        1,
+        '2025-04-01',
+        '2025-04-01 08:02:00',
+        '2025-04-01 16:01:00',
+        2
+    ),
+    (
+        1056,
+        2,
+        1,
+        '2025-04-02',
+        '2025-04-02 08:02:00',
+        '2025-04-02 16:01:00',
+        2
+    ),
+    (
+        1057,
+        2,
+        1,
+        '2025-04-03',
+        '2025-04-03 08:02:00',
+        '2025-04-03 16:01:00',
+        2
+    ),
+    (
+        1058,
+        2,
+        1,
+        '2025-04-04',
+        '2025-04-04 08:02:00',
+        '2025-04-04 16:01:00',
+        2
+    ),
+    (
+        1059,
+        2,
+        1,
+        '2025-04-05',
+        '2025-04-05 08:02:00',
+        '2025-04-05 16:01:00',
+        2
+    ),
+    (
+        1060,
+        2,
+        2,
+        '2025-04-07',
+        '2025-04-07 14:01:00',
+        '2025-04-07 22:02:00',
+        2
+    ),
+    (
+        1061,
+        2,
+        2,
+        '2025-04-08',
+        '2025-04-08 14:01:00',
+        '2025-04-08 22:02:00',
+        2
+    ),
+    (
+        1062,
+        2,
+        2,
+        '2025-04-09',
+        '2025-04-09 14:01:00',
+        '2025-04-09 22:02:00',
+        2
+    ),
+    (
+        1063,
+        2,
+        2,
+        '2025-04-10',
+        '2025-04-10 14:01:00',
+        '2025-04-10 22:02:00',
+        2
+    ),
+    (
+        1064,
+        2,
+        2,
+        '2025-04-11',
+        '2025-04-11 14:01:00',
+        '2025-04-11 22:02:00',
+        2
+    ),
+    (
+        1065,
+        2,
+        2,
+        '2025-04-12',
+        '2025-04-12 14:01:00',
+        '2025-04-12 22:02:00',
+        2
+    ),
+    (
+        1066,
+        2,
+        1,
+        '2025-04-14',
+        '2025-04-14 08:02:00',
+        '2025-04-14 16:01:00',
+        2
+    ),
+    (
+        1067,
+        2,
+        1,
+        '2025-04-15',
+        '2025-04-15 08:02:00',
+        '2025-04-15 16:01:00',
+        2
+    ),
+    (
+        1068,
+        2,
+        1,
+        '2025-04-16',
+        '2025-04-16 08:02:00',
+        '2025-04-16 16:01:00',
+        2
+    ),
+    (
+        1069,
+        2,
+        1,
+        '2025-04-17',
+        '2025-04-17 08:02:00',
+        '2025-04-17 16:01:00',
+        2
+    ),
+    (
+        1070,
+        2,
+        1,
+        '2025-04-18',
+        '2025-04-18 08:02:00',
+        '2025-04-18 16:01:00',
+        2
+    ),
+    (
+        1071,
+        2,
+        1,
+        '2025-04-19',
+        '2025-04-19 08:02:00',
+        '2025-04-19 16:01:00',
+        2
+    ),
+    (
+        1072,
+        2,
+        2,
+        '2025-04-21',
+        '2025-04-21 14:01:00',
+        '2025-04-21 22:02:00',
+        2
+    ),
+    (
+        1073,
+        2,
+        2,
+        '2025-04-22',
+        '2025-04-22 14:01:00',
+        '2025-04-22 22:02:00',
+        2
+    ),
+    (
+        1074,
+        2,
+        2,
+        '2025-04-23',
+        '2025-04-23 14:01:00',
+        '2025-04-23 22:02:00',
+        2
+    ),
+    (
+        1075,
+        2,
+        2,
+        '2025-04-24',
+        '2025-04-24 14:01:00',
+        '2025-04-24 22:02:00',
+        2
+    ),
+    (
+        1076,
+        2,
+        2,
+        '2025-04-25',
+        '2025-04-25 14:01:00',
+        '2025-04-25 22:02:00',
+        2
+    ),
+    (
+        1077,
+        2,
+        2,
+        '2025-04-26',
+        '2025-04-26 14:01:00',
+        '2025-04-26 22:02:00',
+        2
+    ),
+    (
+        1078,
+        2,
+        1,
+        '2025-04-28',
+        '2025-04-28 08:02:00',
+        '2025-04-28 16:01:00',
+        2
+    ),
+    (
+        1079,
+        2,
+        1,
+        '2025-04-29',
+        '2025-04-29 08:02:00',
+        '2025-04-29 16:01:00',
+        2
+    ),
+    (
+        1080,
+        2,
+        1,
+        '2025-04-30',
+        '2025-04-30 08:02:00',
+        '2025-04-30 16:01:00',
+        2
+    ),
+    (
+        1081,
+        2,
+        1,
+        '2025-05-01',
+        '2025-05-01 08:02:00',
+        '2025-05-01 16:01:00',
+        2
+    ),
+    (
+        1082,
+        2,
+        1,
+        '2025-05-02',
+        '2025-05-02 08:02:00',
+        '2025-05-02 16:01:00',
+        2
+    ),
+    (
+        1083,
+        2,
+        1,
+        '2025-05-03',
+        '2025-05-03 08:02:00',
+        '2025-05-03 16:01:00',
+        2
+    ),
+    (
+        1084,
+        2,
+        2,
+        '2025-05-05',
+        '2025-05-05 14:01:00',
+        '2025-05-05 22:02:00',
+        2
+    ),
+    (
+        1085,
+        2,
+        2,
+        '2025-05-06',
+        '2025-05-06 14:01:00',
+        '2025-05-06 22:02:00',
+        2
+    ),
+    (
+        1086,
+        2,
+        2,
+        '2025-05-07',
+        '2025-05-07 14:01:00',
+        '2025-05-07 22:02:00',
+        2
+    ),
+    (
+        1087,
+        2,
+        2,
+        '2025-05-08',
+        '2025-05-08 14:01:00',
+        '2025-05-08 22:02:00',
+        2
+    ),
+    (
+        1088,
+        2,
+        2,
+        '2025-05-09',
+        '2025-05-09 14:01:00',
+        '2025-05-09 22:02:00',
+        2
+    ),
+    (
+        1089,
+        2,
+        2,
+        '2025-05-10',
+        '2025-05-10 14:01:00',
+        '2025-05-10 22:02:00',
+        2
+    ),
+    (
+        1090,
+        2,
+        1,
+        '2025-05-12',
+        '2025-05-12 08:02:00',
+        '2025-05-12 16:01:00',
+        2
+    ),
+    (
+        1091,
+        2,
+        1,
+        '2025-05-13',
+        '2025-05-13 08:02:00',
+        '2025-05-13 16:01:00',
+        2
+    ),
+    (
+        1092,
+        2,
+        1,
+        '2025-05-14',
+        '2025-05-14 08:02:00',
+        '2025-05-14 16:01:00',
+        2
+    ),
+    (
+        1093,
+        2,
+        1,
+        '2025-05-15',
+        '2025-05-15 08:02:00',
+        '2025-05-15 16:01:00',
+        2
+    ),
+    (
+        1094,
+        2,
+        1,
+        '2025-05-16',
+        '2025-05-16 08:02:00',
+        '2025-05-16 16:01:00',
+        2
+    ),
+    (
+        1095,
+        2,
+        1,
+        '2025-05-17',
+        '2025-05-17 08:02:00',
+        '2025-05-17 16:01:00',
+        2
+    ),
+    (
+        1096,
+        2,
+        2,
+        '2025-05-19',
+        '2025-05-19 14:01:00',
+        '2025-05-19 22:02:00',
+        2
+    ),
+    (
+        1097,
+        2,
+        2,
+        '2025-05-20',
+        '2025-05-20 14:01:00',
+        '2025-05-20 22:02:00',
+        2
+    ),
+    (
+        1098,
+        2,
+        2,
+        '2025-05-21',
+        '2025-05-21 14:01:00',
+        '2025-05-21 22:02:00',
+        2
+    ),
+    (
+        1099,
+        2,
+        2,
+        '2025-05-22',
+        '2025-05-22 14:01:00',
+        '2025-05-22 22:02:00',
+        2
+    ),
+    (
+        1100,
+        2,
+        2,
+        '2025-05-23',
+        '2025-05-23 14:01:00',
+        '2025-05-23 22:02:00',
+        2
+    ),
+    (
+        1101,
+        2,
+        2,
+        '2025-05-24',
+        '2025-05-24 14:01:00',
+        '2025-05-24 22:02:00',
+        2
+    ),
+    (
+        1102,
+        2,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        1103,
+        2,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        1104,
+        2,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        1105,
+        2,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        1106,
+        2,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        1107,
+        2,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        1108,
+        2,
+        2,
+        '2025-06-02',
+        '2025-06-02 14:01:00',
+        '2025-06-02 22:02:00',
+        2
+    ),
+    (
+        1109,
+        2,
+        2,
+        '2025-06-03',
+        '2025-06-03 14:01:00',
+        '2025-06-03 22:02:00',
+        2
+    ),
+    (
+        1110,
+        2,
+        2,
+        '2025-06-04',
+        '2025-06-04 14:01:00',
+        '2025-06-04 22:02:00',
+        2
+    ),
+    (
+        1111,
+        2,
+        2,
+        '2025-06-05',
+        '2025-06-05 14:01:00',
+        '2025-06-05 22:02:00',
+        2
+    ),
+    (
+        1112,
+        2,
+        2,
+        '2025-06-06',
+        '2025-06-06 14:01:00',
+        '2025-06-06 22:02:00',
+        2
+    ),
+    (
+        1113,
+        2,
+        2,
+        '2025-06-07',
+        '2025-06-07 14:01:00',
+        '2025-06-07 22:02:00',
+        2
+    ),
+    (
+        1114,
+        2,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        1115,
+        2,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        1116,
+        2,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        1117,
+        2,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        1118,
+        2,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        1119,
+        2,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        1120,
+        2,
+        2,
+        '2025-06-16',
+        '2025-06-16 14:01:00',
+        '2025-06-16 22:02:00',
+        2
+    ),
+    (
+        1121,
+        2,
+        2,
+        '2025-06-17',
+        '2025-06-17 14:01:00',
+        '2025-06-17 22:02:00',
+        2
+    ),
+    (
+        1122,
+        2,
+        2,
+        '2025-06-18',
+        '2025-06-18 14:01:00',
+        '2025-06-18 22:02:00',
+        2
+    ),
+    (
+        1123,
+        2,
+        2,
+        '2025-06-19',
+        '2025-06-19 14:01:00',
+        '2025-06-19 22:02:00',
+        2
+    ),
+    (
+        1124,
+        2,
+        2,
+        '2025-06-20',
+        '2025-06-20 14:01:00',
+        '2025-06-20 22:02:00',
+        2
+    ),
+    (
+        1125,
+        2,
+        2,
+        '2025-06-21',
+        '2025-06-21 14:01:00',
+        '2025-06-21 22:02:00',
+        2
+    ),
+    (
+        1126,
+        2,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        1127,
+        2,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        1128,
+        2,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        1129,
+        2,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    ),
+    (
+        1130,
+        2,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        1131,
+        2,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        1132,
+        2,
+        2,
+        '2025-06-30',
+        '2025-06-30 14:01:00',
+        '2025-06-30 22:02:00',
+        2
+    ),
+    (
+        1133,
+        2,
+        2,
+        '2025-07-01',
+        '2025-07-01 14:01:00',
+        '2025-07-01 22:02:00',
+        2
+    ),
+    (
+        1134,
+        2,
+        2,
+        '2025-07-02',
+        '2025-07-02 14:01:00',
+        '2025-07-02 22:02:00',
+        2
+    ),
+    (
+        1135,
+        2,
+        2,
+        '2025-07-03',
+        '2025-07-03 14:01:00',
+        '2025-07-03 22:02:00',
+        2
+    ),
+    (
+        1136,
+        2,
+        2,
+        '2025-07-04',
+        '2025-07-04 14:01:00',
+        '2025-07-04 22:02:00',
+        2
+    ),
+    (
+        1137,
+        2,
+        2,
+        '2025-07-05',
+        '2025-07-05 14:01:00',
+        '2025-07-05 22:02:00',
+        2
+    ),
+    (
+        1138,
+        2,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        1139,
+        2,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        1140,
+        2,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        1141,
+        2,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        1142,
+        2,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        1143,
+        2,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        1144,
+        2,
+        2,
+        '2025-07-14',
+        '2025-07-14 14:01:00',
+        '2025-07-14 22:02:00',
+        2
+    ),
+    (
+        1145,
+        2,
+        2,
+        '2025-07-15',
+        '2025-07-15 14:01:00',
+        '2025-07-15 22:02:00',
+        2
+    ),
+    (
+        1146,
+        2,
+        2,
+        '2025-07-16',
+        '2025-07-16 14:01:00',
+        '2025-07-16 22:02:00',
+        2
+    ),
+    (
+        1147,
+        2,
+        2,
+        '2025-07-17',
+        '2025-07-17 14:01:00',
+        '2025-07-17 22:02:00',
+        2
+    ),
+    (
+        1148,
+        2,
+        2,
+        '2025-07-18',
+        '2025-07-18 14:01:00',
+        '2025-07-18 22:02:00',
+        2
+    ),
+    (
+        1149,
+        2,
+        2,
+        '2025-07-19',
+        '2025-07-19 14:01:00',
+        '2025-07-19 22:02:00',
+        2
+    ),
+    (
+        1150,
+        2,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        1151,
+        2,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        1152,
+        2,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        1153,
+        2,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        1154,
+        2,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        1155,
+        2,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        1156,
+        2,
+        2,
+        '2025-07-28',
+        '2025-07-28 14:01:00',
+        '2025-07-28 22:02:00',
+        2
+    ),
+    (
+        1157,
+        2,
+        2,
+        '2025-07-29',
+        '2025-07-29 14:01:00',
+        '2025-07-29 22:02:00',
+        2
+    ),
+    (
+        1158,
+        2,
+        2,
+        '2025-07-30',
+        '2025-07-30 14:01:00',
+        '2025-07-30 22:02:00',
+        2
+    ),
+    (
+        1159,
+        2,
+        2,
+        '2025-07-31',
+        '2025-07-31 14:01:00',
+        '2025-07-31 22:02:00',
+        2
+    ),
+    (
+        1160,
+        2,
+        2,
+        '2025-08-01',
+        '2025-08-01 14:01:00',
+        '2025-08-01 22:02:00',
+        2
+    ),
+    (
+        1161,
+        2,
+        2,
+        '2025-08-02',
+        '2025-08-02 14:01:00',
+        '2025-08-02 22:02:00',
+        2
+    ),
+    (
+        1162,
+        2,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        1163,
+        2,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        1164,
+        2,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        1165,
+        2,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        1166,
+        2,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        1167,
+        2,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        1168,
+        2,
+        2,
+        '2025-08-11',
+        '2025-08-11 14:01:00',
+        '2025-08-11 22:02:00',
+        2
+    ),
+    (
+        1169,
+        2,
+        2,
+        '2025-08-12',
+        '2025-08-12 14:01:00',
+        '2025-08-12 22:02:00',
+        2
+    ),
+    (
+        1170,
+        2,
+        2,
+        '2025-08-13',
+        '2025-08-13 14:01:00',
+        '2025-08-13 22:02:00',
+        2
+    ),
+    (
+        1171,
+        2,
+        2,
+        '2025-08-14',
+        '2025-08-14 14:01:00',
+        '2025-08-14 22:02:00',
+        2
+    ),
+    (
+        1172,
+        2,
+        2,
+        '2025-08-15',
+        '2025-08-15 14:01:00',
+        '2025-08-15 22:02:00',
+        2
+    ),
+    (
+        1173,
+        2,
+        2,
+        '2025-08-16',
+        '2025-08-16 14:01:00',
+        '2025-08-16 22:02:00',
+        2
+    ),
+    (
+        1174,
+        2,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        1175,
+        2,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        1176,
+        2,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        1177,
+        2,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        1178,
+        2,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        1179,
+        2,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        1180,
+        2,
+        2,
+        '2025-08-25',
+        '2025-08-25 14:01:00',
+        '2025-08-25 22:02:00',
+        2
+    ),
+    (
+        1181,
+        2,
+        2,
+        '2025-08-26',
+        '2025-08-26 14:01:00',
+        '2025-08-26 22:02:00',
+        2
+    ),
+    (
+        1182,
+        2,
+        2,
+        '2025-08-27',
+        '2025-08-27 14:01:00',
+        '2025-08-27 22:02:00',
+        2
+    ),
+    (
+        1183,
+        2,
+        2,
+        '2025-08-28',
+        '2025-08-28 14:01:00',
+        '2025-08-28 22:02:00',
+        2
+    ),
+    (
+        1184,
+        2,
+        2,
+        '2025-08-29',
+        '2025-08-29 14:01:00',
+        '2025-08-29 22:02:00',
+        2
+    ),
+    (
+        1185,
+        2,
+        2,
+        '2025-08-30',
+        '2025-08-30 14:01:00',
+        '2025-08-30 22:02:00',
+        2
+    ),
+    (
+        1186,
+        2,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        1187,
+        2,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        1188,
+        2,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        1189,
+        2,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        1190,
+        2,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        1191,
+        2,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        1192,
+        2,
+        2,
+        '2025-09-08',
+        '2025-09-08 14:01:00',
+        '2025-09-08 22:02:00',
+        2
+    ),
+    (
+        1193,
+        2,
+        2,
+        '2025-09-09',
+        '2025-09-09 14:01:00',
+        '2025-09-09 22:02:00',
+        2
+    ),
+    (
+        1194,
+        2,
+        2,
+        '2025-09-10',
+        '2025-09-10 14:01:00',
+        '2025-09-10 22:02:00',
+        2
+    ),
+    (
+        1195,
+        2,
+        2,
+        '2025-09-11',
+        '2025-09-11 14:01:00',
+        '2025-09-11 22:02:00',
+        2
+    ),
+    (
+        1196,
+        2,
+        2,
+        '2025-09-12',
+        '2025-09-12 14:01:00',
+        '2025-09-12 22:02:00',
+        2
+    ),
+    (
+        1197,
+        2,
+        2,
+        '2025-09-13',
+        '2025-09-13 14:01:00',
+        '2025-09-13 22:02:00',
+        2
+    ),
+    (
+        1198,
+        2,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        1199,
+        2,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        1200,
+        2,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1201,
+        2,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        1202,
+        2,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        1203,
+        2,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        1204,
+        2,
+        2,
+        '2025-09-22',
+        '2025-09-22 14:01:00',
+        '2025-09-22 22:02:00',
+        2
+    ),
+    (
+        1205,
+        2,
+        2,
+        '2025-09-23',
+        '2025-09-23 14:01:00',
+        '2025-09-23 22:02:00',
+        2
+    ),
+    (
+        1206,
+        2,
+        2,
+        '2025-09-24',
+        '2025-09-24 14:01:00',
+        '2025-09-24 22:02:00',
+        2
+    ),
+    (
+        1207,
+        2,
+        2,
+        '2025-09-25',
+        '2025-09-25 14:01:00',
+        '2025-09-25 22:02:00',
+        2
+    ),
+    (
+        1208,
+        2,
+        2,
+        '2025-09-26',
+        '2025-09-26 14:01:00',
+        '2025-09-26 22:02:00',
+        2
+    ),
+    (
+        1209,
+        2,
+        2,
+        '2025-09-27',
+        '2025-09-27 14:01:00',
+        '2025-09-27 22:02:00',
+        2
+    ),
+    (
+        1210,
+        2,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        1211,
+        2,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        1212,
+        2,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        1213,
+        2,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        1214,
+        2,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        1215,
+        2,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        1216,
+        2,
+        2,
+        '2025-10-06',
+        '2025-10-06 14:01:00',
+        '2025-10-06 22:02:00',
+        2
+    ),
+    (
+        1217,
+        2,
+        2,
+        '2025-10-07',
+        '2025-10-07 14:01:00',
+        '2025-10-07 22:02:00',
+        2
+    ),
+    (
+        1218,
+        2,
+        2,
+        '2025-10-08',
+        '2025-10-08 14:01:00',
+        '2025-10-08 22:02:00',
+        2
+    ),
+    (
+        1219,
+        2,
+        2,
+        '2025-10-09',
+        '2025-10-09 14:01:00',
+        '2025-10-09 22:02:00',
+        2
+    ),
+    (
+        1220,
+        2,
+        2,
+        '2025-10-10',
+        '2025-10-10 14:01:00',
+        '2025-10-10 22:02:00',
+        2
+    ),
+    (
+        1221,
+        2,
+        2,
+        '2025-10-11',
+        '2025-10-11 14:01:00',
+        '2025-10-11 22:02:00',
+        2
+    ),
+    (
+        1222,
+        2,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        1223,
+        2,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        1224,
+        2,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        1225,
+        2,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        1226,
+        2,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        1227,
+        2,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        1228,
+        2,
+        2,
+        '2025-10-20',
+        '2025-10-20 14:01:00',
+        '2025-10-20 22:02:00',
+        2
+    ),
+    (
+        1229,
+        2,
+        2,
+        '2025-10-21',
+        '2025-10-21 14:01:00',
+        '2025-10-21 22:02:00',
+        2
+    ),
+    (
+        1230,
+        2,
+        2,
+        '2025-10-22',
+        '2025-10-22 14:01:00',
+        '2025-10-22 22:02:00',
+        2
+    ),
+    (
+        1231,
+        2,
+        2,
+        '2025-10-23',
+        '2025-10-23 14:01:00',
+        '2025-10-23 22:02:00',
+        2
+    ),
+    (
+        1232,
+        2,
+        2,
+        '2025-10-24',
+        '2025-10-24 14:01:00',
+        '2025-10-24 22:02:00',
+        2
+    ),
+    (
+        1233,
+        2,
+        2,
+        '2025-10-25',
+        '2025-10-25 14:01:00',
+        '2025-10-25 22:02:00',
+        2
+    ),
+    (
+        1234,
+        2,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        1235,
+        2,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        1236,
+        2,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        1237,
+        2,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        1238,
+        2,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        1239,
+        2,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        1240,
+        2,
+        2,
+        '2025-11-03',
+        '2025-11-03 14:01:00',
+        '2025-11-03 22:02:00',
+        2
+    ),
+    (
+        1241,
+        2,
+        2,
+        '2025-11-04',
+        '2025-11-04 14:01:00',
+        '2025-11-04 22:02:00',
+        2
+    ),
+    (
+        1242,
+        2,
+        2,
+        '2025-11-05',
+        '2025-11-05 14:01:00',
+        '2025-11-05 22:02:00',
+        2
+    ),
+    (
+        1243,
+        2,
+        2,
+        '2025-11-06',
+        '2025-11-06 14:01:00',
+        '2025-11-06 22:02:00',
+        2
+    ),
+    (
+        1244,
+        2,
+        2,
+        '2025-11-07',
+        '2025-11-07 14:01:00',
+        '2025-11-07 22:02:00',
+        2
+    ),
+    (
+        1245,
+        2,
+        2,
+        '2025-11-08',
+        '2025-11-08 14:01:00',
+        '2025-11-08 22:02:00',
+        2
+    ),
+    (
+        1246,
+        2,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        1247,
+        2,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        1248,
+        2,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        1249,
+        2,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        1250,
+        2,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        1251,
+        2,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        1252,
+        2,
+        2,
+        '2025-11-17',
+        '2025-11-17 14:01:00',
+        '2025-11-17 22:02:00',
+        2
+    ),
+    (
+        1253,
+        2,
+        2,
+        '2025-11-18',
+        '2025-11-18 14:01:00',
+        '2025-11-18 22:02:00',
+        2
+    ),
+    (
+        1254,
+        2,
+        2,
+        '2025-11-19',
+        '2025-11-19 14:01:00',
+        '2025-11-19 22:02:00',
+        2
+    ),
+    (
+        1255,
+        2,
+        2,
+        '2025-11-20',
+        '2025-11-20 14:01:00',
+        '2025-11-20 22:02:00',
+        2
+    ),
+    (
+        1256,
+        2,
+        2,
+        '2025-11-21',
+        '2025-11-21 14:01:00',
+        '2025-11-21 22:02:00',
+        2
+    ),
+    (
+        1257,
+        2,
+        2,
+        '2025-11-22',
+        '2025-11-22 14:01:00',
+        '2025-11-22 22:02:00',
+        2
+    ),
+    (
+        1258,
+        2,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        1259,
+        2,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        1260,
+        2,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        1261,
+        2,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        1262,
+        2,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        1263,
+        2,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        1264,
+        2,
+        2,
+        '2025-12-01',
+        '2025-12-01 14:01:00',
+        '2025-12-01 22:02:00',
+        2
+    ),
+    (
+        1265,
+        2,
+        2,
+        '2025-12-02',
+        '2025-12-02 14:01:00',
+        '2025-12-02 22:02:00',
+        2
+    ),
+    (
+        1266,
+        2,
+        2,
+        '2025-12-03',
+        '2025-12-03 14:01:00',
+        '2025-12-03 22:02:00',
+        2
+    ),
+    (
+        1267,
+        2,
+        2,
+        '2025-12-04',
+        '2025-12-04 14:01:00',
+        '2025-12-04 22:02:00',
+        2
+    ),
+    (
+        1268,
+        2,
+        2,
+        '2025-12-05',
+        '2025-12-05 14:01:00',
+        '2025-12-05 22:02:00',
+        2
+    ),
+    (
+        1269,
+        2,
+        2,
+        '2025-12-06',
+        '2025-12-06 14:01:00',
+        '2025-12-06 22:02:00',
+        2
+    ),
+    (
+        1270,
+        2,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        1271,
+        2,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    ),
+    (
+        1272,
+        2,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        1273,
+        2,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        1274,
+        2,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        1275,
+        2,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        1276,
+        2,
+        2,
+        '2025-12-15',
+        '2025-12-15 14:01:00',
+        '2025-12-15 22:02:00',
+        2
+    ),
+    (
+        1277,
+        2,
+        2,
+        '2025-12-16',
+        '2025-12-16 14:01:00',
+        '2025-12-16 22:02:00',
+        2
+    ),
+    (
+        1278,
+        2,
+        2,
+        '2025-12-17',
+        '2025-12-17 14:01:00',
+        '2025-12-17 22:02:00',
+        2
+    ),
+    (
+        1279,
+        2,
+        2,
+        '2025-12-18',
+        '2025-12-18 14:01:00',
+        '2025-12-18 22:02:00',
+        2
+    ),
+    (
+        1280,
+        2,
+        2,
+        '2025-12-19',
+        '2025-12-19 14:01:00',
+        '2025-12-19 22:02:00',
+        2
+    ),
+    (
+        1281,
+        2,
+        2,
+        '2025-12-20',
+        '2025-12-20 14:01:00',
+        '2025-12-20 22:02:00',
+        2
+    ),
+    (
+        1282,
+        2,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        1283,
+        2,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    ),
+    (
+        1284,
+        2,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        1285,
+        2,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        1286,
+        2,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        1287,
+        2,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        1288,
+        2,
+        2,
+        '2025-12-29',
+        '2025-12-29 14:01:00',
+        '2025-12-29 22:02:00',
+        2
+    ),
+    (
+        1289,
+        2,
+        2,
+        '2025-12-30',
+        '2025-12-30 14:01:00',
+        '2025-12-30 22:02:00',
+        2
+    ),
+    (
+        1290,
+        2,
+        2,
+        '2025-12-31',
+        '2025-12-31 14:01:00',
+        '2025-12-31 22:02:00',
+        2
+    ),
+    (
+        1291,
+        2,
+        2,
+        '2026-01-01',
+        '2026-01-01 14:01:00',
+        '2026-01-01 22:02:00',
+        2
+    ),
+    (
+        1292,
+        2,
+        2,
+        '2026-01-02',
+        '2026-01-02 14:01:00',
+        '2026-01-02 22:02:00',
+        2
+    ),
+    (
+        1293,
+        2,
+        2,
+        '2026-01-03',
+        '2026-01-03 14:01:00',
+        '2026-01-03 22:02:00',
+        2
+    ),
+    (
+        1294,
+        2,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        1295,
+        2,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        1296,
+        2,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        1297,
+        2,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        1298,
+        2,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        1299,
+        2,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        1300,
+        2,
+        2,
+        '2026-01-12',
+        '2026-01-12 14:01:00',
+        '2026-01-12 22:02:00',
+        2
+    ),
+    (
+        1301,
+        2,
+        2,
+        '2026-01-13',
+        '2026-01-13 14:01:00',
+        '2026-01-13 22:02:00',
+        2
+    ),
+    (
+        1302,
+        2,
+        2,
+        '2026-01-14',
+        '2026-01-14 14:01:00',
+        '2026-01-14 22:02:00',
+        2
+    ),
+    (
+        1303,
+        2,
+        2,
+        '2026-01-15',
+        '2026-01-15 14:01:00',
+        '2026-01-15 22:02:00',
+        2
+    ),
+    (
+        1304,
+        2,
+        2,
+        '2026-01-16',
+        '2026-01-16 14:01:00',
+        '2026-01-16 22:02:00',
+        2
+    ),
+    (
+        1305,
+        2,
+        2,
+        '2026-01-17',
+        '2026-01-17 14:01:00',
+        '2026-01-17 22:02:00',
+        2
+    ),
+    (
+        1306,
+        2,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        1307,
+        2,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        1308,
+        2,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        1309,
+        2,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        1310,
+        2,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        1311,
+        2,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        1312,
+        2,
+        2,
+        '2026-01-26',
+        '2026-01-26 14:01:00',
+        '2026-01-26 22:02:00',
+        2
+    ),
+    (
+        1313,
+        2,
+        2,
+        '2026-01-27',
+        '2026-01-27 14:01:00',
+        '2026-01-27 22:02:00',
+        2
+    ),
+    (
+        1314,
+        2,
+        2,
+        '2026-01-28',
+        '2026-01-28 14:01:00',
+        '2026-01-28 22:02:00',
+        2
+    ),
+    (
+        1315,
+        2,
+        2,
+        '2026-01-29',
+        '2026-01-29 14:01:00',
+        '2026-01-29 22:02:00',
+        2
+    ),
+    (
+        1316,
+        2,
+        2,
+        '2026-01-30',
+        '2026-01-30 14:01:00',
+        '2026-01-30 22:02:00',
+        2
+    ),
+    (
+        1317,
+        2,
+        2,
+        '2026-01-31',
+        '2026-01-31 14:01:00',
+        '2026-01-31 22:02:00',
+        2
+    ),
+    (
+        1318,
+        2,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        1319,
+        2,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        1320,
+        2,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        1321,
+        2,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        1322,
+        2,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        1323,
+        2,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        1324,
+        2,
+        2,
+        '2026-02-09',
+        '2026-02-09 14:01:00',
+        '2026-02-09 22:02:00',
+        2
+    ),
+    (
+        1325,
+        2,
+        2,
+        '2026-02-10',
+        '2026-02-10 14:01:00',
+        '2026-02-10 22:02:00',
+        2
+    ),
+    (
+        1326,
+        2,
+        2,
+        '2026-02-11',
+        '2026-02-11 14:01:00',
+        '2026-02-11 22:02:00',
+        2
+    ),
+    (
+        1327,
+        2,
+        2,
+        '2026-02-12',
+        '2026-02-12 14:01:00',
+        '2026-02-12 22:02:00',
+        2
+    ),
+    (
+        1328,
+        2,
+        2,
+        '2026-02-13',
+        '2026-02-13 14:01:00',
+        '2026-02-13 22:02:00',
+        2
+    ),
+    (
+        1329,
+        2,
+        2,
+        '2026-02-14',
+        '2026-02-14 14:01:00',
+        '2026-02-14 22:02:00',
+        2
+    ),
+    (
+        1330,
+        2,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        1331,
+        2,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        1332,
+        2,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        1333,
+        2,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        1334,
+        2,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        1335,
+        2,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        1336,
+        2,
+        2,
+        '2026-02-23',
+        '2026-02-23 14:01:00',
+        '2026-02-23 22:02:00',
+        2
+    ),
+    (
+        1337,
+        2,
+        2,
+        '2026-02-24',
+        '2026-02-24 14:01:00',
+        '2026-02-24 22:02:00',
+        2
+    ),
+    (
+        1338,
+        2,
+        2,
+        '2026-02-25',
+        '2026-02-25 14:01:00',
+        '2026-02-25 22:02:00',
+        2
+    ),
+    (
+        1339,
+        2,
+        2,
+        '2026-02-26',
+        '2026-02-26 14:01:00',
+        '2026-02-26 22:02:00',
+        2
+    ),
+    (
+        1340,
+        2,
+        2,
+        '2026-02-27',
+        '2026-02-27 14:01:00',
+        '2026-02-27 22:02:00',
+        2
+    ),
+    (
+        1341,
+        2,
+        2,
+        '2026-02-28',
+        '2026-02-28 14:01:00',
+        '2026-02-28 22:02:00',
+        2
+    ),
+    (
+        1342,
+        2,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        1343,
+        2,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        1344,
+        2,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        1345,
+        2,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        1346,
+        2,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        1347,
+        2,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        1348,
+        2,
+        2,
+        '2026-03-09',
+        '2026-03-09 14:01:00',
+        '2026-03-09 22:02:00',
+        2
+    ),
+    (
+        1349,
+        2,
+        2,
+        '2026-03-10',
+        '2026-03-10 14:01:00',
+        '2026-03-10 22:02:00',
+        2
+    ),
+    (
+        1350,
+        2,
+        2,
+        '2026-03-11',
+        '2026-03-11 14:01:00',
+        '2026-03-11 22:02:00',
+        2
+    ),
+    (
+        1351,
+        2,
+        2,
+        '2026-03-12',
+        '2026-03-12 14:01:00',
+        '2026-03-12 22:02:00',
+        2
+    ),
+    (
+        1352,
+        2,
+        2,
+        '2026-03-13',
+        '2026-03-13 14:01:00',
+        '2026-03-13 22:02:00',
+        2
+    ),
+    (
+        1353,
+        2,
+        2,
+        '2026-03-14',
+        '2026-03-14 14:01:00',
+        '2026-03-14 22:02:00',
+        2
+    ),
+    (
+        1354,
+        2,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        1355,
+        2,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        1356,
+        2,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        1357,
+        2,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        1358,
+        2,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        1359,
+        2,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        1360,
+        2,
+        2,
+        '2026-03-23',
+        '2026-03-23 14:01:00',
+        '2026-03-23 22:02:00',
+        2
+    ),
+    (
+        1361,
+        2,
+        2,
+        '2026-03-24',
+        '2026-03-24 14:01:00',
+        '2026-03-24 22:02:00',
+        2
+    ),
+    (
+        1362,
+        2,
+        2,
+        '2026-03-25',
+        '2026-03-25 14:01:00',
+        '2026-03-25 22:02:00',
+        2
+    ),
+    (
+        1363,
+        2,
+        2,
+        '2026-03-26',
+        '2026-03-26 14:01:00',
+        '2026-03-26 22:02:00',
+        2
+    ),
+    (
+        1364,
+        2,
+        2,
+        '2026-03-27',
+        '2026-03-27 14:01:00',
+        '2026-03-27 22:02:00',
+        2
+    ),
+    (
+        1365,
+        2,
+        2,
+        '2026-03-28',
+        '2026-03-28 14:01:00',
+        '2026-03-28 22:02:00',
+        2
+    ),
+    (
+        1366,
+        2,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        1367,
+        2,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        1368,
+        2,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        1369,
+        2,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        1370,
+        2,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        1371,
+        2,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        1372,
+        2,
+        2,
+        '2026-04-06',
+        '2026-04-06 14:01:00',
+        '2026-04-06 22:02:00',
+        2
+    ),
+    (
+        1373,
+        2,
+        2,
+        '2026-04-07',
+        '2026-04-07 14:01:00',
+        '2026-04-07 22:02:00',
+        2
+    ),
+    (
+        1374,
+        3,
+        2,
+        '2024-02-15',
+        '2024-02-15 14:01:00',
+        '2024-02-15 22:02:00',
+        2
+    ),
+    (
+        1375,
+        3,
+        2,
+        '2024-02-16',
+        '2024-02-16 14:01:00',
+        '2024-02-16 22:02:00',
+        2
+    ),
+    (
+        1376,
+        3,
+        2,
+        '2024-02-17',
+        '2024-02-17 14:01:00',
+        '2024-02-17 22:02:00',
+        2
+    ),
+    (
+        1377,
+        3,
+        1,
+        '2024-02-19',
+        '2024-02-19 08:02:00',
+        '2024-02-19 16:01:00',
+        2
+    ),
+    (
+        1378,
+        3,
+        1,
+        '2024-02-20',
+        '2024-02-20 08:02:00',
+        '2024-02-20 16:01:00',
+        2
+    ),
+    (
+        1379,
+        3,
+        1,
+        '2024-02-21',
+        '2024-02-21 08:02:00',
+        '2024-02-21 16:01:00',
+        2
+    ),
+    (
+        1380,
+        3,
+        1,
+        '2024-02-22',
+        '2024-02-22 08:02:00',
+        '2024-02-22 16:01:00',
+        2
+    ),
+    (
+        1381,
+        3,
+        1,
+        '2024-02-23',
+        '2024-02-23 08:02:00',
+        '2024-02-23 16:01:00',
+        2
+    ),
+    (
+        1382,
+        3,
+        1,
+        '2024-02-24',
+        '2024-02-24 08:02:00',
+        '2024-02-24 16:01:00',
+        2
+    ),
+    (
+        1383,
+        3,
+        2,
+        '2024-02-26',
+        '2024-02-26 14:01:00',
+        '2024-02-26 22:02:00',
+        2
+    ),
+    (
+        1384,
+        3,
+        2,
+        '2024-02-27',
+        '2024-02-27 14:01:00',
+        '2024-02-27 22:02:00',
+        2
+    ),
+    (
+        1385,
+        3,
+        2,
+        '2024-02-28',
+        '2024-02-28 14:01:00',
+        '2024-02-28 22:02:00',
+        2
+    ),
+    (
+        1386,
+        3,
+        2,
+        '2024-02-29',
+        '2024-02-29 14:01:00',
+        '2024-02-29 22:02:00',
+        2
+    ),
+    (
+        1387,
+        3,
+        2,
+        '2024-03-01',
+        '2024-03-01 14:01:00',
+        '2024-03-01 22:02:00',
+        2
+    ),
+    (
+        1388,
+        3,
+        2,
+        '2024-03-02',
+        '2024-03-02 14:01:00',
+        '2024-03-02 22:02:00',
+        2
+    ),
+    (
+        1389,
+        3,
+        1,
+        '2024-03-04',
+        '2024-03-04 08:02:00',
+        '2024-03-04 16:01:00',
+        2
+    ),
+    (
+        1390,
+        3,
+        1,
+        '2024-03-05',
+        '2024-03-05 08:02:00',
+        '2024-03-05 16:01:00',
+        2
+    ),
+    (
+        1391,
+        3,
+        1,
+        '2024-03-06',
+        '2024-03-06 08:02:00',
+        '2024-03-06 16:01:00',
+        2
+    ),
+    (
+        1392,
+        3,
+        1,
+        '2024-03-07',
+        '2024-03-07 08:02:00',
+        '2024-03-07 16:01:00',
+        2
+    ),
+    (
+        1393,
+        3,
+        1,
+        '2024-03-08',
+        '2024-03-08 08:02:00',
+        '2024-03-08 16:01:00',
+        2
+    ),
+    (
+        1394,
+        3,
+        1,
+        '2024-03-09',
+        '2024-03-09 08:02:00',
+        '2024-03-09 16:01:00',
+        2
+    ),
+    (
+        1395,
+        3,
+        2,
+        '2024-03-11',
+        '2024-03-11 14:01:00',
+        '2024-03-11 22:02:00',
+        2
+    ),
+    (
+        1396,
+        3,
+        2,
+        '2024-03-12',
+        '2024-03-12 14:01:00',
+        '2024-03-12 22:02:00',
+        2
+    ),
+    (
+        1397,
+        3,
+        2,
+        '2024-03-13',
+        '2024-03-13 14:01:00',
+        '2024-03-13 22:02:00',
+        2
+    ),
+    (
+        1398,
+        3,
+        2,
+        '2024-03-14',
+        '2024-03-14 14:01:00',
+        '2024-03-14 22:02:00',
+        2
+    ),
+    (
+        1399,
+        3,
+        2,
+        '2024-03-15',
+        '2024-03-15 14:01:00',
+        '2024-03-15 22:02:00',
+        2
+    ),
+    (
+        1400,
+        3,
+        2,
+        '2024-03-16',
+        '2024-03-16 14:01:00',
+        '2024-03-16 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1401,
+        3,
+        1,
+        '2024-03-18',
+        '2024-03-18 08:02:00',
+        '2024-03-18 16:01:00',
+        2
+    ),
+    (
+        1402,
+        3,
+        1,
+        '2024-03-19',
+        '2024-03-19 08:02:00',
+        '2024-03-19 16:01:00',
+        2
+    ),
+    (
+        1403,
+        3,
+        1,
+        '2024-03-20',
+        '2024-03-20 08:02:00',
+        '2024-03-20 16:01:00',
+        2
+    ),
+    (
+        1404,
+        3,
+        1,
+        '2024-03-21',
+        '2024-03-21 08:02:00',
+        '2024-03-21 16:01:00',
+        2
+    ),
+    (
+        1405,
+        3,
+        1,
+        '2024-03-22',
+        '2024-03-22 08:02:00',
+        '2024-03-22 16:01:00',
+        2
+    ),
+    (
+        1406,
+        3,
+        1,
+        '2024-03-23',
+        '2024-03-23 08:02:00',
+        '2024-03-23 16:01:00',
+        2
+    ),
+    (
+        1407,
+        3,
+        2,
+        '2024-03-25',
+        '2024-03-25 14:01:00',
+        '2024-03-25 22:02:00',
+        2
+    ),
+    (
+        1408,
+        3,
+        2,
+        '2024-03-26',
+        '2024-03-26 14:01:00',
+        '2024-03-26 22:02:00',
+        2
+    ),
+    (
+        1409,
+        3,
+        2,
+        '2024-03-27',
+        '2024-03-27 14:01:00',
+        '2024-03-27 22:02:00',
+        2
+    ),
+    (
+        1410,
+        3,
+        2,
+        '2024-03-28',
+        '2024-03-28 14:01:00',
+        '2024-03-28 22:02:00',
+        2
+    ),
+    (
+        1411,
+        3,
+        2,
+        '2024-03-29',
+        '2024-03-29 14:01:00',
+        '2024-03-29 22:02:00',
+        2
+    ),
+    (
+        1412,
+        3,
+        2,
+        '2024-03-30',
+        '2024-03-30 14:01:00',
+        '2024-03-30 22:02:00',
+        2
+    ),
+    (
+        1413,
+        3,
+        1,
+        '2024-04-01',
+        '2024-04-01 08:02:00',
+        '2024-04-01 16:01:00',
+        2
+    ),
+    (
+        1414,
+        3,
+        1,
+        '2024-04-02',
+        '2024-04-02 08:02:00',
+        '2024-04-02 16:01:00',
+        2
+    ),
+    (
+        1415,
+        3,
+        1,
+        '2024-04-03',
+        '2024-04-03 08:02:00',
+        '2024-04-03 16:01:00',
+        2
+    ),
+    (
+        1416,
+        3,
+        1,
+        '2024-04-04',
+        '2024-04-04 08:02:00',
+        '2024-04-04 16:01:00',
+        2
+    ),
+    (
+        1417,
+        3,
+        1,
+        '2024-04-05',
+        '2024-04-05 08:02:00',
+        '2024-04-05 16:01:00',
+        2
+    ),
+    (
+        1418,
+        3,
+        1,
+        '2024-04-06',
+        '2024-04-06 08:02:00',
+        '2024-04-06 16:01:00',
+        2
+    ),
+    (
+        1419,
+        3,
+        2,
+        '2024-04-08',
+        '2024-04-08 14:01:00',
+        '2024-04-08 22:02:00',
+        2
+    ),
+    (
+        1420,
+        3,
+        2,
+        '2024-04-09',
+        '2024-04-09 14:01:00',
+        '2024-04-09 22:02:00',
+        2
+    ),
+    (
+        1421,
+        3,
+        2,
+        '2024-04-10',
+        '2024-04-10 14:01:00',
+        '2024-04-10 22:02:00',
+        2
+    ),
+    (
+        1422,
+        3,
+        2,
+        '2024-04-11',
+        '2024-04-11 14:01:00',
+        '2024-04-11 22:02:00',
+        2
+    ),
+    (
+        1423,
+        3,
+        2,
+        '2024-04-12',
+        '2024-04-12 14:01:00',
+        '2024-04-12 22:02:00',
+        2
+    ),
+    (
+        1424,
+        3,
+        2,
+        '2024-04-13',
+        '2024-04-13 14:01:00',
+        '2024-04-13 22:02:00',
+        2
+    ),
+    (
+        1425,
+        3,
+        1,
+        '2024-04-15',
+        '2024-04-15 08:02:00',
+        '2024-04-15 16:01:00',
+        2
+    ),
+    (
+        1426,
+        3,
+        1,
+        '2024-04-16',
+        '2024-04-16 08:02:00',
+        '2024-04-16 16:01:00',
+        2
+    ),
+    (
+        1427,
+        3,
+        1,
+        '2024-04-17',
+        '2024-04-17 08:02:00',
+        '2024-04-17 16:01:00',
+        2
+    ),
+    (
+        1428,
+        3,
+        1,
+        '2024-04-18',
+        '2024-04-18 08:02:00',
+        '2024-04-18 16:01:00',
+        2
+    ),
+    (
+        1429,
+        3,
+        1,
+        '2024-04-19',
+        '2024-04-19 08:02:00',
+        '2024-04-19 16:01:00',
+        2
+    ),
+    (
+        1430,
+        3,
+        1,
+        '2024-04-20',
+        '2024-04-20 08:02:00',
+        '2024-04-20 16:01:00',
+        2
+    ),
+    (
+        1431,
+        3,
+        2,
+        '2024-04-22',
+        '2024-04-22 14:01:00',
+        '2024-04-22 22:02:00',
+        2
+    ),
+    (
+        1432,
+        3,
+        2,
+        '2024-04-23',
+        '2024-04-23 14:01:00',
+        '2024-04-23 22:02:00',
+        2
+    ),
+    (
+        1433,
+        3,
+        2,
+        '2024-04-24',
+        '2024-04-24 14:01:00',
+        '2024-04-24 22:02:00',
+        2
+    ),
+    (
+        1434,
+        3,
+        2,
+        '2024-04-25',
+        '2024-04-25 14:01:00',
+        '2024-04-25 22:02:00',
+        2
+    ),
+    (
+        1435,
+        3,
+        2,
+        '2024-04-26',
+        '2024-04-26 14:01:00',
+        '2024-04-26 22:02:00',
+        2
+    ),
+    (
+        1436,
+        3,
+        2,
+        '2024-04-27',
+        '2024-04-27 14:01:00',
+        '2024-04-27 22:02:00',
+        2
+    ),
+    (
+        1437,
+        3,
+        1,
+        '2024-04-29',
+        '2024-04-29 08:02:00',
+        '2024-04-29 16:01:00',
+        2
+    ),
+    (
+        1438,
+        3,
+        1,
+        '2024-04-30',
+        '2024-04-30 08:02:00',
+        '2024-04-30 16:01:00',
+        2
+    ),
+    (
+        1439,
+        3,
+        1,
+        '2024-05-01',
+        '2024-05-01 08:02:00',
+        '2024-05-01 16:01:00',
+        2
+    ),
+    (
+        1440,
+        3,
+        1,
+        '2024-05-02',
+        '2024-05-02 08:02:00',
+        '2024-05-02 16:01:00',
+        2
+    ),
+    (
+        1441,
+        3,
+        1,
+        '2024-05-03',
+        '2024-05-03 08:02:00',
+        '2024-05-03 16:01:00',
+        2
+    ),
+    (
+        1442,
+        3,
+        1,
+        '2024-05-04',
+        '2024-05-04 08:02:00',
+        '2024-05-04 16:01:00',
+        2
+    ),
+    (
+        1443,
+        3,
+        2,
+        '2024-05-06',
+        '2024-05-06 14:01:00',
+        '2024-05-06 22:02:00',
+        2
+    ),
+    (
+        1444,
+        3,
+        2,
+        '2024-05-07',
+        '2024-05-07 14:01:00',
+        '2024-05-07 22:02:00',
+        2
+    ),
+    (
+        1445,
+        3,
+        2,
+        '2024-05-08',
+        '2024-05-08 14:01:00',
+        '2024-05-08 22:02:00',
+        2
+    ),
+    (
+        1446,
+        3,
+        2,
+        '2024-05-09',
+        '2024-05-09 14:01:00',
+        '2024-05-09 22:02:00',
+        2
+    ),
+    (
+        1447,
+        3,
+        2,
+        '2024-05-10',
+        '2024-05-10 14:01:00',
+        '2024-05-10 22:02:00',
+        2
+    ),
+    (
+        1448,
+        3,
+        2,
+        '2024-05-11',
+        '2024-05-11 14:01:00',
+        '2024-05-11 22:02:00',
+        2
+    ),
+    (
+        1449,
+        3,
+        1,
+        '2024-05-13',
+        '2024-05-13 08:02:00',
+        '2024-05-13 16:01:00',
+        2
+    ),
+    (
+        1450,
+        3,
+        1,
+        '2024-05-14',
+        '2024-05-14 08:02:00',
+        '2024-05-14 16:01:00',
+        2
+    ),
+    (
+        1451,
+        3,
+        1,
+        '2024-05-15',
+        '2024-05-15 08:02:00',
+        '2024-05-15 16:01:00',
+        2
+    ),
+    (
+        1452,
+        3,
+        1,
+        '2024-05-16',
+        '2024-05-16 08:02:00',
+        '2024-05-16 16:01:00',
+        2
+    ),
+    (
+        1453,
+        3,
+        1,
+        '2024-05-17',
+        '2024-05-17 08:02:00',
+        '2024-05-17 16:01:00',
+        2
+    ),
+    (
+        1454,
+        3,
+        1,
+        '2024-05-18',
+        '2024-05-18 08:02:00',
+        '2024-05-18 16:01:00',
+        2
+    ),
+    (
+        1455,
+        3,
+        2,
+        '2024-05-20',
+        '2024-05-20 14:01:00',
+        '2024-05-20 22:02:00',
+        2
+    ),
+    (
+        1456,
+        3,
+        2,
+        '2024-05-21',
+        '2024-05-21 14:01:00',
+        '2024-05-21 22:02:00',
+        2
+    ),
+    (
+        1457,
+        3,
+        2,
+        '2024-05-22',
+        '2024-05-22 14:01:00',
+        '2024-05-22 22:02:00',
+        2
+    ),
+    (
+        1458,
+        3,
+        2,
+        '2024-05-23',
+        '2024-05-23 14:01:00',
+        '2024-05-23 22:02:00',
+        2
+    ),
+    (
+        1459,
+        3,
+        2,
+        '2024-05-24',
+        '2024-05-24 14:01:00',
+        '2024-05-24 22:02:00',
+        2
+    ),
+    (
+        1460,
+        3,
+        2,
+        '2024-05-25',
+        '2024-05-25 14:01:00',
+        '2024-05-25 22:02:00',
+        2
+    ),
+    (
+        1461,
+        3,
+        1,
+        '2024-05-27',
+        '2024-05-27 08:02:00',
+        '2024-05-27 16:01:00',
+        2
+    ),
+    (
+        1462,
+        3,
+        1,
+        '2024-05-28',
+        '2024-05-28 08:02:00',
+        '2024-05-28 16:01:00',
+        2
+    ),
+    (
+        1463,
+        3,
+        1,
+        '2024-05-29',
+        '2024-05-29 08:02:00',
+        '2024-05-29 16:01:00',
+        2
+    ),
+    (
+        1464,
+        3,
+        1,
+        '2024-05-30',
+        '2024-05-30 08:02:00',
+        '2024-05-30 16:01:00',
+        2
+    ),
+    (
+        1465,
+        3,
+        1,
+        '2024-05-31',
+        '2024-05-31 08:02:00',
+        '2024-05-31 16:01:00',
+        2
+    ),
+    (
+        1466,
+        3,
+        1,
+        '2024-06-01',
+        '2024-06-01 08:02:00',
+        '2024-06-01 16:01:00',
+        2
+    ),
+    (
+        1467,
+        3,
+        2,
+        '2024-06-03',
+        '2024-06-03 14:01:00',
+        '2024-06-03 22:02:00',
+        2
+    ),
+    (
+        1468,
+        3,
+        2,
+        '2024-06-04',
+        '2024-06-04 14:01:00',
+        '2024-06-04 22:02:00',
+        2
+    ),
+    (
+        1469,
+        3,
+        2,
+        '2024-06-05',
+        '2024-06-05 14:01:00',
+        '2024-06-05 22:02:00',
+        2
+    ),
+    (
+        1470,
+        3,
+        2,
+        '2024-06-06',
+        '2024-06-06 14:01:00',
+        '2024-06-06 22:02:00',
+        2
+    ),
+    (
+        1471,
+        3,
+        2,
+        '2024-06-07',
+        '2024-06-07 14:01:00',
+        '2024-06-07 22:02:00',
+        2
+    ),
+    (
+        1472,
+        3,
+        2,
+        '2024-06-08',
+        '2024-06-08 14:01:00',
+        '2024-06-08 22:02:00',
+        2
+    ),
+    (
+        1473,
+        3,
+        1,
+        '2024-06-10',
+        '2024-06-10 08:02:00',
+        '2024-06-10 16:01:00',
+        2
+    ),
+    (
+        1474,
+        3,
+        1,
+        '2024-06-11',
+        '2024-06-11 08:02:00',
+        '2024-06-11 16:01:00',
+        2
+    ),
+    (
+        1475,
+        3,
+        1,
+        '2024-06-12',
+        '2024-06-12 08:02:00',
+        '2024-06-12 16:01:00',
+        2
+    ),
+    (
+        1476,
+        3,
+        1,
+        '2024-06-13',
+        '2024-06-13 08:02:00',
+        '2024-06-13 16:01:00',
+        2
+    ),
+    (
+        1477,
+        3,
+        1,
+        '2024-06-14',
+        '2024-06-14 08:02:00',
+        '2024-06-14 16:01:00',
+        2
+    ),
+    (
+        1478,
+        3,
+        1,
+        '2024-06-15',
+        '2024-06-15 08:02:00',
+        '2024-06-15 16:01:00',
+        2
+    ),
+    (
+        1479,
+        3,
+        2,
+        '2024-06-17',
+        '2024-06-17 14:01:00',
+        '2024-06-17 22:02:00',
+        2
+    ),
+    (
+        1480,
+        3,
+        2,
+        '2024-06-18',
+        '2024-06-18 14:01:00',
+        '2024-06-18 22:02:00',
+        2
+    ),
+    (
+        1481,
+        3,
+        2,
+        '2024-06-19',
+        '2024-06-19 14:01:00',
+        '2024-06-19 22:02:00',
+        2
+    ),
+    (
+        1482,
+        3,
+        2,
+        '2024-06-20',
+        '2024-06-20 14:01:00',
+        '2024-06-20 22:02:00',
+        2
+    ),
+    (
+        1483,
+        3,
+        2,
+        '2024-06-21',
+        '2024-06-21 14:01:00',
+        '2024-06-21 22:02:00',
+        2
+    ),
+    (
+        1484,
+        3,
+        2,
+        '2024-06-22',
+        '2024-06-22 14:01:00',
+        '2024-06-22 22:02:00',
+        2
+    ),
+    (
+        1485,
+        3,
+        1,
+        '2024-06-24',
+        '2024-06-24 08:02:00',
+        '2024-06-24 16:01:00',
+        2
+    ),
+    (
+        1486,
+        3,
+        1,
+        '2024-06-25',
+        '2024-06-25 08:02:00',
+        '2024-06-25 16:01:00',
+        2
+    ),
+    (
+        1487,
+        3,
+        1,
+        '2024-06-26',
+        '2024-06-26 08:02:00',
+        '2024-06-26 16:01:00',
+        2
+    ),
+    (
+        1488,
+        3,
+        1,
+        '2024-06-27',
+        '2024-06-27 08:02:00',
+        '2024-06-27 16:01:00',
+        2
+    ),
+    (
+        1489,
+        3,
+        1,
+        '2024-06-28',
+        '2024-06-28 08:02:00',
+        '2024-06-28 16:01:00',
+        2
+    ),
+    (
+        1490,
+        3,
+        1,
+        '2024-06-29',
+        '2024-06-29 08:02:00',
+        '2024-06-29 16:01:00',
+        2
+    ),
+    (
+        1491,
+        3,
+        2,
+        '2024-07-01',
+        '2024-07-01 14:01:00',
+        '2024-07-01 22:02:00',
+        2
+    ),
+    (
+        1492,
+        3,
+        2,
+        '2024-07-02',
+        '2024-07-02 14:01:00',
+        '2024-07-02 22:02:00',
+        2
+    ),
+    (
+        1493,
+        3,
+        2,
+        '2024-07-03',
+        '2024-07-03 14:01:00',
+        '2024-07-03 22:02:00',
+        2
+    ),
+    (
+        1494,
+        3,
+        2,
+        '2024-07-04',
+        '2024-07-04 14:01:00',
+        '2024-07-04 22:02:00',
+        2
+    ),
+    (
+        1495,
+        3,
+        2,
+        '2024-07-05',
+        '2024-07-05 14:01:00',
+        '2024-07-05 22:02:00',
+        2
+    ),
+    (
+        1496,
+        3,
+        2,
+        '2024-07-06',
+        '2024-07-06 14:01:00',
+        '2024-07-06 22:02:00',
+        2
+    ),
+    (
+        1497,
+        3,
+        1,
+        '2024-07-08',
+        '2024-07-08 08:02:00',
+        '2024-07-08 16:01:00',
+        2
+    ),
+    (
+        1498,
+        3,
+        1,
+        '2024-07-09',
+        '2024-07-09 08:02:00',
+        '2024-07-09 16:01:00',
+        2
+    ),
+    (
+        1499,
+        3,
+        1,
+        '2024-07-10',
+        '2024-07-10 08:02:00',
+        '2024-07-10 16:01:00',
+        2
+    ),
+    (
+        1500,
+        3,
+        1,
+        '2024-07-11',
+        '2024-07-11 08:02:00',
+        '2024-07-11 16:01:00',
+        2
+    ),
+    (
+        1501,
+        3,
+        1,
+        '2024-07-12',
+        '2024-07-12 08:02:00',
+        '2024-07-12 16:01:00',
+        2
+    ),
+    (
+        1502,
+        3,
+        1,
+        '2024-07-13',
+        '2024-07-13 08:02:00',
+        '2024-07-13 16:01:00',
+        2
+    ),
+    (
+        1503,
+        3,
+        2,
+        '2024-07-15',
+        '2024-07-15 14:01:00',
+        '2024-07-15 22:02:00',
+        2
+    ),
+    (
+        1504,
+        3,
+        2,
+        '2024-07-16',
+        '2024-07-16 14:01:00',
+        '2024-07-16 22:02:00',
+        2
+    ),
+    (
+        1505,
+        3,
+        2,
+        '2024-07-17',
+        '2024-07-17 14:01:00',
+        '2024-07-17 22:02:00',
+        2
+    ),
+    (
+        1506,
+        3,
+        2,
+        '2024-07-18',
+        '2024-07-18 14:01:00',
+        '2024-07-18 22:02:00',
+        2
+    ),
+    (
+        1507,
+        3,
+        2,
+        '2024-07-19',
+        '2024-07-19 14:01:00',
+        '2024-07-19 22:02:00',
+        2
+    ),
+    (
+        1508,
+        3,
+        2,
+        '2024-07-20',
+        '2024-07-20 14:01:00',
+        '2024-07-20 22:02:00',
+        2
+    ),
+    (
+        1509,
+        3,
+        1,
+        '2024-07-22',
+        '2024-07-22 08:02:00',
+        '2024-07-22 16:01:00',
+        2
+    ),
+    (
+        1510,
+        3,
+        1,
+        '2024-07-23',
+        '2024-07-23 08:02:00',
+        '2024-07-23 16:01:00',
+        2
+    ),
+    (
+        1511,
+        3,
+        1,
+        '2024-07-24',
+        '2024-07-24 08:02:00',
+        '2024-07-24 16:01:00',
+        2
+    ),
+    (
+        1512,
+        3,
+        1,
+        '2024-07-25',
+        '2024-07-25 08:02:00',
+        '2024-07-25 16:01:00',
+        2
+    ),
+    (
+        1513,
+        3,
+        1,
+        '2024-07-26',
+        '2024-07-26 08:02:00',
+        '2024-07-26 16:01:00',
+        2
+    ),
+    (
+        1514,
+        3,
+        1,
+        '2024-07-27',
+        '2024-07-27 08:02:00',
+        '2024-07-27 16:01:00',
+        2
+    ),
+    (
+        1515,
+        3,
+        2,
+        '2024-07-29',
+        '2024-07-29 14:01:00',
+        '2024-07-29 22:02:00',
+        2
+    ),
+    (
+        1516,
+        3,
+        2,
+        '2024-07-30',
+        '2024-07-30 14:01:00',
+        '2024-07-30 22:02:00',
+        2
+    ),
+    (
+        1517,
+        3,
+        2,
+        '2024-07-31',
+        '2024-07-31 14:01:00',
+        '2024-07-31 22:02:00',
+        2
+    ),
+    (
+        1518,
+        3,
+        2,
+        '2024-08-01',
+        '2024-08-01 14:01:00',
+        '2024-08-01 22:02:00',
+        2
+    ),
+    (
+        1519,
+        3,
+        2,
+        '2024-08-02',
+        '2024-08-02 14:01:00',
+        '2024-08-02 22:02:00',
+        2
+    ),
+    (
+        1520,
+        3,
+        2,
+        '2024-08-03',
+        '2024-08-03 14:01:00',
+        '2024-08-03 22:02:00',
+        2
+    ),
+    (
+        1521,
+        3,
+        1,
+        '2024-08-05',
+        '2024-08-05 08:02:00',
+        '2024-08-05 16:01:00',
+        2
+    ),
+    (
+        1522,
+        3,
+        1,
+        '2024-08-06',
+        '2024-08-06 08:02:00',
+        '2024-08-06 16:01:00',
+        2
+    ),
+    (
+        1523,
+        3,
+        1,
+        '2024-08-07',
+        '2024-08-07 08:02:00',
+        '2024-08-07 16:01:00',
+        2
+    ),
+    (
+        1524,
+        3,
+        1,
+        '2024-08-08',
+        '2024-08-08 08:02:00',
+        '2024-08-08 16:01:00',
+        2
+    ),
+    (
+        1525,
+        3,
+        1,
+        '2024-08-09',
+        '2024-08-09 08:02:00',
+        '2024-08-09 16:01:00',
+        2
+    ),
+    (
+        1526,
+        3,
+        1,
+        '2024-08-10',
+        '2024-08-10 08:02:00',
+        '2024-08-10 16:01:00',
+        2
+    ),
+    (
+        1527,
+        3,
+        2,
+        '2024-08-12',
+        '2024-08-12 14:01:00',
+        '2024-08-12 22:02:00',
+        2
+    ),
+    (
+        1528,
+        3,
+        2,
+        '2024-08-13',
+        '2024-08-13 14:01:00',
+        '2024-08-13 22:02:00',
+        2
+    ),
+    (
+        1529,
+        3,
+        2,
+        '2024-08-14',
+        '2024-08-14 14:01:00',
+        '2024-08-14 22:02:00',
+        2
+    ),
+    (
+        1530,
+        3,
+        2,
+        '2024-08-15',
+        '2024-08-15 14:01:00',
+        '2024-08-15 22:02:00',
+        2
+    ),
+    (
+        1531,
+        3,
+        2,
+        '2024-08-16',
+        '2024-08-16 14:01:00',
+        '2024-08-16 22:02:00',
+        2
+    ),
+    (
+        1532,
+        3,
+        2,
+        '2024-08-17',
+        '2024-08-17 14:01:00',
+        '2024-08-17 22:02:00',
+        2
+    ),
+    (
+        1533,
+        3,
+        1,
+        '2024-08-19',
+        '2024-08-19 08:02:00',
+        '2024-08-19 16:01:00',
+        2
+    ),
+    (
+        1534,
+        3,
+        1,
+        '2024-08-20',
+        '2024-08-20 08:02:00',
+        '2024-08-20 16:01:00',
+        2
+    ),
+    (
+        1535,
+        3,
+        1,
+        '2024-08-21',
+        '2024-08-21 08:02:00',
+        '2024-08-21 16:01:00',
+        2
+    ),
+    (
+        1536,
+        3,
+        1,
+        '2024-08-22',
+        '2024-08-22 08:02:00',
+        '2024-08-22 16:01:00',
+        2
+    ),
+    (
+        1537,
+        3,
+        1,
+        '2024-08-23',
+        '2024-08-23 08:02:00',
+        '2024-08-23 16:01:00',
+        2
+    ),
+    (
+        1538,
+        3,
+        1,
+        '2024-08-24',
+        '2024-08-24 08:02:00',
+        '2024-08-24 16:01:00',
+        2
+    ),
+    (
+        1539,
+        3,
+        2,
+        '2024-08-26',
+        '2024-08-26 14:01:00',
+        '2024-08-26 22:02:00',
+        2
+    ),
+    (
+        1540,
+        3,
+        2,
+        '2024-08-27',
+        '2024-08-27 14:01:00',
+        '2024-08-27 22:02:00',
+        2
+    ),
+    (
+        1541,
+        3,
+        2,
+        '2024-08-28',
+        '2024-08-28 14:01:00',
+        '2024-08-28 22:02:00',
+        2
+    ),
+    (
+        1542,
+        3,
+        2,
+        '2024-08-29',
+        '2024-08-29 14:01:00',
+        '2024-08-29 22:02:00',
+        2
+    ),
+    (
+        1543,
+        3,
+        2,
+        '2024-08-30',
+        '2024-08-30 14:01:00',
+        '2024-08-30 22:02:00',
+        2
+    ),
+    (
+        1544,
+        3,
+        2,
+        '2024-08-31',
+        '2024-08-31 14:01:00',
+        '2024-08-31 22:02:00',
+        2
+    ),
+    (
+        1545,
+        3,
+        1,
+        '2024-09-02',
+        '2024-09-02 08:02:00',
+        '2024-09-02 16:01:00',
+        2
+    ),
+    (
+        1546,
+        3,
+        1,
+        '2024-09-03',
+        '2024-09-03 08:02:00',
+        '2024-09-03 16:01:00',
+        2
+    ),
+    (
+        1547,
+        3,
+        1,
+        '2024-09-04',
+        '2024-09-04 08:02:00',
+        '2024-09-04 16:01:00',
+        2
+    ),
+    (
+        1548,
+        3,
+        1,
+        '2024-09-05',
+        '2024-09-05 08:02:00',
+        '2024-09-05 16:01:00',
+        2
+    ),
+    (
+        1549,
+        3,
+        1,
+        '2024-09-06',
+        '2024-09-06 08:02:00',
+        '2024-09-06 16:01:00',
+        2
+    ),
+    (
+        1550,
+        3,
+        1,
+        '2024-09-07',
+        '2024-09-07 08:02:00',
+        '2024-09-07 16:01:00',
+        2
+    ),
+    (
+        1551,
+        3,
+        2,
+        '2024-09-09',
+        '2024-09-09 14:01:00',
+        '2024-09-09 22:02:00',
+        2
+    ),
+    (
+        1552,
+        3,
+        2,
+        '2024-09-10',
+        '2024-09-10 14:01:00',
+        '2024-09-10 22:02:00',
+        2
+    ),
+    (
+        1553,
+        3,
+        2,
+        '2024-09-11',
+        '2024-09-11 14:01:00',
+        '2024-09-11 22:02:00',
+        2
+    ),
+    (
+        1554,
+        3,
+        2,
+        '2024-09-12',
+        '2024-09-12 14:01:00',
+        '2024-09-12 22:02:00',
+        2
+    ),
+    (
+        1555,
+        3,
+        2,
+        '2024-09-13',
+        '2024-09-13 14:01:00',
+        '2024-09-13 22:02:00',
+        2
+    ),
+    (
+        1556,
+        3,
+        2,
+        '2024-09-14',
+        '2024-09-14 14:01:00',
+        '2024-09-14 22:02:00',
+        2
+    ),
+    (
+        1557,
+        3,
+        1,
+        '2024-09-16',
+        '2024-09-16 08:02:00',
+        '2024-09-16 16:01:00',
+        2
+    ),
+    (
+        1558,
+        3,
+        1,
+        '2024-09-17',
+        '2024-09-17 08:02:00',
+        '2024-09-17 16:01:00',
+        2
+    ),
+    (
+        1559,
+        3,
+        1,
+        '2024-09-18',
+        '2024-09-18 08:02:00',
+        '2024-09-18 16:01:00',
+        2
+    ),
+    (
+        1560,
+        3,
+        1,
+        '2024-09-19',
+        '2024-09-19 08:02:00',
+        '2024-09-19 16:01:00',
+        2
+    ),
+    (
+        1561,
+        3,
+        1,
+        '2024-09-20',
+        '2024-09-20 08:02:00',
+        '2024-09-20 16:01:00',
+        2
+    ),
+    (
+        1562,
+        3,
+        1,
+        '2024-09-21',
+        '2024-09-21 08:02:00',
+        '2024-09-21 16:01:00',
+        2
+    ),
+    (
+        1563,
+        3,
+        2,
+        '2024-09-23',
+        '2024-09-23 14:01:00',
+        '2024-09-23 22:02:00',
+        2
+    ),
+    (
+        1564,
+        3,
+        2,
+        '2024-09-24',
+        '2024-09-24 14:01:00',
+        '2024-09-24 22:02:00',
+        2
+    ),
+    (
+        1565,
+        3,
+        2,
+        '2024-09-25',
+        '2024-09-25 14:01:00',
+        '2024-09-25 22:02:00',
+        2
+    ),
+    (
+        1566,
+        3,
+        2,
+        '2024-09-26',
+        '2024-09-26 14:01:00',
+        '2024-09-26 22:02:00',
+        2
+    ),
+    (
+        1567,
+        3,
+        2,
+        '2024-09-27',
+        '2024-09-27 14:01:00',
+        '2024-09-27 22:02:00',
+        2
+    ),
+    (
+        1568,
+        3,
+        2,
+        '2024-09-28',
+        '2024-09-28 14:01:00',
+        '2024-09-28 22:02:00',
+        2
+    ),
+    (
+        1569,
+        3,
+        1,
+        '2024-09-30',
+        '2024-09-30 08:02:00',
+        '2024-09-30 16:01:00',
+        2
+    ),
+    (
+        1570,
+        3,
+        1,
+        '2024-10-01',
+        '2024-10-01 08:02:00',
+        '2024-10-01 16:01:00',
+        2
+    ),
+    (
+        1571,
+        3,
+        1,
+        '2024-10-02',
+        '2024-10-02 08:02:00',
+        '2024-10-02 16:01:00',
+        2
+    ),
+    (
+        1572,
+        3,
+        1,
+        '2024-10-03',
+        '2024-10-03 08:02:00',
+        '2024-10-03 16:01:00',
+        2
+    ),
+    (
+        1573,
+        3,
+        1,
+        '2024-10-04',
+        '2024-10-04 08:02:00',
+        '2024-10-04 16:01:00',
+        2
+    ),
+    (
+        1574,
+        3,
+        1,
+        '2024-10-05',
+        '2024-10-05 08:02:00',
+        '2024-10-05 16:01:00',
+        2
+    ),
+    (
+        1575,
+        3,
+        2,
+        '2024-10-07',
+        '2024-10-07 14:01:00',
+        '2024-10-07 22:02:00',
+        2
+    ),
+    (
+        1576,
+        3,
+        2,
+        '2024-10-08',
+        '2024-10-08 14:01:00',
+        '2024-10-08 22:02:00',
+        2
+    ),
+    (
+        1577,
+        3,
+        2,
+        '2024-10-09',
+        '2024-10-09 14:01:00',
+        '2024-10-09 22:02:00',
+        2
+    ),
+    (
+        1578,
+        3,
+        2,
+        '2024-10-10',
+        '2024-10-10 14:01:00',
+        '2024-10-10 22:02:00',
+        2
+    ),
+    (
+        1579,
+        3,
+        2,
+        '2024-10-11',
+        '2024-10-11 14:01:00',
+        '2024-10-11 22:02:00',
+        2
+    ),
+    (
+        1580,
+        3,
+        2,
+        '2024-10-12',
+        '2024-10-12 14:01:00',
+        '2024-10-12 22:02:00',
+        2
+    ),
+    (
+        1581,
+        3,
+        1,
+        '2024-10-14',
+        '2024-10-14 08:02:00',
+        '2024-10-14 16:01:00',
+        2
+    ),
+    (
+        1582,
+        3,
+        1,
+        '2024-10-15',
+        '2024-10-15 08:02:00',
+        '2024-10-15 16:01:00',
+        2
+    ),
+    (
+        1583,
+        3,
+        1,
+        '2024-10-16',
+        '2024-10-16 08:02:00',
+        '2024-10-16 16:01:00',
+        2
+    ),
+    (
+        1584,
+        3,
+        1,
+        '2024-10-17',
+        '2024-10-17 08:02:00',
+        '2024-10-17 16:01:00',
+        2
+    ),
+    (
+        1585,
+        3,
+        1,
+        '2024-10-18',
+        '2024-10-18 08:02:00',
+        '2024-10-18 16:01:00',
+        2
+    ),
+    (
+        1586,
+        3,
+        1,
+        '2024-10-19',
+        '2024-10-19 08:02:00',
+        '2024-10-19 16:01:00',
+        2
+    ),
+    (
+        1587,
+        3,
+        2,
+        '2024-10-21',
+        '2024-10-21 14:01:00',
+        '2024-10-21 22:02:00',
+        2
+    ),
+    (
+        1588,
+        3,
+        2,
+        '2024-10-22',
+        '2024-10-22 14:01:00',
+        '2024-10-22 22:02:00',
+        2
+    ),
+    (
+        1589,
+        3,
+        2,
+        '2024-10-23',
+        '2024-10-23 14:01:00',
+        '2024-10-23 22:02:00',
+        2
+    ),
+    (
+        1590,
+        3,
+        2,
+        '2024-10-24',
+        '2024-10-24 14:01:00',
+        '2024-10-24 22:02:00',
+        2
+    ),
+    (
+        1591,
+        3,
+        2,
+        '2024-10-25',
+        '2024-10-25 14:01:00',
+        '2024-10-25 22:02:00',
+        2
+    ),
+    (
+        1592,
+        3,
+        2,
+        '2024-10-26',
+        '2024-10-26 14:01:00',
+        '2024-10-26 22:02:00',
+        2
+    ),
+    (
+        1593,
+        3,
+        1,
+        '2024-10-28',
+        '2024-10-28 08:02:00',
+        '2024-10-28 16:01:00',
+        2
+    ),
+    (
+        1594,
+        3,
+        1,
+        '2024-10-29',
+        '2024-10-29 08:02:00',
+        '2024-10-29 16:01:00',
+        2
+    ),
+    (
+        1595,
+        3,
+        1,
+        '2024-10-30',
+        '2024-10-30 08:02:00',
+        '2024-10-30 16:01:00',
+        2
+    ),
+    (
+        1596,
+        3,
+        1,
+        '2024-10-31',
+        '2024-10-31 08:02:00',
+        '2024-10-31 16:01:00',
+        2
+    ),
+    (
+        1597,
+        3,
+        1,
+        '2024-11-01',
+        '2024-11-01 08:02:00',
+        '2024-11-01 16:01:00',
+        2
+    ),
+    (
+        1598,
+        3,
+        1,
+        '2024-11-02',
+        '2024-11-02 08:02:00',
+        '2024-11-02 16:01:00',
+        2
+    ),
+    (
+        1599,
+        3,
+        2,
+        '2024-11-04',
+        '2024-11-04 14:01:00',
+        '2024-11-04 22:02:00',
+        2
+    ),
+    (
+        1600,
+        3,
+        2,
+        '2024-11-05',
+        '2024-11-05 14:01:00',
+        '2024-11-05 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1601,
+        3,
+        2,
+        '2024-11-06',
+        '2024-11-06 14:01:00',
+        '2024-11-06 22:02:00',
+        2
+    ),
+    (
+        1602,
+        3,
+        2,
+        '2024-11-07',
+        '2024-11-07 14:01:00',
+        '2024-11-07 22:02:00',
+        2
+    ),
+    (
+        1603,
+        3,
+        2,
+        '2024-11-08',
+        '2024-11-08 14:01:00',
+        '2024-11-08 22:02:00',
+        2
+    ),
+    (
+        1604,
+        3,
+        2,
+        '2024-11-09',
+        '2024-11-09 14:01:00',
+        '2024-11-09 22:02:00',
+        2
+    ),
+    (
+        1605,
+        3,
+        1,
+        '2024-11-11',
+        '2024-11-11 08:02:00',
+        '2024-11-11 16:01:00',
+        2
+    ),
+    (
+        1606,
+        3,
+        1,
+        '2024-11-12',
+        '2024-11-12 08:02:00',
+        '2024-11-12 16:01:00',
+        2
+    ),
+    (
+        1607,
+        3,
+        1,
+        '2024-11-13',
+        '2024-11-13 08:02:00',
+        '2024-11-13 16:01:00',
+        2
+    ),
+    (
+        1608,
+        3,
+        1,
+        '2024-11-14',
+        '2024-11-14 08:02:00',
+        '2024-11-14 16:01:00',
+        2
+    ),
+    (
+        1609,
+        3,
+        1,
+        '2024-11-15',
+        '2024-11-15 08:02:00',
+        '2024-11-15 16:01:00',
+        2
+    ),
+    (
+        1610,
+        3,
+        1,
+        '2024-11-16',
+        '2024-11-16 08:02:00',
+        '2024-11-16 16:01:00',
+        2
+    ),
+    (
+        1611,
+        3,
+        2,
+        '2024-11-18',
+        '2024-11-18 14:01:00',
+        '2024-11-18 22:02:00',
+        2
+    ),
+    (
+        1612,
+        3,
+        2,
+        '2024-11-19',
+        '2024-11-19 14:01:00',
+        '2024-11-19 22:02:00',
+        2
+    ),
+    (
+        1613,
+        3,
+        2,
+        '2024-11-20',
+        '2024-11-20 14:01:00',
+        '2024-11-20 22:02:00',
+        2
+    ),
+    (
+        1614,
+        3,
+        2,
+        '2024-11-21',
+        '2024-11-21 14:01:00',
+        '2024-11-21 22:02:00',
+        2
+    ),
+    (
+        1615,
+        3,
+        2,
+        '2024-11-22',
+        '2024-11-22 14:01:00',
+        '2024-11-22 22:02:00',
+        2
+    ),
+    (
+        1616,
+        3,
+        2,
+        '2024-11-23',
+        '2024-11-23 14:01:00',
+        '2024-11-23 22:02:00',
+        2
+    ),
+    (
+        1617,
+        3,
+        1,
+        '2024-11-25',
+        '2024-11-25 08:02:00',
+        '2024-11-25 16:01:00',
+        2
+    ),
+    (
+        1618,
+        3,
+        1,
+        '2024-11-26',
+        '2024-11-26 08:02:00',
+        '2024-11-26 16:01:00',
+        2
+    ),
+    (
+        1619,
+        3,
+        1,
+        '2024-11-27',
+        '2024-11-27 08:02:00',
+        '2024-11-27 16:01:00',
+        2
+    ),
+    (
+        1620,
+        3,
+        1,
+        '2024-11-28',
+        '2024-11-28 08:02:00',
+        '2024-11-28 16:01:00',
+        2
+    ),
+    (
+        1621,
+        3,
+        1,
+        '2024-11-29',
+        '2024-11-29 08:02:00',
+        '2024-11-29 16:01:00',
+        2
+    ),
+    (
+        1622,
+        3,
+        1,
+        '2024-11-30',
+        '2024-11-30 08:02:00',
+        '2024-11-30 16:01:00',
+        2
+    ),
+    (
+        1623,
+        3,
+        2,
+        '2024-12-02',
+        '2024-12-02 14:01:00',
+        '2024-12-02 22:02:00',
+        2
+    ),
+    (
+        1624,
+        3,
+        2,
+        '2024-12-03',
+        '2024-12-03 14:01:00',
+        '2024-12-03 22:02:00',
+        2
+    ),
+    (
+        1625,
+        3,
+        2,
+        '2024-12-04',
+        '2024-12-04 14:01:00',
+        '2024-12-04 22:02:00',
+        2
+    ),
+    (
+        1626,
+        3,
+        2,
+        '2024-12-05',
+        '2024-12-05 14:01:00',
+        '2024-12-05 22:02:00',
+        2
+    ),
+    (
+        1627,
+        3,
+        2,
+        '2024-12-06',
+        '2024-12-06 14:01:00',
+        '2024-12-06 22:02:00',
+        2
+    ),
+    (
+        1628,
+        3,
+        2,
+        '2024-12-07',
+        '2024-12-07 14:01:00',
+        '2024-12-07 22:02:00',
+        2
+    ),
+    (
+        1629,
+        3,
+        1,
+        '2024-12-09',
+        '2024-12-09 08:02:00',
+        '2024-12-09 16:01:00',
+        2
+    ),
+    (
+        1630,
+        3,
+        1,
+        '2024-12-10',
+        '2024-12-10 08:02:00',
+        '2024-12-10 16:01:00',
+        2
+    ),
+    (
+        1631,
+        3,
+        1,
+        '2024-12-11',
+        '2024-12-11 08:02:00',
+        '2024-12-11 16:01:00',
+        2
+    ),
+    (
+        1632,
+        3,
+        1,
+        '2024-12-12',
+        '2024-12-12 08:02:00',
+        '2024-12-12 16:01:00',
+        2
+    ),
+    (
+        1633,
+        3,
+        1,
+        '2024-12-13',
+        '2024-12-13 08:02:00',
+        '2024-12-13 16:01:00',
+        2
+    ),
+    (
+        1634,
+        3,
+        1,
+        '2024-12-14',
+        '2024-12-14 08:02:00',
+        '2024-12-14 16:01:00',
+        2
+    ),
+    (
+        1635,
+        3,
+        2,
+        '2024-12-16',
+        '2024-12-16 14:01:00',
+        '2024-12-16 22:02:00',
+        2
+    ),
+    (
+        1636,
+        3,
+        2,
+        '2024-12-17',
+        '2024-12-17 14:01:00',
+        '2024-12-17 22:02:00',
+        2
+    ),
+    (
+        1637,
+        3,
+        2,
+        '2024-12-18',
+        '2024-12-18 14:01:00',
+        '2024-12-18 22:02:00',
+        2
+    ),
+    (
+        1638,
+        3,
+        2,
+        '2024-12-19',
+        '2024-12-19 14:01:00',
+        '2024-12-19 22:02:00',
+        2
+    ),
+    (
+        1639,
+        3,
+        2,
+        '2024-12-20',
+        '2024-12-20 14:01:00',
+        '2024-12-20 22:02:00',
+        2
+    ),
+    (
+        1640,
+        3,
+        2,
+        '2024-12-21',
+        '2024-12-21 14:01:00',
+        '2024-12-21 22:02:00',
+        2
+    ),
+    (
+        1641,
+        3,
+        1,
+        '2024-12-23',
+        '2024-12-23 08:02:00',
+        '2024-12-23 16:01:00',
+        2
+    ),
+    (
+        1642,
+        3,
+        1,
+        '2024-12-24',
+        '2024-12-24 08:02:00',
+        '2024-12-24 16:01:00',
+        2
+    ),
+    (
+        1643,
+        3,
+        1,
+        '2024-12-25',
+        '2024-12-25 08:02:00',
+        '2024-12-25 16:01:00',
+        2
+    ),
+    (
+        1644,
+        3,
+        1,
+        '2024-12-26',
+        '2024-12-26 08:02:00',
+        '2024-12-26 16:01:00',
+        2
+    ),
+    (
+        1645,
+        3,
+        1,
+        '2024-12-27',
+        '2024-12-27 08:02:00',
+        '2024-12-27 16:01:00',
+        2
+    ),
+    (
+        1646,
+        3,
+        1,
+        '2024-12-28',
+        '2024-12-28 08:02:00',
+        '2024-12-28 16:01:00',
+        2
+    ),
+    (
+        1647,
+        3,
+        2,
+        '2024-12-30',
+        '2024-12-30 14:01:00',
+        '2024-12-30 22:02:00',
+        2
+    ),
+    (
+        1648,
+        3,
+        2,
+        '2024-12-31',
+        '2024-12-31 14:01:00',
+        '2024-12-31 22:02:00',
+        2
+    ),
+    (
+        1649,
+        3,
+        2,
+        '2025-01-01',
+        '2025-01-01 14:01:00',
+        '2025-01-01 22:02:00',
+        2
+    ),
+    (
+        1650,
+        3,
+        2,
+        '2025-01-02',
+        '2025-01-02 14:01:00',
+        '2025-01-02 22:02:00',
+        2
+    ),
+    (
+        1651,
+        3,
+        2,
+        '2025-01-03',
+        '2025-01-03 14:01:00',
+        '2025-01-03 22:02:00',
+        2
+    ),
+    (
+        1652,
+        3,
+        2,
+        '2025-01-04',
+        '2025-01-04 14:01:00',
+        '2025-01-04 22:02:00',
+        2
+    ),
+    (
+        1653,
+        3,
+        1,
+        '2025-01-06',
+        '2025-01-06 08:02:00',
+        '2025-01-06 16:01:00',
+        2
+    ),
+    (
+        1654,
+        3,
+        1,
+        '2025-01-07',
+        '2025-01-07 08:02:00',
+        '2025-01-07 16:01:00',
+        2
+    ),
+    (
+        1655,
+        3,
+        1,
+        '2025-01-08',
+        '2025-01-08 08:02:00',
+        '2025-01-08 16:01:00',
+        2
+    ),
+    (
+        1656,
+        3,
+        1,
+        '2025-01-09',
+        '2025-01-09 08:02:00',
+        '2025-01-09 16:01:00',
+        2
+    ),
+    (
+        1657,
+        3,
+        1,
+        '2025-01-10',
+        '2025-01-10 08:02:00',
+        '2025-01-10 16:01:00',
+        2
+    ),
+    (
+        1658,
+        3,
+        1,
+        '2025-01-11',
+        '2025-01-11 08:02:00',
+        '2025-01-11 16:01:00',
+        2
+    ),
+    (
+        1659,
+        3,
+        2,
+        '2025-01-13',
+        '2025-01-13 14:01:00',
+        '2025-01-13 22:02:00',
+        2
+    ),
+    (
+        1660,
+        3,
+        2,
+        '2025-01-14',
+        '2025-01-14 14:01:00',
+        '2025-01-14 22:02:00',
+        2
+    ),
+    (
+        1661,
+        3,
+        2,
+        '2025-01-15',
+        '2025-01-15 14:01:00',
+        '2025-01-15 22:02:00',
+        2
+    ),
+    (
+        1662,
+        3,
+        2,
+        '2025-01-16',
+        '2025-01-16 14:01:00',
+        '2025-01-16 22:02:00',
+        2
+    ),
+    (
+        1663,
+        3,
+        2,
+        '2025-01-17',
+        '2025-01-17 14:01:00',
+        '2025-01-17 22:02:00',
+        2
+    ),
+    (
+        1664,
+        3,
+        2,
+        '2025-01-18',
+        '2025-01-18 14:01:00',
+        '2025-01-18 22:02:00',
+        2
+    ),
+    (
+        1665,
+        3,
+        1,
+        '2025-01-20',
+        '2025-01-20 08:02:00',
+        '2025-01-20 16:01:00',
+        2
+    ),
+    (
+        1666,
+        3,
+        1,
+        '2025-01-21',
+        '2025-01-21 08:02:00',
+        '2025-01-21 16:01:00',
+        2
+    ),
+    (
+        1667,
+        3,
+        1,
+        '2025-01-22',
+        '2025-01-22 08:02:00',
+        '2025-01-22 16:01:00',
+        2
+    ),
+    (
+        1668,
+        3,
+        1,
+        '2025-01-23',
+        '2025-01-23 08:02:00',
+        '2025-01-23 16:01:00',
+        2
+    ),
+    (
+        1669,
+        3,
+        1,
+        '2025-01-24',
+        '2025-01-24 08:02:00',
+        '2025-01-24 16:01:00',
+        2
+    ),
+    (
+        1670,
+        3,
+        1,
+        '2025-01-25',
+        '2025-01-25 08:02:00',
+        '2025-01-25 16:01:00',
+        2
+    ),
+    (
+        1671,
+        3,
+        2,
+        '2025-01-27',
+        '2025-01-27 14:01:00',
+        '2025-01-27 22:02:00',
+        2
+    ),
+    (
+        1672,
+        3,
+        2,
+        '2025-01-28',
+        '2025-01-28 14:01:00',
+        '2025-01-28 22:02:00',
+        2
+    ),
+    (
+        1673,
+        3,
+        2,
+        '2025-01-29',
+        '2025-01-29 14:01:00',
+        '2025-01-29 22:02:00',
+        2
+    ),
+    (
+        1674,
+        3,
+        2,
+        '2025-01-30',
+        '2025-01-30 14:01:00',
+        '2025-01-30 22:02:00',
+        2
+    ),
+    (
+        1675,
+        3,
+        2,
+        '2025-01-31',
+        '2025-01-31 14:01:00',
+        '2025-01-31 22:02:00',
+        2
+    ),
+    (
+        1676,
+        3,
+        2,
+        '2025-02-01',
+        '2025-02-01 14:01:00',
+        '2025-02-01 22:02:00',
+        2
+    ),
+    (
+        1677,
+        3,
+        1,
+        '2025-02-03',
+        '2025-02-03 08:02:00',
+        '2025-02-03 16:01:00',
+        2
+    ),
+    (
+        1678,
+        3,
+        1,
+        '2025-02-04',
+        '2025-02-04 08:02:00',
+        '2025-02-04 16:01:00',
+        2
+    ),
+    (
+        1679,
+        3,
+        1,
+        '2025-02-05',
+        '2025-02-05 08:02:00',
+        '2025-02-05 16:01:00',
+        2
+    ),
+    (
+        1680,
+        3,
+        1,
+        '2025-02-06',
+        '2025-02-06 08:02:00',
+        '2025-02-06 16:01:00',
+        2
+    ),
+    (
+        1681,
+        3,
+        1,
+        '2025-02-07',
+        '2025-02-07 08:02:00',
+        '2025-02-07 16:01:00',
+        2
+    ),
+    (
+        1682,
+        3,
+        1,
+        '2025-02-08',
+        '2025-02-08 08:02:00',
+        '2025-02-08 16:01:00',
+        2
+    ),
+    (
+        1683,
+        3,
+        2,
+        '2025-02-10',
+        '2025-02-10 14:01:00',
+        '2025-02-10 22:02:00',
+        2
+    ),
+    (
+        1684,
+        3,
+        2,
+        '2025-02-11',
+        '2025-02-11 14:01:00',
+        '2025-02-11 22:02:00',
+        2
+    ),
+    (
+        1685,
+        3,
+        2,
+        '2025-02-12',
+        '2025-02-12 14:01:00',
+        '2025-02-12 22:02:00',
+        2
+    ),
+    (
+        1686,
+        3,
+        2,
+        '2025-02-13',
+        '2025-02-13 14:01:00',
+        '2025-02-13 22:02:00',
+        2
+    ),
+    (
+        1687,
+        3,
+        2,
+        '2025-02-14',
+        '2025-02-14 14:01:00',
+        '2025-02-14 22:02:00',
+        2
+    ),
+    (
+        1688,
+        3,
+        2,
+        '2025-02-15',
+        '2025-02-15 14:01:00',
+        '2025-02-15 22:02:00',
+        2
+    ),
+    (
+        1689,
+        3,
+        1,
+        '2025-02-17',
+        '2025-02-17 08:02:00',
+        '2025-02-17 16:01:00',
+        2
+    ),
+    (
+        1690,
+        3,
+        1,
+        '2025-02-18',
+        '2025-02-18 08:02:00',
+        '2025-02-18 16:01:00',
+        2
+    ),
+    (
+        1691,
+        3,
+        1,
+        '2025-02-19',
+        '2025-02-19 08:02:00',
+        '2025-02-19 16:01:00',
+        2
+    ),
+    (
+        1692,
+        3,
+        1,
+        '2025-02-20',
+        '2025-02-20 08:02:00',
+        '2025-02-20 16:01:00',
+        2
+    ),
+    (
+        1693,
+        3,
+        1,
+        '2025-02-21',
+        '2025-02-21 08:02:00',
+        '2025-02-21 16:01:00',
+        2
+    ),
+    (
+        1694,
+        3,
+        1,
+        '2025-02-22',
+        '2025-02-22 08:02:00',
+        '2025-02-22 16:01:00',
+        2
+    ),
+    (
+        1695,
+        3,
+        2,
+        '2025-02-24',
+        '2025-02-24 14:01:00',
+        '2025-02-24 22:02:00',
+        2
+    ),
+    (
+        1696,
+        3,
+        2,
+        '2025-02-25',
+        '2025-02-25 14:01:00',
+        '2025-02-25 22:02:00',
+        2
+    ),
+    (
+        1697,
+        3,
+        2,
+        '2025-02-26',
+        '2025-02-26 14:01:00',
+        '2025-02-26 22:02:00',
+        2
+    ),
+    (
+        1698,
+        3,
+        2,
+        '2025-02-27',
+        '2025-02-27 14:01:00',
+        '2025-02-27 22:02:00',
+        2
+    ),
+    (
+        1699,
+        3,
+        2,
+        '2025-02-28',
+        '2025-02-28 14:01:00',
+        '2025-02-28 22:02:00',
+        2
+    ),
+    (
+        1700,
+        3,
+        2,
+        '2025-03-01',
+        '2025-03-01 14:01:00',
+        '2025-03-01 22:02:00',
+        2
+    ),
+    (
+        1701,
+        3,
+        1,
+        '2025-03-03',
+        '2025-03-03 08:02:00',
+        '2025-03-03 16:01:00',
+        2
+    ),
+    (
+        1702,
+        3,
+        1,
+        '2025-03-04',
+        '2025-03-04 08:02:00',
+        '2025-03-04 16:01:00',
+        2
+    ),
+    (
+        1703,
+        3,
+        1,
+        '2025-03-05',
+        '2025-03-05 08:02:00',
+        '2025-03-05 16:01:00',
+        2
+    ),
+    (
+        1704,
+        3,
+        1,
+        '2025-03-06',
+        '2025-03-06 08:02:00',
+        '2025-03-06 16:01:00',
+        2
+    ),
+    (
+        1705,
+        3,
+        1,
+        '2025-03-07',
+        '2025-03-07 08:02:00',
+        '2025-03-07 16:01:00',
+        2
+    ),
+    (
+        1706,
+        3,
+        1,
+        '2025-03-08',
+        '2025-03-08 08:02:00',
+        '2025-03-08 16:01:00',
+        2
+    ),
+    (
+        1707,
+        3,
+        2,
+        '2025-03-10',
+        '2025-03-10 14:01:00',
+        '2025-03-10 22:02:00',
+        2
+    ),
+    (
+        1708,
+        3,
+        2,
+        '2025-03-11',
+        '2025-03-11 14:01:00',
+        '2025-03-11 22:02:00',
+        2
+    ),
+    (
+        1709,
+        3,
+        2,
+        '2025-03-12',
+        '2025-03-12 14:01:00',
+        '2025-03-12 22:02:00',
+        2
+    ),
+    (
+        1710,
+        3,
+        2,
+        '2025-03-13',
+        '2025-03-13 14:01:00',
+        '2025-03-13 22:02:00',
+        2
+    ),
+    (
+        1711,
+        3,
+        2,
+        '2025-03-14',
+        '2025-03-14 14:01:00',
+        '2025-03-14 22:02:00',
+        2
+    ),
+    (
+        1712,
+        3,
+        2,
+        '2025-03-15',
+        '2025-03-15 14:01:00',
+        '2025-03-15 22:02:00',
+        2
+    ),
+    (
+        1713,
+        3,
+        1,
+        '2025-03-17',
+        '2025-03-17 08:02:00',
+        '2025-03-17 16:01:00',
+        2
+    ),
+    (
+        1714,
+        3,
+        1,
+        '2025-03-18',
+        '2025-03-18 08:02:00',
+        '2025-03-18 16:01:00',
+        2
+    ),
+    (
+        1715,
+        3,
+        1,
+        '2025-03-19',
+        '2025-03-19 08:02:00',
+        '2025-03-19 16:01:00',
+        2
+    ),
+    (
+        1716,
+        3,
+        1,
+        '2025-03-20',
+        '2025-03-20 08:02:00',
+        '2025-03-20 16:01:00',
+        2
+    ),
+    (
+        1717,
+        3,
+        1,
+        '2025-03-21',
+        '2025-03-21 08:02:00',
+        '2025-03-21 16:01:00',
+        2
+    ),
+    (
+        1718,
+        3,
+        1,
+        '2025-03-22',
+        '2025-03-22 08:02:00',
+        '2025-03-22 16:01:00',
+        2
+    ),
+    (
+        1719,
+        3,
+        2,
+        '2025-03-24',
+        '2025-03-24 14:01:00',
+        '2025-03-24 22:02:00',
+        2
+    ),
+    (
+        1720,
+        3,
+        2,
+        '2025-03-25',
+        '2025-03-25 14:01:00',
+        '2025-03-25 22:02:00',
+        2
+    ),
+    (
+        1721,
+        3,
+        2,
+        '2025-03-26',
+        '2025-03-26 14:01:00',
+        '2025-03-26 22:02:00',
+        2
+    ),
+    (
+        1722,
+        3,
+        2,
+        '2025-03-27',
+        '2025-03-27 14:01:00',
+        '2025-03-27 22:02:00',
+        2
+    ),
+    (
+        1723,
+        3,
+        2,
+        '2025-03-28',
+        '2025-03-28 14:01:00',
+        '2025-03-28 22:02:00',
+        2
+    ),
+    (
+        1724,
+        3,
+        2,
+        '2025-03-29',
+        '2025-03-29 14:01:00',
+        '2025-03-29 22:02:00',
+        2
+    ),
+    (
+        1725,
+        3,
+        1,
+        '2025-03-31',
+        '2025-03-31 08:02:00',
+        '2025-03-31 16:01:00',
+        2
+    ),
+    (
+        1726,
+        3,
+        1,
+        '2025-04-01',
+        '2025-04-01 08:02:00',
+        '2025-04-01 16:01:00',
+        2
+    ),
+    (
+        1727,
+        3,
+        1,
+        '2025-04-02',
+        '2025-04-02 08:02:00',
+        '2025-04-02 16:01:00',
+        2
+    ),
+    (
+        1728,
+        3,
+        1,
+        '2025-04-03',
+        '2025-04-03 08:02:00',
+        '2025-04-03 16:01:00',
+        2
+    ),
+    (
+        1729,
+        3,
+        1,
+        '2025-04-04',
+        '2025-04-04 08:02:00',
+        '2025-04-04 16:01:00',
+        2
+    ),
+    (
+        1730,
+        3,
+        1,
+        '2025-04-05',
+        '2025-04-05 08:02:00',
+        '2025-04-05 16:01:00',
+        2
+    ),
+    (
+        1731,
+        3,
+        2,
+        '2025-04-07',
+        '2025-04-07 14:01:00',
+        '2025-04-07 22:02:00',
+        2
+    ),
+    (
+        1732,
+        3,
+        2,
+        '2025-04-08',
+        '2025-04-08 14:01:00',
+        '2025-04-08 22:02:00',
+        2
+    ),
+    (
+        1733,
+        3,
+        2,
+        '2025-04-09',
+        '2025-04-09 14:01:00',
+        '2025-04-09 22:02:00',
+        2
+    ),
+    (
+        1734,
+        3,
+        2,
+        '2025-04-10',
+        '2025-04-10 14:01:00',
+        '2025-04-10 22:02:00',
+        2
+    ),
+    (
+        1735,
+        3,
+        2,
+        '2025-04-11',
+        '2025-04-11 14:01:00',
+        '2025-04-11 22:02:00',
+        2
+    ),
+    (
+        1736,
+        3,
+        2,
+        '2025-04-12',
+        '2025-04-12 14:01:00',
+        '2025-04-12 22:02:00',
+        2
+    ),
+    (
+        1737,
+        3,
+        1,
+        '2025-04-14',
+        '2025-04-14 08:02:00',
+        '2025-04-14 16:01:00',
+        2
+    ),
+    (
+        1738,
+        3,
+        1,
+        '2025-04-15',
+        '2025-04-15 08:02:00',
+        '2025-04-15 16:01:00',
+        2
+    ),
+    (
+        1739,
+        3,
+        1,
+        '2025-04-16',
+        '2025-04-16 08:02:00',
+        '2025-04-16 16:01:00',
+        2
+    ),
+    (
+        1740,
+        3,
+        1,
+        '2025-04-17',
+        '2025-04-17 08:02:00',
+        '2025-04-17 16:01:00',
+        2
+    ),
+    (
+        1741,
+        3,
+        1,
+        '2025-04-18',
+        '2025-04-18 08:02:00',
+        '2025-04-18 16:01:00',
+        2
+    ),
+    (
+        1742,
+        3,
+        1,
+        '2025-04-19',
+        '2025-04-19 08:02:00',
+        '2025-04-19 16:01:00',
+        2
+    ),
+    (
+        1743,
+        3,
+        2,
+        '2025-04-21',
+        '2025-04-21 14:01:00',
+        '2025-04-21 22:02:00',
+        2
+    ),
+    (
+        1744,
+        3,
+        2,
+        '2025-04-22',
+        '2025-04-22 14:01:00',
+        '2025-04-22 22:02:00',
+        2
+    ),
+    (
+        1745,
+        3,
+        2,
+        '2025-04-23',
+        '2025-04-23 14:01:00',
+        '2025-04-23 22:02:00',
+        2
+    ),
+    (
+        1746,
+        3,
+        2,
+        '2025-04-24',
+        '2025-04-24 14:01:00',
+        '2025-04-24 22:02:00',
+        2
+    ),
+    (
+        1747,
+        3,
+        2,
+        '2025-04-25',
+        '2025-04-25 14:01:00',
+        '2025-04-25 22:02:00',
+        2
+    ),
+    (
+        1748,
+        3,
+        2,
+        '2025-04-26',
+        '2025-04-26 14:01:00',
+        '2025-04-26 22:02:00',
+        2
+    ),
+    (
+        1749,
+        3,
+        1,
+        '2025-04-28',
+        '2025-04-28 08:02:00',
+        '2025-04-28 16:01:00',
+        2
+    ),
+    (
+        1750,
+        3,
+        1,
+        '2025-04-29',
+        '2025-04-29 08:02:00',
+        '2025-04-29 16:01:00',
+        2
+    ),
+    (
+        1751,
+        3,
+        1,
+        '2025-04-30',
+        '2025-04-30 08:02:00',
+        '2025-04-30 16:01:00',
+        2
+    ),
+    (
+        1752,
+        3,
+        1,
+        '2025-05-01',
+        '2025-05-01 08:02:00',
+        '2025-05-01 16:01:00',
+        2
+    ),
+    (
+        1753,
+        3,
+        1,
+        '2025-05-02',
+        '2025-05-02 08:02:00',
+        '2025-05-02 16:01:00',
+        2
+    ),
+    (
+        1754,
+        3,
+        1,
+        '2025-05-03',
+        '2025-05-03 08:02:00',
+        '2025-05-03 16:01:00',
+        2
+    ),
+    (
+        1755,
+        3,
+        2,
+        '2025-05-05',
+        '2025-05-05 14:01:00',
+        '2025-05-05 22:02:00',
+        2
+    ),
+    (
+        1756,
+        3,
+        2,
+        '2025-05-06',
+        '2025-05-06 14:01:00',
+        '2025-05-06 22:02:00',
+        2
+    ),
+    (
+        1757,
+        3,
+        2,
+        '2025-05-07',
+        '2025-05-07 14:01:00',
+        '2025-05-07 22:02:00',
+        2
+    ),
+    (
+        1758,
+        3,
+        2,
+        '2025-05-08',
+        '2025-05-08 14:01:00',
+        '2025-05-08 22:02:00',
+        2
+    ),
+    (
+        1759,
+        3,
+        2,
+        '2025-05-09',
+        '2025-05-09 14:01:00',
+        '2025-05-09 22:02:00',
+        2
+    ),
+    (
+        1760,
+        3,
+        2,
+        '2025-05-10',
+        '2025-05-10 14:01:00',
+        '2025-05-10 22:02:00',
+        2
+    ),
+    (
+        1761,
+        3,
+        1,
+        '2025-05-12',
+        '2025-05-12 08:02:00',
+        '2025-05-12 16:01:00',
+        2
+    ),
+    (
+        1762,
+        3,
+        1,
+        '2025-05-13',
+        '2025-05-13 08:02:00',
+        '2025-05-13 16:01:00',
+        2
+    ),
+    (
+        1763,
+        3,
+        1,
+        '2025-05-14',
+        '2025-05-14 08:02:00',
+        '2025-05-14 16:01:00',
+        2
+    ),
+    (
+        1764,
+        3,
+        1,
+        '2025-05-15',
+        '2025-05-15 08:02:00',
+        '2025-05-15 16:01:00',
+        2
+    ),
+    (
+        1765,
+        3,
+        1,
+        '2025-05-16',
+        '2025-05-16 08:02:00',
+        '2025-05-16 16:01:00',
+        2
+    ),
+    (
+        1766,
+        3,
+        1,
+        '2025-05-17',
+        '2025-05-17 08:02:00',
+        '2025-05-17 16:01:00',
+        2
+    ),
+    (
+        1767,
+        3,
+        2,
+        '2025-05-19',
+        '2025-05-19 14:01:00',
+        '2025-05-19 22:02:00',
+        2
+    ),
+    (
+        1768,
+        3,
+        2,
+        '2025-05-20',
+        '2025-05-20 14:01:00',
+        '2025-05-20 22:02:00',
+        2
+    ),
+    (
+        1769,
+        3,
+        2,
+        '2025-05-21',
+        '2025-05-21 14:01:00',
+        '2025-05-21 22:02:00',
+        2
+    ),
+    (
+        1770,
+        3,
+        2,
+        '2025-05-22',
+        '2025-05-22 14:01:00',
+        '2025-05-22 22:02:00',
+        2
+    ),
+    (
+        1771,
+        3,
+        2,
+        '2025-05-23',
+        '2025-05-23 14:01:00',
+        '2025-05-23 22:02:00',
+        2
+    ),
+    (
+        1772,
+        3,
+        2,
+        '2025-05-24',
+        '2025-05-24 14:01:00',
+        '2025-05-24 22:02:00',
+        2
+    ),
+    (
+        1773,
+        3,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        1774,
+        3,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        1775,
+        3,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        1776,
+        3,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        1777,
+        3,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        1778,
+        3,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        1779,
+        3,
+        2,
+        '2025-06-02',
+        '2025-06-02 14:01:00',
+        '2025-06-02 22:02:00',
+        2
+    ),
+    (
+        1780,
+        3,
+        2,
+        '2025-06-03',
+        '2025-06-03 14:01:00',
+        '2025-06-03 22:02:00',
+        2
+    ),
+    (
+        1781,
+        3,
+        2,
+        '2025-06-04',
+        '2025-06-04 14:01:00',
+        '2025-06-04 22:02:00',
+        2
+    ),
+    (
+        1782,
+        3,
+        2,
+        '2025-06-05',
+        '2025-06-05 14:01:00',
+        '2025-06-05 22:02:00',
+        2
+    ),
+    (
+        1783,
+        3,
+        2,
+        '2025-06-06',
+        '2025-06-06 14:01:00',
+        '2025-06-06 22:02:00',
+        2
+    ),
+    (
+        1784,
+        3,
+        2,
+        '2025-06-07',
+        '2025-06-07 14:01:00',
+        '2025-06-07 22:02:00',
+        2
+    ),
+    (
+        1785,
+        3,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        1786,
+        3,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        1787,
+        3,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        1788,
+        3,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        1789,
+        3,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        1790,
+        3,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        1791,
+        3,
+        2,
+        '2025-06-16',
+        '2025-06-16 14:01:00',
+        '2025-06-16 22:02:00',
+        2
+    ),
+    (
+        1792,
+        3,
+        2,
+        '2025-06-17',
+        '2025-06-17 14:01:00',
+        '2025-06-17 22:02:00',
+        2
+    ),
+    (
+        1793,
+        3,
+        2,
+        '2025-06-18',
+        '2025-06-18 14:01:00',
+        '2025-06-18 22:02:00',
+        2
+    ),
+    (
+        1794,
+        3,
+        2,
+        '2025-06-19',
+        '2025-06-19 14:01:00',
+        '2025-06-19 22:02:00',
+        2
+    ),
+    (
+        1795,
+        3,
+        2,
+        '2025-06-20',
+        '2025-06-20 14:01:00',
+        '2025-06-20 22:02:00',
+        2
+    ),
+    (
+        1796,
+        3,
+        2,
+        '2025-06-21',
+        '2025-06-21 14:01:00',
+        '2025-06-21 22:02:00',
+        2
+    ),
+    (
+        1797,
+        3,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        1798,
+        3,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        1799,
+        3,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        1800,
+        3,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        1801,
+        3,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        1802,
+        3,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        1803,
+        3,
+        2,
+        '2025-06-30',
+        '2025-06-30 14:01:00',
+        '2025-06-30 22:02:00',
+        2
+    ),
+    (
+        1804,
+        3,
+        2,
+        '2025-07-01',
+        '2025-07-01 14:01:00',
+        '2025-07-01 22:02:00',
+        2
+    ),
+    (
+        1805,
+        3,
+        2,
+        '2025-07-02',
+        '2025-07-02 14:01:00',
+        '2025-07-02 22:02:00',
+        2
+    ),
+    (
+        1806,
+        3,
+        2,
+        '2025-07-03',
+        '2025-07-03 14:01:00',
+        '2025-07-03 22:02:00',
+        2
+    ),
+    (
+        1807,
+        3,
+        2,
+        '2025-07-04',
+        '2025-07-04 14:01:00',
+        '2025-07-04 22:02:00',
+        2
+    ),
+    (
+        1808,
+        3,
+        2,
+        '2025-07-05',
+        '2025-07-05 14:01:00',
+        '2025-07-05 22:02:00',
+        2
+    ),
+    (
+        1809,
+        3,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        1810,
+        3,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        1811,
+        3,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        1812,
+        3,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        1813,
+        3,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        1814,
+        3,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        1815,
+        3,
+        2,
+        '2025-07-14',
+        '2025-07-14 14:01:00',
+        '2025-07-14 22:02:00',
+        2
+    ),
+    (
+        1816,
+        3,
+        2,
+        '2025-07-15',
+        '2025-07-15 14:01:00',
+        '2025-07-15 22:02:00',
+        2
+    ),
+    (
+        1817,
+        3,
+        2,
+        '2025-07-16',
+        '2025-07-16 14:01:00',
+        '2025-07-16 22:02:00',
+        2
+    ),
+    (
+        1818,
+        3,
+        2,
+        '2025-07-17',
+        '2025-07-17 14:01:00',
+        '2025-07-17 22:02:00',
+        2
+    ),
+    (
+        1819,
+        3,
+        2,
+        '2025-07-18',
+        '2025-07-18 14:01:00',
+        '2025-07-18 22:02:00',
+        2
+    ),
+    (
+        1820,
+        3,
+        2,
+        '2025-07-19',
+        '2025-07-19 14:01:00',
+        '2025-07-19 22:02:00',
+        2
+    ),
+    (
+        1821,
+        3,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        1822,
+        3,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        1823,
+        3,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        1824,
+        3,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        1825,
+        3,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        1826,
+        3,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        1827,
+        3,
+        2,
+        '2025-07-28',
+        '2025-07-28 14:01:00',
+        '2025-07-28 22:02:00',
+        2
+    ),
+    (
+        1828,
+        3,
+        2,
+        '2025-07-29',
+        '2025-07-29 14:01:00',
+        '2025-07-29 22:02:00',
+        2
+    ),
+    (
+        1829,
+        3,
+        2,
+        '2025-07-30',
+        '2025-07-30 14:01:00',
+        '2025-07-30 22:02:00',
+        2
+    ),
+    (
+        1830,
+        3,
+        2,
+        '2025-07-31',
+        '2025-07-31 14:01:00',
+        '2025-07-31 22:02:00',
+        2
+    ),
+    (
+        1831,
+        3,
+        2,
+        '2025-08-01',
+        '2025-08-01 14:01:00',
+        '2025-08-01 22:02:00',
+        2
+    ),
+    (
+        1832,
+        3,
+        2,
+        '2025-08-02',
+        '2025-08-02 14:01:00',
+        '2025-08-02 22:02:00',
+        2
+    ),
+    (
+        1833,
+        3,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        1834,
+        3,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        1835,
+        3,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        1836,
+        3,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        1837,
+        3,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        1838,
+        3,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        1839,
+        3,
+        2,
+        '2025-08-11',
+        '2025-08-11 14:01:00',
+        '2025-08-11 22:02:00',
+        2
+    ),
+    (
+        1840,
+        3,
+        2,
+        '2025-08-12',
+        '2025-08-12 14:01:00',
+        '2025-08-12 22:02:00',
+        2
+    ),
+    (
+        1841,
+        3,
+        2,
+        '2025-08-13',
+        '2025-08-13 14:01:00',
+        '2025-08-13 22:02:00',
+        2
+    ),
+    (
+        1842,
+        3,
+        2,
+        '2025-08-14',
+        '2025-08-14 14:01:00',
+        '2025-08-14 22:02:00',
+        2
+    ),
+    (
+        1843,
+        3,
+        2,
+        '2025-08-15',
+        '2025-08-15 14:01:00',
+        '2025-08-15 22:02:00',
+        2
+    ),
+    (
+        1844,
+        3,
+        2,
+        '2025-08-16',
+        '2025-08-16 14:01:00',
+        '2025-08-16 22:02:00',
+        2
+    ),
+    (
+        1845,
+        3,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        1846,
+        3,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        1847,
+        3,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        1848,
+        3,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        1849,
+        3,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        1850,
+        3,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        1851,
+        3,
+        2,
+        '2025-08-25',
+        '2025-08-25 14:01:00',
+        '2025-08-25 22:02:00',
+        2
+    ),
+    (
+        1852,
+        3,
+        2,
+        '2025-08-26',
+        '2025-08-26 14:01:00',
+        '2025-08-26 22:02:00',
+        2
+    ),
+    (
+        1853,
+        3,
+        2,
+        '2025-08-27',
+        '2025-08-27 14:01:00',
+        '2025-08-27 22:02:00',
+        2
+    ),
+    (
+        1854,
+        3,
+        2,
+        '2025-08-28',
+        '2025-08-28 14:01:00',
+        '2025-08-28 22:02:00',
+        2
+    ),
+    (
+        1855,
+        3,
+        2,
+        '2025-08-29',
+        '2025-08-29 14:01:00',
+        '2025-08-29 22:02:00',
+        2
+    ),
+    (
+        1856,
+        3,
+        2,
+        '2025-08-30',
+        '2025-08-30 14:01:00',
+        '2025-08-30 22:02:00',
+        2
+    ),
+    (
+        1857,
+        3,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        1858,
+        3,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        1859,
+        3,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        1860,
+        3,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        1861,
+        3,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        1862,
+        3,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        1863,
+        3,
+        2,
+        '2025-09-08',
+        '2025-09-08 14:01:00',
+        '2025-09-08 22:02:00',
+        2
+    ),
+    (
+        1864,
+        3,
+        2,
+        '2025-09-09',
+        '2025-09-09 14:01:00',
+        '2025-09-09 22:02:00',
+        2
+    ),
+    (
+        1865,
+        3,
+        2,
+        '2025-09-10',
+        '2025-09-10 14:01:00',
+        '2025-09-10 22:02:00',
+        2
+    ),
+    (
+        1866,
+        3,
+        2,
+        '2025-09-11',
+        '2025-09-11 14:01:00',
+        '2025-09-11 22:02:00',
+        2
+    ),
+    (
+        1867,
+        3,
+        2,
+        '2025-09-12',
+        '2025-09-12 14:01:00',
+        '2025-09-12 22:02:00',
+        2
+    ),
+    (
+        1868,
+        3,
+        2,
+        '2025-09-13',
+        '2025-09-13 14:01:00',
+        '2025-09-13 22:02:00',
+        2
+    ),
+    (
+        1869,
+        3,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        1870,
+        3,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        1871,
+        3,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    ),
+    (
+        1872,
+        3,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        1873,
+        3,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        1874,
+        3,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        1875,
+        3,
+        2,
+        '2025-09-22',
+        '2025-09-22 14:01:00',
+        '2025-09-22 22:02:00',
+        2
+    ),
+    (
+        1876,
+        3,
+        2,
+        '2025-09-23',
+        '2025-09-23 14:01:00',
+        '2025-09-23 22:02:00',
+        2
+    ),
+    (
+        1877,
+        3,
+        2,
+        '2025-09-24',
+        '2025-09-24 14:01:00',
+        '2025-09-24 22:02:00',
+        2
+    ),
+    (
+        1878,
+        3,
+        2,
+        '2025-09-25',
+        '2025-09-25 14:01:00',
+        '2025-09-25 22:02:00',
+        2
+    ),
+    (
+        1879,
+        3,
+        2,
+        '2025-09-26',
+        '2025-09-26 14:01:00',
+        '2025-09-26 22:02:00',
+        2
+    ),
+    (
+        1880,
+        3,
+        2,
+        '2025-09-27',
+        '2025-09-27 14:01:00',
+        '2025-09-27 22:02:00',
+        2
+    ),
+    (
+        1881,
+        3,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        1882,
+        3,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        1883,
+        3,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        1884,
+        3,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        1885,
+        3,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        1886,
+        3,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        1887,
+        3,
+        2,
+        '2025-10-06',
+        '2025-10-06 14:01:00',
+        '2025-10-06 22:02:00',
+        2
+    ),
+    (
+        1888,
+        3,
+        2,
+        '2025-10-07',
+        '2025-10-07 14:01:00',
+        '2025-10-07 22:02:00',
+        2
+    ),
+    (
+        1889,
+        3,
+        2,
+        '2025-10-08',
+        '2025-10-08 14:01:00',
+        '2025-10-08 22:02:00',
+        2
+    ),
+    (
+        1890,
+        3,
+        2,
+        '2025-10-09',
+        '2025-10-09 14:01:00',
+        '2025-10-09 22:02:00',
+        2
+    ),
+    (
+        1891,
+        3,
+        2,
+        '2025-10-10',
+        '2025-10-10 14:01:00',
+        '2025-10-10 22:02:00',
+        2
+    ),
+    (
+        1892,
+        3,
+        2,
+        '2025-10-11',
+        '2025-10-11 14:01:00',
+        '2025-10-11 22:02:00',
+        2
+    ),
+    (
+        1893,
+        3,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        1894,
+        3,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        1895,
+        3,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        1896,
+        3,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        1897,
+        3,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        1898,
+        3,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        1899,
+        3,
+        2,
+        '2025-10-20',
+        '2025-10-20 14:01:00',
+        '2025-10-20 22:02:00',
+        2
+    ),
+    (
+        1900,
+        3,
+        2,
+        '2025-10-21',
+        '2025-10-21 14:01:00',
+        '2025-10-21 22:02:00',
+        2
+    ),
+    (
+        1901,
+        3,
+        2,
+        '2025-10-22',
+        '2025-10-22 14:01:00',
+        '2025-10-22 22:02:00',
+        2
+    ),
+    (
+        1902,
+        3,
+        2,
+        '2025-10-23',
+        '2025-10-23 14:01:00',
+        '2025-10-23 22:02:00',
+        2
+    ),
+    (
+        1903,
+        3,
+        2,
+        '2025-10-24',
+        '2025-10-24 14:01:00',
+        '2025-10-24 22:02:00',
+        2
+    ),
+    (
+        1904,
+        3,
+        2,
+        '2025-10-25',
+        '2025-10-25 14:01:00',
+        '2025-10-25 22:02:00',
+        2
+    ),
+    (
+        1905,
+        3,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        1906,
+        3,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        1907,
+        3,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        1908,
+        3,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        1909,
+        3,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        1910,
+        3,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        1911,
+        3,
+        2,
+        '2025-11-03',
+        '2025-11-03 14:01:00',
+        '2025-11-03 22:02:00',
+        2
+    ),
+    (
+        1912,
+        3,
+        2,
+        '2025-11-04',
+        '2025-11-04 14:01:00',
+        '2025-11-04 22:02:00',
+        2
+    ),
+    (
+        1913,
+        3,
+        2,
+        '2025-11-05',
+        '2025-11-05 14:01:00',
+        '2025-11-05 22:02:00',
+        2
+    ),
+    (
+        1914,
+        3,
+        2,
+        '2025-11-06',
+        '2025-11-06 14:01:00',
+        '2025-11-06 22:02:00',
+        2
+    ),
+    (
+        1915,
+        3,
+        2,
+        '2025-11-07',
+        '2025-11-07 14:01:00',
+        '2025-11-07 22:02:00',
+        2
+    ),
+    (
+        1916,
+        3,
+        2,
+        '2025-11-08',
+        '2025-11-08 14:01:00',
+        '2025-11-08 22:02:00',
+        2
+    ),
+    (
+        1917,
+        3,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        1918,
+        3,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        1919,
+        3,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        1920,
+        3,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        1921,
+        3,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        1922,
+        3,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        1923,
+        3,
+        2,
+        '2025-11-17',
+        '2025-11-17 14:01:00',
+        '2025-11-17 22:02:00',
+        2
+    ),
+    (
+        1924,
+        3,
+        2,
+        '2025-11-18',
+        '2025-11-18 14:01:00',
+        '2025-11-18 22:02:00',
+        2
+    ),
+    (
+        1925,
+        3,
+        2,
+        '2025-11-19',
+        '2025-11-19 14:01:00',
+        '2025-11-19 22:02:00',
+        2
+    ),
+    (
+        1926,
+        3,
+        2,
+        '2025-11-20',
+        '2025-11-20 14:01:00',
+        '2025-11-20 22:02:00',
+        2
+    ),
+    (
+        1927,
+        3,
+        2,
+        '2025-11-21',
+        '2025-11-21 14:01:00',
+        '2025-11-21 22:02:00',
+        2
+    ),
+    (
+        1928,
+        3,
+        2,
+        '2025-11-22',
+        '2025-11-22 14:01:00',
+        '2025-11-22 22:02:00',
+        2
+    ),
+    (
+        1929,
+        3,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        1930,
+        3,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        1931,
+        3,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        1932,
+        3,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        1933,
+        3,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        1934,
+        3,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        1935,
+        3,
+        2,
+        '2025-12-01',
+        '2025-12-01 14:01:00',
+        '2025-12-01 22:02:00',
+        2
+    ),
+    (
+        1936,
+        3,
+        2,
+        '2025-12-02',
+        '2025-12-02 14:01:00',
+        '2025-12-02 22:02:00',
+        2
+    ),
+    (
+        1937,
+        3,
+        2,
+        '2025-12-03',
+        '2025-12-03 14:01:00',
+        '2025-12-03 22:02:00',
+        2
+    ),
+    (
+        1938,
+        3,
+        2,
+        '2025-12-04',
+        '2025-12-04 14:01:00',
+        '2025-12-04 22:02:00',
+        2
+    ),
+    (
+        1939,
+        3,
+        2,
+        '2025-12-05',
+        '2025-12-05 14:01:00',
+        '2025-12-05 22:02:00',
+        2
+    ),
+    (
+        1940,
+        3,
+        2,
+        '2025-12-06',
+        '2025-12-06 14:01:00',
+        '2025-12-06 22:02:00',
+        2
+    ),
+    (
+        1941,
+        3,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        1942,
+        3,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    ),
+    (
+        1943,
+        3,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        1944,
+        3,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        1945,
+        3,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        1946,
+        3,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        1947,
+        3,
+        2,
+        '2025-12-15',
+        '2025-12-15 14:01:00',
+        '2025-12-15 22:02:00',
+        2
+    ),
+    (
+        1948,
+        3,
+        2,
+        '2025-12-16',
+        '2025-12-16 14:01:00',
+        '2025-12-16 22:02:00',
+        2
+    ),
+    (
+        1949,
+        3,
+        2,
+        '2025-12-17',
+        '2025-12-17 14:01:00',
+        '2025-12-17 22:02:00',
+        2
+    ),
+    (
+        1950,
+        3,
+        2,
+        '2025-12-18',
+        '2025-12-18 14:01:00',
+        '2025-12-18 22:02:00',
+        2
+    ),
+    (
+        1951,
+        3,
+        2,
+        '2025-12-19',
+        '2025-12-19 14:01:00',
+        '2025-12-19 22:02:00',
+        2
+    ),
+    (
+        1952,
+        3,
+        2,
+        '2025-12-20',
+        '2025-12-20 14:01:00',
+        '2025-12-20 22:02:00',
+        2
+    ),
+    (
+        1953,
+        3,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        1954,
+        3,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    ),
+    (
+        1955,
+        3,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        1956,
+        3,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        1957,
+        3,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        1958,
+        3,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        1959,
+        3,
+        2,
+        '2025-12-29',
+        '2025-12-29 14:01:00',
+        '2025-12-29 22:02:00',
+        2
+    ),
+    (
+        1960,
+        3,
+        2,
+        '2025-12-30',
+        '2025-12-30 14:01:00',
+        '2025-12-30 22:02:00',
+        2
+    ),
+    (
+        1961,
+        3,
+        2,
+        '2025-12-31',
+        '2025-12-31 14:01:00',
+        '2025-12-31 22:02:00',
+        2
+    ),
+    (
+        1962,
+        3,
+        2,
+        '2026-01-01',
+        '2026-01-01 14:01:00',
+        '2026-01-01 22:02:00',
+        2
+    ),
+    (
+        1963,
+        3,
+        2,
+        '2026-01-02',
+        '2026-01-02 14:01:00',
+        '2026-01-02 22:02:00',
+        2
+    ),
+    (
+        1964,
+        3,
+        2,
+        '2026-01-03',
+        '2026-01-03 14:01:00',
+        '2026-01-03 22:02:00',
+        2
+    ),
+    (
+        1965,
+        3,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        1966,
+        3,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        1967,
+        3,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        1968,
+        3,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        1969,
+        3,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        1970,
+        3,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        1971,
+        3,
+        2,
+        '2026-01-12',
+        '2026-01-12 14:01:00',
+        '2026-01-12 22:02:00',
+        2
+    ),
+    (
+        1972,
+        3,
+        2,
+        '2026-01-13',
+        '2026-01-13 14:01:00',
+        '2026-01-13 22:02:00',
+        2
+    ),
+    (
+        1973,
+        3,
+        2,
+        '2026-01-14',
+        '2026-01-14 14:01:00',
+        '2026-01-14 22:02:00',
+        2
+    ),
+    (
+        1974,
+        3,
+        2,
+        '2026-01-15',
+        '2026-01-15 14:01:00',
+        '2026-01-15 22:02:00',
+        2
+    ),
+    (
+        1975,
+        3,
+        2,
+        '2026-01-16',
+        '2026-01-16 14:01:00',
+        '2026-01-16 22:02:00',
+        2
+    ),
+    (
+        1976,
+        3,
+        2,
+        '2026-01-17',
+        '2026-01-17 14:01:00',
+        '2026-01-17 22:02:00',
+        2
+    ),
+    (
+        1977,
+        3,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        1978,
+        3,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        1979,
+        3,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        1980,
+        3,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        1981,
+        3,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        1982,
+        3,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        1983,
+        3,
+        2,
+        '2026-01-26',
+        '2026-01-26 14:01:00',
+        '2026-01-26 22:02:00',
+        2
+    ),
+    (
+        1984,
+        3,
+        2,
+        '2026-01-27',
+        '2026-01-27 14:01:00',
+        '2026-01-27 22:02:00',
+        2
+    ),
+    (
+        1985,
+        3,
+        2,
+        '2026-01-28',
+        '2026-01-28 14:01:00',
+        '2026-01-28 22:02:00',
+        2
+    ),
+    (
+        1986,
+        3,
+        2,
+        '2026-01-29',
+        '2026-01-29 14:01:00',
+        '2026-01-29 22:02:00',
+        2
+    ),
+    (
+        1987,
+        3,
+        2,
+        '2026-01-30',
+        '2026-01-30 14:01:00',
+        '2026-01-30 22:02:00',
+        2
+    ),
+    (
+        1988,
+        3,
+        2,
+        '2026-01-31',
+        '2026-01-31 14:01:00',
+        '2026-01-31 22:02:00',
+        2
+    ),
+    (
+        1989,
+        3,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        1990,
+        3,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        1991,
+        3,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        1992,
+        3,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        1993,
+        3,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        1994,
+        3,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        1995,
+        3,
+        2,
+        '2026-02-09',
+        '2026-02-09 14:01:00',
+        '2026-02-09 22:02:00',
+        2
+    ),
+    (
+        1996,
+        3,
+        2,
+        '2026-02-10',
+        '2026-02-10 14:01:00',
+        '2026-02-10 22:02:00',
+        2
+    ),
+    (
+        1997,
+        3,
+        2,
+        '2026-02-11',
+        '2026-02-11 14:01:00',
+        '2026-02-11 22:02:00',
+        2
+    ),
+    (
+        1998,
+        3,
+        2,
+        '2026-02-12',
+        '2026-02-12 14:01:00',
+        '2026-02-12 22:02:00',
+        2
+    ),
+    (
+        1999,
+        3,
+        2,
+        '2026-02-13',
+        '2026-02-13 14:01:00',
+        '2026-02-13 22:02:00',
+        2
+    ),
+    (
+        2000,
+        3,
+        2,
+        '2026-02-14',
+        '2026-02-14 14:01:00',
+        '2026-02-14 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        2001,
+        3,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        2002,
+        3,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        2003,
+        3,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        2004,
+        3,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        2005,
+        3,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        2006,
+        3,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        2007,
+        3,
+        2,
+        '2026-02-23',
+        '2026-02-23 14:01:00',
+        '2026-02-23 22:02:00',
+        2
+    ),
+    (
+        2008,
+        3,
+        2,
+        '2026-02-24',
+        '2026-02-24 14:01:00',
+        '2026-02-24 22:02:00',
+        2
+    ),
+    (
+        2009,
+        3,
+        2,
+        '2026-02-25',
+        '2026-02-25 14:01:00',
+        '2026-02-25 22:02:00',
+        2
+    ),
+    (
+        2010,
+        3,
+        2,
+        '2026-02-26',
+        '2026-02-26 14:01:00',
+        '2026-02-26 22:02:00',
+        2
+    ),
+    (
+        2011,
+        3,
+        2,
+        '2026-02-27',
+        '2026-02-27 14:01:00',
+        '2026-02-27 22:02:00',
+        2
+    ),
+    (
+        2012,
+        3,
+        2,
+        '2026-02-28',
+        '2026-02-28 14:01:00',
+        '2026-02-28 22:02:00',
+        2
+    ),
+    (
+        2013,
+        3,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        2014,
+        3,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        2015,
+        3,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        2016,
+        3,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        2017,
+        3,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        2018,
+        3,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        2019,
+        3,
+        2,
+        '2026-03-09',
+        '2026-03-09 14:01:00',
+        '2026-03-09 22:02:00',
+        2
+    ),
+    (
+        2020,
+        3,
+        2,
+        '2026-03-10',
+        '2026-03-10 14:01:00',
+        '2026-03-10 22:02:00',
+        2
+    ),
+    (
+        2021,
+        3,
+        2,
+        '2026-03-11',
+        '2026-03-11 14:01:00',
+        '2026-03-11 22:02:00',
+        2
+    ),
+    (
+        2022,
+        3,
+        2,
+        '2026-03-12',
+        '2026-03-12 14:01:00',
+        '2026-03-12 22:02:00',
+        2
+    ),
+    (
+        2023,
+        3,
+        2,
+        '2026-03-13',
+        '2026-03-13 14:01:00',
+        '2026-03-13 22:02:00',
+        2
+    ),
+    (
+        2024,
+        3,
+        2,
+        '2026-03-14',
+        '2026-03-14 14:01:00',
+        '2026-03-14 22:02:00',
+        2
+    ),
+    (
+        2025,
+        3,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        2026,
+        3,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        2027,
+        3,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        2028,
+        3,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        2029,
+        3,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        2030,
+        3,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        2031,
+        3,
+        2,
+        '2026-03-23',
+        '2026-03-23 14:01:00',
+        '2026-03-23 22:02:00',
+        2
+    ),
+    (
+        2032,
+        3,
+        2,
+        '2026-03-24',
+        '2026-03-24 14:01:00',
+        '2026-03-24 22:02:00',
+        2
+    ),
+    (
+        2033,
+        3,
+        2,
+        '2026-03-25',
+        '2026-03-25 14:01:00',
+        '2026-03-25 22:02:00',
+        2
+    ),
+    (
+        2034,
+        3,
+        2,
+        '2026-03-26',
+        '2026-03-26 14:01:00',
+        '2026-03-26 22:02:00',
+        2
+    ),
+    (
+        2035,
+        3,
+        2,
+        '2026-03-27',
+        '2026-03-27 14:01:00',
+        '2026-03-27 22:02:00',
+        2
+    ),
+    (
+        2036,
+        3,
+        2,
+        '2026-03-28',
+        '2026-03-28 14:01:00',
+        '2026-03-28 22:02:00',
+        2
+    ),
+    (
+        2037,
+        3,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        2038,
+        3,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        2039,
+        3,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        2040,
+        3,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        2041,
+        3,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        2042,
+        3,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        2043,
+        3,
+        2,
+        '2026-04-06',
+        '2026-04-06 14:01:00',
+        '2026-04-06 22:02:00',
+        2
+    ),
+    (
+        2044,
+        3,
+        2,
+        '2026-04-07',
+        '2026-04-07 14:01:00',
+        '2026-04-07 22:02:00',
+        2
+    ),
+    (
+        2045,
+        5,
+        2,
+        '2024-03-01',
+        '2024-03-01 14:01:00',
+        '2024-03-01 22:02:00',
+        2
+    ),
+    (
+        2046,
+        5,
+        2,
+        '2024-03-02',
+        '2024-03-02 14:01:00',
+        '2024-03-02 22:02:00',
+        2
+    ),
+    (
+        2047,
+        5,
+        1,
+        '2024-03-04',
+        '2024-03-04 08:02:00',
+        '2024-03-04 16:01:00',
+        2
+    ),
+    (
+        2048,
+        5,
+        1,
+        '2024-03-05',
+        '2024-03-05 08:02:00',
+        '2024-03-05 16:01:00',
+        2
+    ),
+    (
+        2049,
+        5,
+        1,
+        '2024-03-06',
+        '2024-03-06 08:02:00',
+        '2024-03-06 16:01:00',
+        2
+    ),
+    (
+        2050,
+        5,
+        1,
+        '2024-03-07',
+        '2024-03-07 08:02:00',
+        '2024-03-07 16:01:00',
+        2
+    ),
+    (
+        2051,
+        5,
+        1,
+        '2024-03-08',
+        '2024-03-08 08:02:00',
+        '2024-03-08 16:01:00',
+        2
+    ),
+    (
+        2052,
+        5,
+        1,
+        '2024-03-09',
+        '2024-03-09 08:02:00',
+        '2024-03-09 16:01:00',
+        2
+    ),
+    (
+        2053,
+        5,
+        2,
+        '2024-03-11',
+        '2024-03-11 14:01:00',
+        '2024-03-11 22:02:00',
+        2
+    ),
+    (
+        2054,
+        5,
+        2,
+        '2024-03-12',
+        '2024-03-12 14:01:00',
+        '2024-03-12 22:02:00',
+        2
+    ),
+    (
+        2055,
+        5,
+        2,
+        '2024-03-13',
+        '2024-03-13 14:01:00',
+        '2024-03-13 22:02:00',
+        2
+    ),
+    (
+        2056,
+        5,
+        2,
+        '2024-03-14',
+        '2024-03-14 14:01:00',
+        '2024-03-14 22:02:00',
+        2
+    ),
+    (
+        2057,
+        5,
+        2,
+        '2024-03-15',
+        '2024-03-15 14:01:00',
+        '2024-03-15 22:02:00',
+        2
+    ),
+    (
+        2058,
+        5,
+        2,
+        '2024-03-16',
+        '2024-03-16 14:01:00',
+        '2024-03-16 22:02:00',
+        2
+    ),
+    (
+        2059,
+        5,
+        1,
+        '2024-03-18',
+        '2024-03-18 08:02:00',
+        '2024-03-18 16:01:00',
+        2
+    ),
+    (
+        2060,
+        5,
+        1,
+        '2024-03-19',
+        '2024-03-19 08:02:00',
+        '2024-03-19 16:01:00',
+        2
+    ),
+    (
+        2061,
+        5,
+        1,
+        '2024-03-20',
+        '2024-03-20 08:02:00',
+        '2024-03-20 16:01:00',
+        2
+    ),
+    (
+        2062,
+        5,
+        1,
+        '2024-03-21',
+        '2024-03-21 08:02:00',
+        '2024-03-21 16:01:00',
+        2
+    ),
+    (
+        2063,
+        5,
+        1,
+        '2024-03-22',
+        '2024-03-22 08:02:00',
+        '2024-03-22 16:01:00',
+        2
+    ),
+    (
+        2064,
+        5,
+        1,
+        '2024-03-23',
+        '2024-03-23 08:02:00',
+        '2024-03-23 16:01:00',
+        2
+    ),
+    (
+        2065,
+        5,
+        2,
+        '2024-03-25',
+        '2024-03-25 14:01:00',
+        '2024-03-25 22:02:00',
+        2
+    ),
+    (
+        2066,
+        5,
+        2,
+        '2024-03-26',
+        '2024-03-26 14:01:00',
+        '2024-03-26 22:02:00',
+        2
+    ),
+    (
+        2067,
+        5,
+        2,
+        '2024-03-27',
+        '2024-03-27 14:01:00',
+        '2024-03-27 22:02:00',
+        2
+    ),
+    (
+        2068,
+        5,
+        2,
+        '2024-03-28',
+        '2024-03-28 14:01:00',
+        '2024-03-28 22:02:00',
+        2
+    ),
+    (
+        2069,
+        5,
+        2,
+        '2024-03-29',
+        '2024-03-29 14:01:00',
+        '2024-03-29 22:02:00',
+        2
+    ),
+    (
+        2070,
+        5,
+        2,
+        '2024-03-30',
+        '2024-03-30 14:01:00',
+        '2024-03-30 22:02:00',
+        2
+    ),
+    (
+        2071,
+        5,
+        1,
+        '2024-04-01',
+        '2024-04-01 08:02:00',
+        '2024-04-01 16:01:00',
+        2
+    ),
+    (
+        2072,
+        5,
+        1,
+        '2024-04-02',
+        '2024-04-02 08:02:00',
+        '2024-04-02 16:01:00',
+        2
+    ),
+    (
+        2073,
+        5,
+        1,
+        '2024-04-03',
+        '2024-04-03 08:02:00',
+        '2024-04-03 16:01:00',
+        2
+    ),
+    (
+        2074,
+        5,
+        1,
+        '2024-04-04',
+        '2024-04-04 08:02:00',
+        '2024-04-04 16:01:00',
+        2
+    ),
+    (
+        2075,
+        5,
+        1,
+        '2024-04-05',
+        '2024-04-05 08:02:00',
+        '2024-04-05 16:01:00',
+        2
+    ),
+    (
+        2076,
+        5,
+        1,
+        '2024-04-06',
+        '2024-04-06 08:02:00',
+        '2024-04-06 16:01:00',
+        2
+    ),
+    (
+        2077,
+        5,
+        2,
+        '2024-04-08',
+        '2024-04-08 14:01:00',
+        '2024-04-08 22:02:00',
+        2
+    ),
+    (
+        2078,
+        5,
+        2,
+        '2024-04-09',
+        '2024-04-09 14:01:00',
+        '2024-04-09 22:02:00',
+        2
+    ),
+    (
+        2079,
+        5,
+        2,
+        '2024-04-10',
+        '2024-04-10 14:01:00',
+        '2024-04-10 22:02:00',
+        2
+    ),
+    (
+        2080,
+        5,
+        2,
+        '2024-04-11',
+        '2024-04-11 14:01:00',
+        '2024-04-11 22:02:00',
+        2
+    ),
+    (
+        2081,
+        5,
+        2,
+        '2024-04-12',
+        '2024-04-12 14:01:00',
+        '2024-04-12 22:02:00',
+        2
+    ),
+    (
+        2082,
+        5,
+        2,
+        '2024-04-13',
+        '2024-04-13 14:01:00',
+        '2024-04-13 22:02:00',
+        2
+    ),
+    (
+        2083,
+        5,
+        1,
+        '2024-04-15',
+        '2024-04-15 08:02:00',
+        '2024-04-15 16:01:00',
+        2
+    ),
+    (
+        2084,
+        5,
+        1,
+        '2024-04-16',
+        '2024-04-16 08:02:00',
+        '2024-04-16 16:01:00',
+        2
+    ),
+    (
+        2085,
+        5,
+        1,
+        '2024-04-17',
+        '2024-04-17 08:02:00',
+        '2024-04-17 16:01:00',
+        2
+    ),
+    (
+        2086,
+        5,
+        1,
+        '2024-04-18',
+        '2024-04-18 08:02:00',
+        '2024-04-18 16:01:00',
+        2
+    ),
+    (
+        2087,
+        5,
+        1,
+        '2024-04-19',
+        '2024-04-19 08:02:00',
+        '2024-04-19 16:01:00',
+        2
+    ),
+    (
+        2088,
+        5,
+        1,
+        '2024-04-20',
+        '2024-04-20 08:02:00',
+        '2024-04-20 16:01:00',
+        2
+    ),
+    (
+        2089,
+        5,
+        2,
+        '2024-04-22',
+        '2024-04-22 14:01:00',
+        '2024-04-22 22:02:00',
+        2
+    ),
+    (
+        2090,
+        5,
+        2,
+        '2024-04-23',
+        '2024-04-23 14:01:00',
+        '2024-04-23 22:02:00',
+        2
+    ),
+    (
+        2091,
+        5,
+        2,
+        '2024-04-24',
+        '2024-04-24 14:01:00',
+        '2024-04-24 22:02:00',
+        2
+    ),
+    (
+        2092,
+        5,
+        2,
+        '2024-04-25',
+        '2024-04-25 14:01:00',
+        '2024-04-25 22:02:00',
+        2
+    ),
+    (
+        2093,
+        5,
+        2,
+        '2024-04-26',
+        '2024-04-26 14:01:00',
+        '2024-04-26 22:02:00',
+        2
+    ),
+    (
+        2094,
+        5,
+        2,
+        '2024-04-27',
+        '2024-04-27 14:01:00',
+        '2024-04-27 22:02:00',
+        2
+    ),
+    (
+        2095,
+        5,
+        1,
+        '2024-04-29',
+        '2024-04-29 08:02:00',
+        '2024-04-29 16:01:00',
+        2
+    ),
+    (
+        2096,
+        5,
+        1,
+        '2024-04-30',
+        '2024-04-30 08:02:00',
+        '2024-04-30 16:01:00',
+        2
+    ),
+    (
+        2097,
+        5,
+        1,
+        '2024-05-01',
+        '2024-05-01 08:02:00',
+        '2024-05-01 16:01:00',
+        2
+    ),
+    (
+        2098,
+        5,
+        1,
+        '2024-05-02',
+        '2024-05-02 08:02:00',
+        '2024-05-02 16:01:00',
+        2
+    ),
+    (
+        2099,
+        5,
+        1,
+        '2024-05-03',
+        '2024-05-03 08:02:00',
+        '2024-05-03 16:01:00',
+        2
+    ),
+    (
+        2100,
+        5,
+        1,
+        '2024-05-04',
+        '2024-05-04 08:02:00',
+        '2024-05-04 16:01:00',
+        2
+    ),
+    (
+        2101,
+        5,
+        2,
+        '2024-05-06',
+        '2024-05-06 14:01:00',
+        '2024-05-06 22:02:00',
+        2
+    ),
+    (
+        2102,
+        5,
+        2,
+        '2024-05-07',
+        '2024-05-07 14:01:00',
+        '2024-05-07 22:02:00',
+        2
+    ),
+    (
+        2103,
+        5,
+        2,
+        '2024-05-08',
+        '2024-05-08 14:01:00',
+        '2024-05-08 22:02:00',
+        2
+    ),
+    (
+        2104,
+        5,
+        2,
+        '2024-05-09',
+        '2024-05-09 14:01:00',
+        '2024-05-09 22:02:00',
+        2
+    ),
+    (
+        2105,
+        5,
+        2,
+        '2024-05-10',
+        '2024-05-10 14:01:00',
+        '2024-05-10 22:02:00',
+        2
+    ),
+    (
+        2106,
+        5,
+        2,
+        '2024-05-11',
+        '2024-05-11 14:01:00',
+        '2024-05-11 22:02:00',
+        2
+    ),
+    (
+        2107,
+        5,
+        1,
+        '2024-05-13',
+        '2024-05-13 08:02:00',
+        '2024-05-13 16:01:00',
+        2
+    ),
+    (
+        2108,
+        5,
+        1,
+        '2024-05-14',
+        '2024-05-14 08:02:00',
+        '2024-05-14 16:01:00',
+        2
+    ),
+    (
+        2109,
+        5,
+        1,
+        '2024-05-15',
+        '2024-05-15 08:02:00',
+        '2024-05-15 16:01:00',
+        2
+    ),
+    (
+        2110,
+        5,
+        1,
+        '2024-05-16',
+        '2024-05-16 08:02:00',
+        '2024-05-16 16:01:00',
+        2
+    ),
+    (
+        2111,
+        5,
+        1,
+        '2024-05-17',
+        '2024-05-17 08:02:00',
+        '2024-05-17 16:01:00',
+        2
+    ),
+    (
+        2112,
+        5,
+        1,
+        '2024-05-18',
+        '2024-05-18 08:02:00',
+        '2024-05-18 16:01:00',
+        2
+    ),
+    (
+        2113,
+        5,
+        2,
+        '2024-05-20',
+        '2024-05-20 14:01:00',
+        '2024-05-20 22:02:00',
+        2
+    ),
+    (
+        2114,
+        5,
+        2,
+        '2024-05-21',
+        '2024-05-21 14:01:00',
+        '2024-05-21 22:02:00',
+        2
+    ),
+    (
+        2115,
+        5,
+        2,
+        '2024-05-22',
+        '2024-05-22 14:01:00',
+        '2024-05-22 22:02:00',
+        2
+    ),
+    (
+        2116,
+        5,
+        2,
+        '2024-05-23',
+        '2024-05-23 14:01:00',
+        '2024-05-23 22:02:00',
+        2
+    ),
+    (
+        2117,
+        5,
+        2,
+        '2024-05-24',
+        '2024-05-24 14:01:00',
+        '2024-05-24 22:02:00',
+        2
+    ),
+    (
+        2118,
+        5,
+        2,
+        '2024-05-25',
+        '2024-05-25 14:01:00',
+        '2024-05-25 22:02:00',
+        2
+    ),
+    (
+        2119,
+        5,
+        1,
+        '2024-05-27',
+        '2024-05-27 08:02:00',
+        '2024-05-27 16:01:00',
+        2
+    ),
+    (
+        2120,
+        5,
+        1,
+        '2024-05-28',
+        '2024-05-28 08:02:00',
+        '2024-05-28 16:01:00',
+        2
+    ),
+    (
+        2121,
+        5,
+        1,
+        '2024-05-29',
+        '2024-05-29 08:02:00',
+        '2024-05-29 16:01:00',
+        2
+    ),
+    (
+        2122,
+        5,
+        1,
+        '2024-05-30',
+        '2024-05-30 08:02:00',
+        '2024-05-30 16:01:00',
+        2
+    ),
+    (
+        2123,
+        5,
+        1,
+        '2024-05-31',
+        '2024-05-31 08:02:00',
+        '2024-05-31 16:01:00',
+        2
+    ),
+    (
+        2124,
+        5,
+        1,
+        '2024-06-01',
+        '2024-06-01 08:02:00',
+        '2024-06-01 16:01:00',
+        2
+    ),
+    (
+        2125,
+        5,
+        2,
+        '2024-06-03',
+        '2024-06-03 14:01:00',
+        '2024-06-03 22:02:00',
+        2
+    ),
+    (
+        2126,
+        5,
+        2,
+        '2024-06-04',
+        '2024-06-04 14:01:00',
+        '2024-06-04 22:02:00',
+        2
+    ),
+    (
+        2127,
+        5,
+        2,
+        '2024-06-05',
+        '2024-06-05 14:01:00',
+        '2024-06-05 22:02:00',
+        2
+    ),
+    (
+        2128,
+        5,
+        2,
+        '2024-06-06',
+        '2024-06-06 14:01:00',
+        '2024-06-06 22:02:00',
+        2
+    ),
+    (
+        2129,
+        5,
+        2,
+        '2024-06-07',
+        '2024-06-07 14:01:00',
+        '2024-06-07 22:02:00',
+        2
+    ),
+    (
+        2130,
+        5,
+        2,
+        '2024-06-08',
+        '2024-06-08 14:01:00',
+        '2024-06-08 22:02:00',
+        2
+    ),
+    (
+        2131,
+        5,
+        1,
+        '2024-06-10',
+        '2024-06-10 08:02:00',
+        '2024-06-10 16:01:00',
+        2
+    ),
+    (
+        2132,
+        5,
+        1,
+        '2024-06-11',
+        '2024-06-11 08:02:00',
+        '2024-06-11 16:01:00',
+        2
+    ),
+    (
+        2133,
+        5,
+        1,
+        '2024-06-12',
+        '2024-06-12 08:02:00',
+        '2024-06-12 16:01:00',
+        2
+    ),
+    (
+        2134,
+        5,
+        1,
+        '2024-06-13',
+        '2024-06-13 08:02:00',
+        '2024-06-13 16:01:00',
+        2
+    ),
+    (
+        2135,
+        5,
+        1,
+        '2024-06-14',
+        '2024-06-14 08:02:00',
+        '2024-06-14 16:01:00',
+        2
+    ),
+    (
+        2136,
+        5,
+        1,
+        '2024-06-15',
+        '2024-06-15 08:02:00',
+        '2024-06-15 16:01:00',
+        2
+    ),
+    (
+        2137,
+        5,
+        2,
+        '2024-06-17',
+        '2024-06-17 14:01:00',
+        '2024-06-17 22:02:00',
+        2
+    ),
+    (
+        2138,
+        5,
+        2,
+        '2024-06-18',
+        '2024-06-18 14:01:00',
+        '2024-06-18 22:02:00',
+        2
+    ),
+    (
+        2139,
+        5,
+        2,
+        '2024-06-19',
+        '2024-06-19 14:01:00',
+        '2024-06-19 22:02:00',
+        2
+    ),
+    (
+        2140,
+        5,
+        2,
+        '2024-06-20',
+        '2024-06-20 14:01:00',
+        '2024-06-20 22:02:00',
+        2
+    ),
+    (
+        2141,
+        5,
+        2,
+        '2024-06-21',
+        '2024-06-21 14:01:00',
+        '2024-06-21 22:02:00',
+        2
+    ),
+    (
+        2142,
+        5,
+        2,
+        '2024-06-22',
+        '2024-06-22 14:01:00',
+        '2024-06-22 22:02:00',
+        2
+    ),
+    (
+        2143,
+        5,
+        1,
+        '2024-06-24',
+        '2024-06-24 08:02:00',
+        '2024-06-24 16:01:00',
+        2
+    ),
+    (
+        2144,
+        5,
+        1,
+        '2024-06-25',
+        '2024-06-25 08:02:00',
+        '2024-06-25 16:01:00',
+        2
+    ),
+    (
+        2145,
+        5,
+        1,
+        '2024-06-26',
+        '2024-06-26 08:02:00',
+        '2024-06-26 16:01:00',
+        2
+    ),
+    (
+        2146,
+        5,
+        1,
+        '2024-06-27',
+        '2024-06-27 08:02:00',
+        '2024-06-27 16:01:00',
+        2
+    ),
+    (
+        2147,
+        5,
+        1,
+        '2024-06-28',
+        '2024-06-28 08:02:00',
+        '2024-06-28 16:01:00',
+        2
+    ),
+    (
+        2148,
+        5,
+        1,
+        '2024-06-29',
+        '2024-06-29 08:02:00',
+        '2024-06-29 16:01:00',
+        2
+    ),
+    (
+        2149,
+        5,
+        2,
+        '2024-07-01',
+        '2024-07-01 14:01:00',
+        '2024-07-01 22:02:00',
+        2
+    ),
+    (
+        2150,
+        5,
+        2,
+        '2024-07-02',
+        '2024-07-02 14:01:00',
+        '2024-07-02 22:02:00',
+        2
+    ),
+    (
+        2151,
+        5,
+        2,
+        '2024-07-03',
+        '2024-07-03 14:01:00',
+        '2024-07-03 22:02:00',
+        2
+    ),
+    (
+        2152,
+        5,
+        2,
+        '2024-07-04',
+        '2024-07-04 14:01:00',
+        '2024-07-04 22:02:00',
+        2
+    ),
+    (
+        2153,
+        5,
+        2,
+        '2024-07-05',
+        '2024-07-05 14:01:00',
+        '2024-07-05 22:02:00',
+        2
+    ),
+    (
+        2154,
+        5,
+        2,
+        '2024-07-06',
+        '2024-07-06 14:01:00',
+        '2024-07-06 22:02:00',
+        2
+    ),
+    (
+        2155,
+        5,
+        1,
+        '2024-07-08',
+        '2024-07-08 08:02:00',
+        '2024-07-08 16:01:00',
+        2
+    ),
+    (
+        2156,
+        5,
+        1,
+        '2024-07-09',
+        '2024-07-09 08:02:00',
+        '2024-07-09 16:01:00',
+        2
+    ),
+    (
+        2157,
+        5,
+        1,
+        '2024-07-10',
+        '2024-07-10 08:02:00',
+        '2024-07-10 16:01:00',
+        2
+    ),
+    (
+        2158,
+        5,
+        1,
+        '2024-07-11',
+        '2024-07-11 08:02:00',
+        '2024-07-11 16:01:00',
+        2
+    ),
+    (
+        2159,
+        5,
+        1,
+        '2024-07-12',
+        '2024-07-12 08:02:00',
+        '2024-07-12 16:01:00',
+        2
+    ),
+    (
+        2160,
+        5,
+        1,
+        '2024-07-13',
+        '2024-07-13 08:02:00',
+        '2024-07-13 16:01:00',
+        2
+    ),
+    (
+        2161,
+        5,
+        2,
+        '2024-07-15',
+        '2024-07-15 14:01:00',
+        '2024-07-15 22:02:00',
+        2
+    ),
+    (
+        2162,
+        5,
+        2,
+        '2024-07-16',
+        '2024-07-16 14:01:00',
+        '2024-07-16 22:02:00',
+        2
+    ),
+    (
+        2163,
+        5,
+        2,
+        '2024-07-17',
+        '2024-07-17 14:01:00',
+        '2024-07-17 22:02:00',
+        2
+    ),
+    (
+        2164,
+        5,
+        2,
+        '2024-07-18',
+        '2024-07-18 14:01:00',
+        '2024-07-18 22:02:00',
+        2
+    ),
+    (
+        2165,
+        5,
+        2,
+        '2024-07-19',
+        '2024-07-19 14:01:00',
+        '2024-07-19 22:02:00',
+        2
+    ),
+    (
+        2166,
+        5,
+        2,
+        '2024-07-20',
+        '2024-07-20 14:01:00',
+        '2024-07-20 22:02:00',
+        2
+    ),
+    (
+        2167,
+        5,
+        1,
+        '2024-07-22',
+        '2024-07-22 08:02:00',
+        '2024-07-22 16:01:00',
+        2
+    ),
+    (
+        2168,
+        5,
+        1,
+        '2024-07-23',
+        '2024-07-23 08:02:00',
+        '2024-07-23 16:01:00',
+        2
+    ),
+    (
+        2169,
+        5,
+        1,
+        '2024-07-24',
+        '2024-07-24 08:02:00',
+        '2024-07-24 16:01:00',
+        2
+    ),
+    (
+        2170,
+        5,
+        1,
+        '2024-07-25',
+        '2024-07-25 08:02:00',
+        '2024-07-25 16:01:00',
+        2
+    ),
+    (
+        2171,
+        5,
+        1,
+        '2024-07-26',
+        '2024-07-26 08:02:00',
+        '2024-07-26 16:01:00',
+        2
+    ),
+    (
+        2172,
+        5,
+        1,
+        '2024-07-27',
+        '2024-07-27 08:02:00',
+        '2024-07-27 16:01:00',
+        2
+    ),
+    (
+        2173,
+        5,
+        2,
+        '2024-07-29',
+        '2024-07-29 14:01:00',
+        '2024-07-29 22:02:00',
+        2
+    ),
+    (
+        2174,
+        5,
+        2,
+        '2024-07-30',
+        '2024-07-30 14:01:00',
+        '2024-07-30 22:02:00',
+        2
+    ),
+    (
+        2175,
+        5,
+        2,
+        '2024-07-31',
+        '2024-07-31 14:01:00',
+        '2024-07-31 22:02:00',
+        2
+    ),
+    (
+        2176,
+        5,
+        2,
+        '2024-08-01',
+        '2024-08-01 14:01:00',
+        '2024-08-01 22:02:00',
+        2
+    ),
+    (
+        2177,
+        5,
+        2,
+        '2024-08-02',
+        '2024-08-02 14:01:00',
+        '2024-08-02 22:02:00',
+        2
+    ),
+    (
+        2178,
+        5,
+        2,
+        '2024-08-03',
+        '2024-08-03 14:01:00',
+        '2024-08-03 22:02:00',
+        2
+    ),
+    (
+        2179,
+        5,
+        1,
+        '2024-08-05',
+        '2024-08-05 08:02:00',
+        '2024-08-05 16:01:00',
+        2
+    ),
+    (
+        2180,
+        5,
+        1,
+        '2024-08-06',
+        '2024-08-06 08:02:00',
+        '2024-08-06 16:01:00',
+        2
+    ),
+    (
+        2181,
+        5,
+        1,
+        '2024-08-07',
+        '2024-08-07 08:02:00',
+        '2024-08-07 16:01:00',
+        2
+    ),
+    (
+        2182,
+        5,
+        1,
+        '2024-08-08',
+        '2024-08-08 08:02:00',
+        '2024-08-08 16:01:00',
+        2
+    ),
+    (
+        2183,
+        5,
+        1,
+        '2024-08-09',
+        '2024-08-09 08:02:00',
+        '2024-08-09 16:01:00',
+        2
+    ),
+    (
+        2184,
+        5,
+        1,
+        '2024-08-10',
+        '2024-08-10 08:02:00',
+        '2024-08-10 16:01:00',
+        2
+    ),
+    (
+        2185,
+        5,
+        2,
+        '2024-08-12',
+        '2024-08-12 14:01:00',
+        '2024-08-12 22:02:00',
+        2
+    ),
+    (
+        2186,
+        5,
+        2,
+        '2024-08-13',
+        '2024-08-13 14:01:00',
+        '2024-08-13 22:02:00',
+        2
+    ),
+    (
+        2187,
+        5,
+        2,
+        '2024-08-14',
+        '2024-08-14 14:01:00',
+        '2024-08-14 22:02:00',
+        2
+    ),
+    (
+        2188,
+        5,
+        2,
+        '2024-08-15',
+        '2024-08-15 14:01:00',
+        '2024-08-15 22:02:00',
+        2
+    ),
+    (
+        2189,
+        5,
+        2,
+        '2024-08-16',
+        '2024-08-16 14:01:00',
+        '2024-08-16 22:02:00',
+        2
+    ),
+    (
+        2190,
+        5,
+        2,
+        '2024-08-17',
+        '2024-08-17 14:01:00',
+        '2024-08-17 22:02:00',
+        2
+    ),
+    (
+        2191,
+        5,
+        1,
+        '2024-08-19',
+        '2024-08-19 08:02:00',
+        '2024-08-19 16:01:00',
+        2
+    ),
+    (
+        2192,
+        5,
+        1,
+        '2024-08-20',
+        '2024-08-20 08:02:00',
+        '2024-08-20 16:01:00',
+        2
+    ),
+    (
+        2193,
+        5,
+        1,
+        '2024-08-21',
+        '2024-08-21 08:02:00',
+        '2024-08-21 16:01:00',
+        2
+    ),
+    (
+        2194,
+        5,
+        1,
+        '2024-08-22',
+        '2024-08-22 08:02:00',
+        '2024-08-22 16:01:00',
+        2
+    ),
+    (
+        2195,
+        5,
+        1,
+        '2024-08-23',
+        '2024-08-23 08:02:00',
+        '2024-08-23 16:01:00',
+        2
+    ),
+    (
+        2196,
+        5,
+        1,
+        '2024-08-24',
+        '2024-08-24 08:02:00',
+        '2024-08-24 16:01:00',
+        2
+    ),
+    (
+        2197,
+        5,
+        2,
+        '2024-08-26',
+        '2024-08-26 14:01:00',
+        '2024-08-26 22:02:00',
+        2
+    ),
+    (
+        2198,
+        5,
+        2,
+        '2024-08-27',
+        '2024-08-27 14:01:00',
+        '2024-08-27 22:02:00',
+        2
+    ),
+    (
+        2199,
+        5,
+        2,
+        '2024-08-28',
+        '2024-08-28 14:01:00',
+        '2024-08-28 22:02:00',
+        2
+    ),
+    (
+        2200,
+        5,
+        2,
+        '2024-08-29',
+        '2024-08-29 14:01:00',
+        '2024-08-29 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        2201,
+        5,
+        2,
+        '2024-08-30',
+        '2024-08-30 14:01:00',
+        '2024-08-30 22:02:00',
+        2
+    ),
+    (
+        2202,
+        5,
+        2,
+        '2024-08-31',
+        '2024-08-31 14:01:00',
+        '2024-08-31 22:02:00',
+        2
+    ),
+    (
+        2203,
+        5,
+        1,
+        '2024-09-02',
+        '2024-09-02 08:02:00',
+        '2024-09-02 16:01:00',
+        2
+    ),
+    (
+        2204,
+        5,
+        1,
+        '2024-09-03',
+        '2024-09-03 08:02:00',
+        '2024-09-03 16:01:00',
+        2
+    ),
+    (
+        2205,
+        5,
+        1,
+        '2024-09-04',
+        '2024-09-04 08:02:00',
+        '2024-09-04 16:01:00',
+        2
+    ),
+    (
+        2206,
+        5,
+        1,
+        '2024-09-05',
+        '2024-09-05 08:02:00',
+        '2024-09-05 16:01:00',
+        2
+    ),
+    (
+        2207,
+        5,
+        1,
+        '2024-09-06',
+        '2024-09-06 08:02:00',
+        '2024-09-06 16:01:00',
+        2
+    ),
+    (
+        2208,
+        5,
+        1,
+        '2024-09-07',
+        '2024-09-07 08:02:00',
+        '2024-09-07 16:01:00',
+        2
+    ),
+    (
+        2209,
+        5,
+        2,
+        '2024-09-09',
+        '2024-09-09 14:01:00',
+        '2024-09-09 22:02:00',
+        2
+    ),
+    (
+        2210,
+        5,
+        2,
+        '2024-09-10',
+        '2024-09-10 14:01:00',
+        '2024-09-10 22:02:00',
+        2
+    ),
+    (
+        2211,
+        5,
+        2,
+        '2024-09-11',
+        '2024-09-11 14:01:00',
+        '2024-09-11 22:02:00',
+        2
+    ),
+    (
+        2212,
+        5,
+        2,
+        '2024-09-12',
+        '2024-09-12 14:01:00',
+        '2024-09-12 22:02:00',
+        2
+    ),
+    (
+        2213,
+        5,
+        2,
+        '2024-09-13',
+        '2024-09-13 14:01:00',
+        '2024-09-13 22:02:00',
+        2
+    ),
+    (
+        2214,
+        5,
+        2,
+        '2024-09-14',
+        '2024-09-14 14:01:00',
+        '2024-09-14 22:02:00',
+        2
+    ),
+    (
+        2215,
+        5,
+        1,
+        '2024-09-16',
+        '2024-09-16 08:02:00',
+        '2024-09-16 16:01:00',
+        2
+    ),
+    (
+        2216,
+        5,
+        1,
+        '2024-09-17',
+        '2024-09-17 08:02:00',
+        '2024-09-17 16:01:00',
+        2
+    ),
+    (
+        2217,
+        5,
+        1,
+        '2024-09-18',
+        '2024-09-18 08:02:00',
+        '2024-09-18 16:01:00',
+        2
+    ),
+    (
+        2218,
+        5,
+        1,
+        '2024-09-19',
+        '2024-09-19 08:02:00',
+        '2024-09-19 16:01:00',
+        2
+    ),
+    (
+        2219,
+        5,
+        1,
+        '2024-09-20',
+        '2024-09-20 08:02:00',
+        '2024-09-20 16:01:00',
+        2
+    ),
+    (
+        2220,
+        5,
+        1,
+        '2024-09-21',
+        '2024-09-21 08:02:00',
+        '2024-09-21 16:01:00',
+        2
+    ),
+    (
+        2221,
+        5,
+        2,
+        '2024-09-23',
+        '2024-09-23 14:01:00',
+        '2024-09-23 22:02:00',
+        2
+    ),
+    (
+        2222,
+        5,
+        2,
+        '2024-09-24',
+        '2024-09-24 14:01:00',
+        '2024-09-24 22:02:00',
+        2
+    ),
+    (
+        2223,
+        5,
+        2,
+        '2024-09-25',
+        '2024-09-25 14:01:00',
+        '2024-09-25 22:02:00',
+        2
+    ),
+    (
+        2224,
+        5,
+        2,
+        '2024-09-26',
+        '2024-09-26 14:01:00',
+        '2024-09-26 22:02:00',
+        2
+    ),
+    (
+        2225,
+        5,
+        2,
+        '2024-09-27',
+        '2024-09-27 14:01:00',
+        '2024-09-27 22:02:00',
+        2
+    ),
+    (
+        2226,
+        5,
+        2,
+        '2024-09-28',
+        '2024-09-28 14:01:00',
+        '2024-09-28 22:02:00',
+        2
+    ),
+    (
+        2227,
+        5,
+        1,
+        '2024-09-30',
+        '2024-09-30 08:02:00',
+        '2024-09-30 16:01:00',
+        2
+    ),
+    (
+        2228,
+        5,
+        1,
+        '2024-10-01',
+        '2024-10-01 08:02:00',
+        '2024-10-01 16:01:00',
+        2
+    ),
+    (
+        2229,
+        5,
+        1,
+        '2024-10-02',
+        '2024-10-02 08:02:00',
+        '2024-10-02 16:01:00',
+        2
+    ),
+    (
+        2230,
+        5,
+        1,
+        '2024-10-03',
+        '2024-10-03 08:02:00',
+        '2024-10-03 16:01:00',
+        2
+    ),
+    (
+        2231,
+        5,
+        1,
+        '2024-10-04',
+        '2024-10-04 08:02:00',
+        '2024-10-04 16:01:00',
+        2
+    ),
+    (
+        2232,
+        5,
+        1,
+        '2024-10-05',
+        '2024-10-05 08:02:00',
+        '2024-10-05 16:01:00',
+        2
+    ),
+    (
+        2233,
+        5,
+        2,
+        '2024-10-07',
+        '2024-10-07 14:01:00',
+        '2024-10-07 22:02:00',
+        2
+    ),
+    (
+        2234,
+        5,
+        2,
+        '2024-10-08',
+        '2024-10-08 14:01:00',
+        '2024-10-08 22:02:00',
+        2
+    ),
+    (
+        2235,
+        5,
+        2,
+        '2024-10-09',
+        '2024-10-09 14:01:00',
+        '2024-10-09 22:02:00',
+        2
+    ),
+    (
+        2236,
+        5,
+        2,
+        '2024-10-10',
+        '2024-10-10 14:01:00',
+        '2024-10-10 22:02:00',
+        2
+    ),
+    (
+        2237,
+        5,
+        2,
+        '2024-10-11',
+        '2024-10-11 14:01:00',
+        '2024-10-11 22:02:00',
+        2
+    ),
+    (
+        2238,
+        5,
+        2,
+        '2024-10-12',
+        '2024-10-12 14:01:00',
+        '2024-10-12 22:02:00',
+        2
+    ),
+    (
+        2239,
+        5,
+        1,
+        '2024-10-14',
+        '2024-10-14 08:02:00',
+        '2024-10-14 16:01:00',
+        2
+    ),
+    (
+        2240,
+        5,
+        1,
+        '2024-10-15',
+        '2024-10-15 08:02:00',
+        '2024-10-15 16:01:00',
+        2
+    ),
+    (
+        2241,
+        5,
+        1,
+        '2024-10-16',
+        '2024-10-16 08:02:00',
+        '2024-10-16 16:01:00',
+        2
+    ),
+    (
+        2242,
+        5,
+        1,
+        '2024-10-17',
+        '2024-10-17 08:02:00',
+        '2024-10-17 16:01:00',
+        2
+    ),
+    (
+        2243,
+        5,
+        1,
+        '2024-10-18',
+        '2024-10-18 08:02:00',
+        '2024-10-18 16:01:00',
+        2
+    ),
+    (
+        2244,
+        5,
+        1,
+        '2024-10-19',
+        '2024-10-19 08:02:00',
+        '2024-10-19 16:01:00',
+        2
+    ),
+    (
+        2245,
+        5,
+        2,
+        '2024-10-21',
+        '2024-10-21 14:01:00',
+        '2024-10-21 22:02:00',
+        2
+    ),
+    (
+        2246,
+        5,
+        2,
+        '2024-10-22',
+        '2024-10-22 14:01:00',
+        '2024-10-22 22:02:00',
+        2
+    ),
+    (
+        2247,
+        5,
+        2,
+        '2024-10-23',
+        '2024-10-23 14:01:00',
+        '2024-10-23 22:02:00',
+        2
+    ),
+    (
+        2248,
+        5,
+        2,
+        '2024-10-24',
+        '2024-10-24 14:01:00',
+        '2024-10-24 22:02:00',
+        2
+    ),
+    (
+        2249,
+        5,
+        2,
+        '2024-10-25',
+        '2024-10-25 14:01:00',
+        '2024-10-25 22:02:00',
+        2
+    ),
+    (
+        2250,
+        5,
+        2,
+        '2024-10-26',
+        '2024-10-26 14:01:00',
+        '2024-10-26 22:02:00',
+        2
+    ),
+    (
+        2251,
+        5,
+        1,
+        '2024-10-28',
+        '2024-10-28 08:02:00',
+        '2024-10-28 16:01:00',
+        2
+    ),
+    (
+        2252,
+        5,
+        1,
+        '2024-10-29',
+        '2024-10-29 08:02:00',
+        '2024-10-29 16:01:00',
+        2
+    ),
+    (
+        2253,
+        5,
+        1,
+        '2024-10-30',
+        '2024-10-30 08:02:00',
+        '2024-10-30 16:01:00',
+        2
+    ),
+    (
+        2254,
+        5,
+        1,
+        '2024-10-31',
+        '2024-10-31 08:02:00',
+        '2024-10-31 16:01:00',
+        2
+    ),
+    (
+        2255,
+        5,
+        1,
+        '2024-11-01',
+        '2024-11-01 08:02:00',
+        '2024-11-01 16:01:00',
+        2
+    ),
+    (
+        2256,
+        5,
+        1,
+        '2024-11-02',
+        '2024-11-02 08:02:00',
+        '2024-11-02 16:01:00',
+        2
+    ),
+    (
+        2257,
+        5,
+        2,
+        '2024-11-04',
+        '2024-11-04 14:01:00',
+        '2024-11-04 22:02:00',
+        2
+    ),
+    (
+        2258,
+        5,
+        2,
+        '2024-11-05',
+        '2024-11-05 14:01:00',
+        '2024-11-05 22:02:00',
+        2
+    ),
+    (
+        2259,
+        5,
+        2,
+        '2024-11-06',
+        '2024-11-06 14:01:00',
+        '2024-11-06 22:02:00',
+        2
+    ),
+    (
+        2260,
+        5,
+        2,
+        '2024-11-07',
+        '2024-11-07 14:01:00',
+        '2024-11-07 22:02:00',
+        2
+    ),
+    (
+        2261,
+        5,
+        2,
+        '2024-11-08',
+        '2024-11-08 14:01:00',
+        '2024-11-08 22:02:00',
+        2
+    ),
+    (
+        2262,
+        5,
+        2,
+        '2024-11-09',
+        '2024-11-09 14:01:00',
+        '2024-11-09 22:02:00',
+        2
+    ),
+    (
+        2263,
+        5,
+        1,
+        '2024-11-11',
+        '2024-11-11 08:02:00',
+        '2024-11-11 16:01:00',
+        2
+    ),
+    (
+        2264,
+        5,
+        1,
+        '2024-11-12',
+        '2024-11-12 08:02:00',
+        '2024-11-12 16:01:00',
+        2
+    ),
+    (
+        2265,
+        5,
+        1,
+        '2024-11-13',
+        '2024-11-13 08:02:00',
+        '2024-11-13 16:01:00',
+        2
+    ),
+    (
+        2266,
+        5,
+        1,
+        '2024-11-14',
+        '2024-11-14 08:02:00',
+        '2024-11-14 16:01:00',
+        2
+    ),
+    (
+        2267,
+        5,
+        1,
+        '2024-11-15',
+        '2024-11-15 08:02:00',
+        '2024-11-15 16:01:00',
+        2
+    ),
+    (
+        2268,
+        5,
+        1,
+        '2024-11-16',
+        '2024-11-16 08:02:00',
+        '2024-11-16 16:01:00',
+        2
+    ),
+    (
+        2269,
+        5,
+        2,
+        '2024-11-18',
+        '2024-11-18 14:01:00',
+        '2024-11-18 22:02:00',
+        2
+    ),
+    (
+        2270,
+        5,
+        2,
+        '2024-11-19',
+        '2024-11-19 14:01:00',
+        '2024-11-19 22:02:00',
+        2
+    ),
+    (
+        2271,
+        5,
+        2,
+        '2024-11-20',
+        '2024-11-20 14:01:00',
+        '2024-11-20 22:02:00',
+        2
+    ),
+    (
+        2272,
+        5,
+        2,
+        '2024-11-21',
+        '2024-11-21 14:01:00',
+        '2024-11-21 22:02:00',
+        2
+    ),
+    (
+        2273,
+        5,
+        2,
+        '2024-11-22',
+        '2024-11-22 14:01:00',
+        '2024-11-22 22:02:00',
+        2
+    ),
+    (
+        2274,
+        5,
+        2,
+        '2024-11-23',
+        '2024-11-23 14:01:00',
+        '2024-11-23 22:02:00',
+        2
+    ),
+    (
+        2275,
+        5,
+        1,
+        '2024-11-25',
+        '2024-11-25 08:02:00',
+        '2024-11-25 16:01:00',
+        2
+    ),
+    (
+        2276,
+        5,
+        1,
+        '2024-11-26',
+        '2024-11-26 08:02:00',
+        '2024-11-26 16:01:00',
+        2
+    ),
+    (
+        2277,
+        5,
+        1,
+        '2024-11-27',
+        '2024-11-27 08:02:00',
+        '2024-11-27 16:01:00',
+        2
+    ),
+    (
+        2278,
+        5,
+        1,
+        '2024-11-28',
+        '2024-11-28 08:02:00',
+        '2024-11-28 16:01:00',
+        2
+    ),
+    (
+        2279,
+        5,
+        1,
+        '2024-11-29',
+        '2024-11-29 08:02:00',
+        '2024-11-29 16:01:00',
+        2
+    ),
+    (
+        2280,
+        5,
+        1,
+        '2024-11-30',
+        '2024-11-30 08:02:00',
+        '2024-11-30 16:01:00',
+        2
+    ),
+    (
+        2281,
+        5,
+        2,
+        '2024-12-02',
+        '2024-12-02 14:01:00',
+        '2024-12-02 22:02:00',
+        2
+    ),
+    (
+        2282,
+        5,
+        2,
+        '2024-12-03',
+        '2024-12-03 14:01:00',
+        '2024-12-03 22:02:00',
+        2
+    ),
+    (
+        2283,
+        5,
+        2,
+        '2024-12-04',
+        '2024-12-04 14:01:00',
+        '2024-12-04 22:02:00',
+        2
+    ),
+    (
+        2284,
+        5,
+        2,
+        '2024-12-05',
+        '2024-12-05 14:01:00',
+        '2024-12-05 22:02:00',
+        2
+    ),
+    (
+        2285,
+        5,
+        2,
+        '2024-12-06',
+        '2024-12-06 14:01:00',
+        '2024-12-06 22:02:00',
+        2
+    ),
+    (
+        2286,
+        5,
+        2,
+        '2024-12-07',
+        '2024-12-07 14:01:00',
+        '2024-12-07 22:02:00',
+        2
+    ),
+    (
+        2287,
+        5,
+        1,
+        '2024-12-09',
+        '2024-12-09 08:02:00',
+        '2024-12-09 16:01:00',
+        2
+    ),
+    (
+        2288,
+        5,
+        1,
+        '2024-12-10',
+        '2024-12-10 08:02:00',
+        '2024-12-10 16:01:00',
+        2
+    ),
+    (
+        2289,
+        5,
+        1,
+        '2024-12-11',
+        '2024-12-11 08:02:00',
+        '2024-12-11 16:01:00',
+        2
+    ),
+    (
+        2290,
+        5,
+        1,
+        '2024-12-12',
+        '2024-12-12 08:02:00',
+        '2024-12-12 16:01:00',
+        2
+    ),
+    (
+        2291,
+        5,
+        1,
+        '2024-12-13',
+        '2024-12-13 08:02:00',
+        '2024-12-13 16:01:00',
+        2
+    ),
+    (
+        2292,
+        5,
+        1,
+        '2024-12-14',
+        '2024-12-14 08:02:00',
+        '2024-12-14 16:01:00',
+        2
+    ),
+    (
+        2293,
+        5,
+        2,
+        '2024-12-16',
+        '2024-12-16 14:01:00',
+        '2024-12-16 22:02:00',
+        2
+    ),
+    (
+        2294,
+        5,
+        2,
+        '2024-12-17',
+        '2024-12-17 14:01:00',
+        '2024-12-17 22:02:00',
+        2
+    ),
+    (
+        2295,
+        5,
+        2,
+        '2024-12-18',
+        '2024-12-18 14:01:00',
+        '2024-12-18 22:02:00',
+        2
+    ),
+    (
+        2296,
+        5,
+        2,
+        '2024-12-19',
+        '2024-12-19 14:01:00',
+        '2024-12-19 22:02:00',
+        2
+    ),
+    (
+        2297,
+        5,
+        2,
+        '2024-12-20',
+        '2024-12-20 14:01:00',
+        '2024-12-20 22:02:00',
+        2
+    ),
+    (
+        2298,
+        5,
+        2,
+        '2024-12-21',
+        '2024-12-21 14:01:00',
+        '2024-12-21 22:02:00',
+        2
+    ),
+    (
+        2299,
+        5,
+        1,
+        '2024-12-23',
+        '2024-12-23 08:02:00',
+        '2024-12-23 16:01:00',
+        2
+    ),
+    (
+        2300,
+        5,
+        1,
+        '2024-12-24',
+        '2024-12-24 08:02:00',
+        '2024-12-24 16:01:00',
+        2
+    ),
+    (
+        2301,
+        5,
+        1,
+        '2024-12-25',
+        '2024-12-25 08:02:00',
+        '2024-12-25 16:01:00',
+        2
+    ),
+    (
+        2302,
+        5,
+        1,
+        '2024-12-26',
+        '2024-12-26 08:02:00',
+        '2024-12-26 16:01:00',
+        2
+    ),
+    (
+        2303,
+        5,
+        1,
+        '2024-12-27',
+        '2024-12-27 08:02:00',
+        '2024-12-27 16:01:00',
+        2
+    ),
+    (
+        2304,
+        5,
+        1,
+        '2024-12-28',
+        '2024-12-28 08:02:00',
+        '2024-12-28 16:01:00',
+        2
+    ),
+    (
+        2305,
+        5,
+        2,
+        '2024-12-30',
+        '2024-12-30 14:01:00',
+        '2024-12-30 22:02:00',
+        2
+    ),
+    (
+        2306,
+        5,
+        2,
+        '2024-12-31',
+        '2024-12-31 14:01:00',
+        '2024-12-31 22:02:00',
+        2
+    ),
+    (
+        2307,
+        5,
+        2,
+        '2025-01-01',
+        '2025-01-01 14:01:00',
+        '2025-01-01 22:02:00',
+        2
+    ),
+    (
+        2308,
+        5,
+        2,
+        '2025-01-02',
+        '2025-01-02 14:01:00',
+        '2025-01-02 22:02:00',
+        2
+    ),
+    (
+        2309,
+        5,
+        2,
+        '2025-01-03',
+        '2025-01-03 14:01:00',
+        '2025-01-03 22:02:00',
+        2
+    ),
+    (
+        2310,
+        5,
+        2,
+        '2025-01-04',
+        '2025-01-04 14:01:00',
+        '2025-01-04 22:02:00',
+        2
+    ),
+    (
+        2311,
+        5,
+        1,
+        '2025-01-06',
+        '2025-01-06 08:02:00',
+        '2025-01-06 16:01:00',
+        2
+    ),
+    (
+        2312,
+        5,
+        1,
+        '2025-01-07',
+        '2025-01-07 08:02:00',
+        '2025-01-07 16:01:00',
+        2
+    ),
+    (
+        2313,
+        5,
+        1,
+        '2025-01-08',
+        '2025-01-08 08:02:00',
+        '2025-01-08 16:01:00',
+        2
+    ),
+    (
+        2314,
+        5,
+        1,
+        '2025-01-09',
+        '2025-01-09 08:02:00',
+        '2025-01-09 16:01:00',
+        2
+    ),
+    (
+        2315,
+        5,
+        1,
+        '2025-01-10',
+        '2025-01-10 08:02:00',
+        '2025-01-10 16:01:00',
+        2
+    ),
+    (
+        2316,
+        5,
+        1,
+        '2025-01-11',
+        '2025-01-11 08:02:00',
+        '2025-01-11 16:01:00',
+        2
+    ),
+    (
+        2317,
+        5,
+        2,
+        '2025-01-13',
+        '2025-01-13 14:01:00',
+        '2025-01-13 22:02:00',
+        2
+    ),
+    (
+        2318,
+        5,
+        2,
+        '2025-01-14',
+        '2025-01-14 14:01:00',
+        '2025-01-14 22:02:00',
+        2
+    ),
+    (
+        2319,
+        5,
+        2,
+        '2025-01-15',
+        '2025-01-15 14:01:00',
+        '2025-01-15 22:02:00',
+        2
+    ),
+    (
+        2320,
+        5,
+        2,
+        '2025-01-16',
+        '2025-01-16 14:01:00',
+        '2025-01-16 22:02:00',
+        2
+    ),
+    (
+        2321,
+        5,
+        2,
+        '2025-01-17',
+        '2025-01-17 14:01:00',
+        '2025-01-17 22:02:00',
+        2
+    ),
+    (
+        2322,
+        5,
+        2,
+        '2025-01-18',
+        '2025-01-18 14:01:00',
+        '2025-01-18 22:02:00',
+        2
+    ),
+    (
+        2323,
+        5,
+        1,
+        '2025-01-20',
+        '2025-01-20 08:02:00',
+        '2025-01-20 16:01:00',
+        2
+    ),
+    (
+        2324,
+        5,
+        1,
+        '2025-01-21',
+        '2025-01-21 08:02:00',
+        '2025-01-21 16:01:00',
+        2
+    ),
+    (
+        2325,
+        5,
+        1,
+        '2025-01-22',
+        '2025-01-22 08:02:00',
+        '2025-01-22 16:01:00',
+        2
+    ),
+    (
+        2326,
+        5,
+        1,
+        '2025-01-23',
+        '2025-01-23 08:02:00',
+        '2025-01-23 16:01:00',
+        2
+    ),
+    (
+        2327,
+        5,
+        1,
+        '2025-01-24',
+        '2025-01-24 08:02:00',
+        '2025-01-24 16:01:00',
+        2
+    ),
+    (
+        2328,
+        5,
+        1,
+        '2025-01-25',
+        '2025-01-25 08:02:00',
+        '2025-01-25 16:01:00',
+        2
+    ),
+    (
+        2329,
+        5,
+        2,
+        '2025-01-27',
+        '2025-01-27 14:01:00',
+        '2025-01-27 22:02:00',
+        2
+    ),
+    (
+        2330,
+        5,
+        2,
+        '2025-01-28',
+        '2025-01-28 14:01:00',
+        '2025-01-28 22:02:00',
+        2
+    ),
+    (
+        2331,
+        5,
+        2,
+        '2025-01-29',
+        '2025-01-29 14:01:00',
+        '2025-01-29 22:02:00',
+        2
+    ),
+    (
+        2332,
+        5,
+        2,
+        '2025-01-30',
+        '2025-01-30 14:01:00',
+        '2025-01-30 22:02:00',
+        2
+    ),
+    (
+        2333,
+        5,
+        2,
+        '2025-01-31',
+        '2025-01-31 14:01:00',
+        '2025-01-31 22:02:00',
+        2
+    ),
+    (
+        2334,
+        5,
+        2,
+        '2025-02-01',
+        '2025-02-01 14:01:00',
+        '2025-02-01 22:02:00',
+        2
+    ),
+    (
+        2335,
+        5,
+        1,
+        '2025-02-03',
+        '2025-02-03 08:02:00',
+        '2025-02-03 16:01:00',
+        2
+    ),
+    (
+        2336,
+        5,
+        1,
+        '2025-02-04',
+        '2025-02-04 08:02:00',
+        '2025-02-04 16:01:00',
+        2
+    ),
+    (
+        2337,
+        5,
+        1,
+        '2025-02-05',
+        '2025-02-05 08:02:00',
+        '2025-02-05 16:01:00',
+        2
+    ),
+    (
+        2338,
+        5,
+        1,
+        '2025-02-06',
+        '2025-02-06 08:02:00',
+        '2025-02-06 16:01:00',
+        2
+    ),
+    (
+        2339,
+        5,
+        1,
+        '2025-02-07',
+        '2025-02-07 08:02:00',
+        '2025-02-07 16:01:00',
+        2
+    ),
+    (
+        2340,
+        5,
+        1,
+        '2025-02-08',
+        '2025-02-08 08:02:00',
+        '2025-02-08 16:01:00',
+        2
+    ),
+    (
+        2341,
+        5,
+        2,
+        '2025-02-10',
+        '2025-02-10 14:01:00',
+        '2025-02-10 22:02:00',
+        2
+    ),
+    (
+        2342,
+        5,
+        2,
+        '2025-02-11',
+        '2025-02-11 14:01:00',
+        '2025-02-11 22:02:00',
+        2
+    ),
+    (
+        2343,
+        5,
+        2,
+        '2025-02-12',
+        '2025-02-12 14:01:00',
+        '2025-02-12 22:02:00',
+        2
+    ),
+    (
+        2344,
+        5,
+        2,
+        '2025-02-13',
+        '2025-02-13 14:01:00',
+        '2025-02-13 22:02:00',
+        2
+    ),
+    (
+        2345,
+        5,
+        2,
+        '2025-02-14',
+        '2025-02-14 14:01:00',
+        '2025-02-14 22:02:00',
+        2
+    ),
+    (
+        2346,
+        5,
+        2,
+        '2025-02-15',
+        '2025-02-15 14:01:00',
+        '2025-02-15 22:02:00',
+        2
+    ),
+    (
+        2347,
+        5,
+        1,
+        '2025-02-17',
+        '2025-02-17 08:02:00',
+        '2025-02-17 16:01:00',
+        2
+    ),
+    (
+        2348,
+        5,
+        1,
+        '2025-02-18',
+        '2025-02-18 08:02:00',
+        '2025-02-18 16:01:00',
+        2
+    ),
+    (
+        2349,
+        5,
+        1,
+        '2025-02-19',
+        '2025-02-19 08:02:00',
+        '2025-02-19 16:01:00',
+        2
+    ),
+    (
+        2350,
+        5,
+        1,
+        '2025-02-20',
+        '2025-02-20 08:02:00',
+        '2025-02-20 16:01:00',
+        2
+    ),
+    (
+        2351,
+        5,
+        1,
+        '2025-02-21',
+        '2025-02-21 08:02:00',
+        '2025-02-21 16:01:00',
+        2
+    ),
+    (
+        2352,
+        5,
+        1,
+        '2025-02-22',
+        '2025-02-22 08:02:00',
+        '2025-02-22 16:01:00',
+        2
+    ),
+    (
+        2353,
+        5,
+        2,
+        '2025-02-24',
+        '2025-02-24 14:01:00',
+        '2025-02-24 22:02:00',
+        2
+    ),
+    (
+        2354,
+        5,
+        2,
+        '2025-02-25',
+        '2025-02-25 14:01:00',
+        '2025-02-25 22:02:00',
+        2
+    ),
+    (
+        2355,
+        5,
+        2,
+        '2025-02-26',
+        '2025-02-26 14:01:00',
+        '2025-02-26 22:02:00',
+        2
+    ),
+    (
+        2356,
+        5,
+        2,
+        '2025-02-27',
+        '2025-02-27 14:01:00',
+        '2025-02-27 22:02:00',
+        2
+    ),
+    (
+        2357,
+        5,
+        2,
+        '2025-02-28',
+        '2025-02-28 14:01:00',
+        '2025-02-28 22:02:00',
+        2
+    ),
+    (
+        2358,
+        5,
+        2,
+        '2025-03-01',
+        '2025-03-01 14:01:00',
+        '2025-03-01 22:02:00',
+        2
+    ),
+    (
+        2359,
+        5,
+        1,
+        '2025-03-03',
+        '2025-03-03 08:02:00',
+        '2025-03-03 16:01:00',
+        2
+    ),
+    (
+        2360,
+        5,
+        1,
+        '2025-03-04',
+        '2025-03-04 08:02:00',
+        '2025-03-04 16:01:00',
+        2
+    ),
+    (
+        2361,
+        5,
+        1,
+        '2025-03-05',
+        '2025-03-05 08:02:00',
+        '2025-03-05 16:01:00',
+        2
+    ),
+    (
+        2362,
+        5,
+        1,
+        '2025-03-06',
+        '2025-03-06 08:02:00',
+        '2025-03-06 16:01:00',
+        2
+    ),
+    (
+        2363,
+        5,
+        1,
+        '2025-03-07',
+        '2025-03-07 08:02:00',
+        '2025-03-07 16:01:00',
+        2
+    ),
+    (
+        2364,
+        5,
+        1,
+        '2025-03-08',
+        '2025-03-08 08:02:00',
+        '2025-03-08 16:01:00',
+        2
+    ),
+    (
+        2365,
+        5,
+        2,
+        '2025-03-10',
+        '2025-03-10 14:01:00',
+        '2025-03-10 22:02:00',
+        2
+    ),
+    (
+        2366,
+        5,
+        2,
+        '2025-03-11',
+        '2025-03-11 14:01:00',
+        '2025-03-11 22:02:00',
+        2
+    ),
+    (
+        2367,
+        5,
+        2,
+        '2025-03-12',
+        '2025-03-12 14:01:00',
+        '2025-03-12 22:02:00',
+        2
+    ),
+    (
+        2368,
+        5,
+        2,
+        '2025-03-13',
+        '2025-03-13 14:01:00',
+        '2025-03-13 22:02:00',
+        2
+    ),
+    (
+        2369,
+        5,
+        2,
+        '2025-03-14',
+        '2025-03-14 14:01:00',
+        '2025-03-14 22:02:00',
+        2
+    ),
+    (
+        2370,
+        5,
+        2,
+        '2025-03-15',
+        '2025-03-15 14:01:00',
+        '2025-03-15 22:02:00',
+        2
+    ),
+    (
+        2371,
+        5,
+        1,
+        '2025-03-17',
+        '2025-03-17 08:02:00',
+        '2025-03-17 16:01:00',
+        2
+    ),
+    (
+        2372,
+        5,
+        1,
+        '2025-03-18',
+        '2025-03-18 08:02:00',
+        '2025-03-18 16:01:00',
+        2
+    ),
+    (
+        2373,
+        5,
+        1,
+        '2025-03-19',
+        '2025-03-19 08:02:00',
+        '2025-03-19 16:01:00',
+        2
+    ),
+    (
+        2374,
+        5,
+        1,
+        '2025-03-20',
+        '2025-03-20 08:02:00',
+        '2025-03-20 16:01:00',
+        2
+    ),
+    (
+        2375,
+        5,
+        1,
+        '2025-03-21',
+        '2025-03-21 08:02:00',
+        '2025-03-21 16:01:00',
+        2
+    ),
+    (
+        2376,
+        5,
+        1,
+        '2025-03-22',
+        '2025-03-22 08:02:00',
+        '2025-03-22 16:01:00',
+        2
+    ),
+    (
+        2377,
+        5,
+        2,
+        '2025-03-24',
+        '2025-03-24 14:01:00',
+        '2025-03-24 22:02:00',
+        2
+    ),
+    (
+        2378,
+        5,
+        2,
+        '2025-03-25',
+        '2025-03-25 14:01:00',
+        '2025-03-25 22:02:00',
+        2
+    ),
+    (
+        2379,
+        5,
+        2,
+        '2025-03-26',
+        '2025-03-26 14:01:00',
+        '2025-03-26 22:02:00',
+        2
+    ),
+    (
+        2380,
+        5,
+        2,
+        '2025-03-27',
+        '2025-03-27 14:01:00',
+        '2025-03-27 22:02:00',
+        2
+    ),
+    (
+        2381,
+        5,
+        2,
+        '2025-03-28',
+        '2025-03-28 14:01:00',
+        '2025-03-28 22:02:00',
+        2
+    ),
+    (
+        2382,
+        5,
+        2,
+        '2025-03-29',
+        '2025-03-29 14:01:00',
+        '2025-03-29 22:02:00',
+        2
+    ),
+    (
+        2383,
+        5,
+        1,
+        '2025-03-31',
+        '2025-03-31 08:02:00',
+        '2025-03-31 16:01:00',
+        2
+    ),
+    (
+        2384,
+        5,
+        1,
+        '2025-04-01',
+        '2025-04-01 08:02:00',
+        '2025-04-01 16:01:00',
+        2
+    ),
+    (
+        2385,
+        5,
+        1,
+        '2025-04-02',
+        '2025-04-02 08:02:00',
+        '2025-04-02 16:01:00',
+        2
+    ),
+    (
+        2386,
+        5,
+        1,
+        '2025-04-03',
+        '2025-04-03 08:02:00',
+        '2025-04-03 16:01:00',
+        2
+    ),
+    (
+        2387,
+        5,
+        1,
+        '2025-04-04',
+        '2025-04-04 08:02:00',
+        '2025-04-04 16:01:00',
+        2
+    ),
+    (
+        2388,
+        5,
+        1,
+        '2025-04-05',
+        '2025-04-05 08:02:00',
+        '2025-04-05 16:01:00',
+        2
+    ),
+    (
+        2389,
+        5,
+        2,
+        '2025-04-07',
+        '2025-04-07 14:01:00',
+        '2025-04-07 22:02:00',
+        2
+    ),
+    (
+        2390,
+        5,
+        2,
+        '2025-04-08',
+        '2025-04-08 14:01:00',
+        '2025-04-08 22:02:00',
+        2
+    ),
+    (
+        2391,
+        5,
+        2,
+        '2025-04-09',
+        '2025-04-09 14:01:00',
+        '2025-04-09 22:02:00',
+        2
+    ),
+    (
+        2392,
+        5,
+        2,
+        '2025-04-10',
+        '2025-04-10 14:01:00',
+        '2025-04-10 22:02:00',
+        2
+    ),
+    (
+        2393,
+        5,
+        2,
+        '2025-04-11',
+        '2025-04-11 14:01:00',
+        '2025-04-11 22:02:00',
+        2
+    ),
+    (
+        2394,
+        5,
+        2,
+        '2025-04-12',
+        '2025-04-12 14:01:00',
+        '2025-04-12 22:02:00',
+        2
+    ),
+    (
+        2395,
+        5,
+        1,
+        '2025-04-14',
+        '2025-04-14 08:02:00',
+        '2025-04-14 16:01:00',
+        2
+    ),
+    (
+        2396,
+        5,
+        1,
+        '2025-04-15',
+        '2025-04-15 08:02:00',
+        '2025-04-15 16:01:00',
+        2
+    ),
+    (
+        2397,
+        5,
+        1,
+        '2025-04-16',
+        '2025-04-16 08:02:00',
+        '2025-04-16 16:01:00',
+        2
+    ),
+    (
+        2398,
+        5,
+        1,
+        '2025-04-17',
+        '2025-04-17 08:02:00',
+        '2025-04-17 16:01:00',
+        2
+    ),
+    (
+        2399,
+        5,
+        1,
+        '2025-04-18',
+        '2025-04-18 08:02:00',
+        '2025-04-18 16:01:00',
+        2
+    ),
+    (
+        2400,
+        5,
+        1,
+        '2025-04-19',
+        '2025-04-19 08:02:00',
+        '2025-04-19 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        2401,
+        5,
+        2,
+        '2025-04-21',
+        '2025-04-21 14:01:00',
+        '2025-04-21 22:02:00',
+        2
+    ),
+    (
+        2402,
+        5,
+        2,
+        '2025-04-22',
+        '2025-04-22 14:01:00',
+        '2025-04-22 22:02:00',
+        2
+    ),
+    (
+        2403,
+        5,
+        2,
+        '2025-04-23',
+        '2025-04-23 14:01:00',
+        '2025-04-23 22:02:00',
+        2
+    ),
+    (
+        2404,
+        5,
+        2,
+        '2025-04-24',
+        '2025-04-24 14:01:00',
+        '2025-04-24 22:02:00',
+        2
+    ),
+    (
+        2405,
+        5,
+        2,
+        '2025-04-25',
+        '2025-04-25 14:01:00',
+        '2025-04-25 22:02:00',
+        2
+    ),
+    (
+        2406,
+        5,
+        2,
+        '2025-04-26',
+        '2025-04-26 14:01:00',
+        '2025-04-26 22:02:00',
+        2
+    ),
+    (
+        2407,
+        5,
+        1,
+        '2025-04-28',
+        '2025-04-28 08:02:00',
+        '2025-04-28 16:01:00',
+        2
+    ),
+    (
+        2408,
+        5,
+        1,
+        '2025-04-29',
+        '2025-04-29 08:02:00',
+        '2025-04-29 16:01:00',
+        2
+    ),
+    (
+        2409,
+        5,
+        1,
+        '2025-04-30',
+        '2025-04-30 08:02:00',
+        '2025-04-30 16:01:00',
+        2
+    ),
+    (
+        2410,
+        5,
+        1,
+        '2025-05-01',
+        '2025-05-01 08:02:00',
+        '2025-05-01 16:01:00',
+        2
+    ),
+    (
+        2411,
+        5,
+        1,
+        '2025-05-02',
+        '2025-05-02 08:02:00',
+        '2025-05-02 16:01:00',
+        2
+    ),
+    (
+        2412,
+        5,
+        1,
+        '2025-05-03',
+        '2025-05-03 08:02:00',
+        '2025-05-03 16:01:00',
+        2
+    ),
+    (
+        2413,
+        5,
+        2,
+        '2025-05-05',
+        '2025-05-05 14:01:00',
+        '2025-05-05 22:02:00',
+        2
+    ),
+    (
+        2414,
+        5,
+        2,
+        '2025-05-06',
+        '2025-05-06 14:01:00',
+        '2025-05-06 22:02:00',
+        2
+    ),
+    (
+        2415,
+        5,
+        2,
+        '2025-05-07',
+        '2025-05-07 14:01:00',
+        '2025-05-07 22:02:00',
+        2
+    ),
+    (
+        2416,
+        5,
+        2,
+        '2025-05-08',
+        '2025-05-08 14:01:00',
+        '2025-05-08 22:02:00',
+        2
+    ),
+    (
+        2417,
+        5,
+        2,
+        '2025-05-09',
+        '2025-05-09 14:01:00',
+        '2025-05-09 22:02:00',
+        2
+    ),
+    (
+        2418,
+        5,
+        2,
+        '2025-05-10',
+        '2025-05-10 14:01:00',
+        '2025-05-10 22:02:00',
+        2
+    ),
+    (
+        2419,
+        5,
+        1,
+        '2025-05-12',
+        '2025-05-12 08:02:00',
+        '2025-05-12 16:01:00',
+        2
+    ),
+    (
+        2420,
+        5,
+        1,
+        '2025-05-13',
+        '2025-05-13 08:02:00',
+        '2025-05-13 16:01:00',
+        2
+    ),
+    (
+        2421,
+        5,
+        1,
+        '2025-05-14',
+        '2025-05-14 08:02:00',
+        '2025-05-14 16:01:00',
+        2
+    ),
+    (
+        2422,
+        5,
+        1,
+        '2025-05-15',
+        '2025-05-15 08:02:00',
+        '2025-05-15 16:01:00',
+        2
+    ),
+    (
+        2423,
+        5,
+        1,
+        '2025-05-16',
+        '2025-05-16 08:02:00',
+        '2025-05-16 16:01:00',
+        2
+    ),
+    (
+        2424,
+        5,
+        1,
+        '2025-05-17',
+        '2025-05-17 08:02:00',
+        '2025-05-17 16:01:00',
+        2
+    ),
+    (
+        2425,
+        5,
+        2,
+        '2025-05-19',
+        '2025-05-19 14:01:00',
+        '2025-05-19 22:02:00',
+        2
+    ),
+    (
+        2426,
+        5,
+        2,
+        '2025-05-20',
+        '2025-05-20 14:01:00',
+        '2025-05-20 22:02:00',
+        2
+    ),
+    (
+        2427,
+        5,
+        2,
+        '2025-05-21',
+        '2025-05-21 14:01:00',
+        '2025-05-21 22:02:00',
+        2
+    ),
+    (
+        2428,
+        5,
+        2,
+        '2025-05-22',
+        '2025-05-22 14:01:00',
+        '2025-05-22 22:02:00',
+        2
+    ),
+    (
+        2429,
+        5,
+        2,
+        '2025-05-23',
+        '2025-05-23 14:01:00',
+        '2025-05-23 22:02:00',
+        2
+    ),
+    (
+        2430,
+        5,
+        2,
+        '2025-05-24',
+        '2025-05-24 14:01:00',
+        '2025-05-24 22:02:00',
+        2
+    ),
+    (
+        2431,
+        5,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        2432,
+        5,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        2433,
+        5,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        2434,
+        5,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        2435,
+        5,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        2436,
+        5,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        2437,
+        5,
+        2,
+        '2025-06-02',
+        '2025-06-02 14:01:00',
+        '2025-06-02 22:02:00',
+        2
+    ),
+    (
+        2438,
+        5,
+        2,
+        '2025-06-03',
+        '2025-06-03 14:01:00',
+        '2025-06-03 22:02:00',
+        2
+    ),
+    (
+        2439,
+        5,
+        2,
+        '2025-06-04',
+        '2025-06-04 14:01:00',
+        '2025-06-04 22:02:00',
+        2
+    ),
+    (
+        2440,
+        5,
+        2,
+        '2025-06-05',
+        '2025-06-05 14:01:00',
+        '2025-06-05 22:02:00',
+        2
+    ),
+    (
+        2441,
+        5,
+        2,
+        '2025-06-06',
+        '2025-06-06 14:01:00',
+        '2025-06-06 22:02:00',
+        2
+    ),
+    (
+        2442,
+        5,
+        2,
+        '2025-06-07',
+        '2025-06-07 14:01:00',
+        '2025-06-07 22:02:00',
+        2
+    ),
+    (
+        2443,
+        5,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        2444,
+        5,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        2445,
+        5,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        2446,
+        5,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        2447,
+        5,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        2448,
+        5,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        2449,
+        5,
+        2,
+        '2025-06-16',
+        '2025-06-16 14:01:00',
+        '2025-06-16 22:02:00',
+        2
+    ),
+    (
+        2450,
+        5,
+        2,
+        '2025-06-17',
+        '2025-06-17 14:01:00',
+        '2025-06-17 22:02:00',
+        2
+    ),
+    (
+        2451,
+        5,
+        2,
+        '2025-06-18',
+        '2025-06-18 14:01:00',
+        '2025-06-18 22:02:00',
+        2
+    ),
+    (
+        2452,
+        5,
+        2,
+        '2025-06-19',
+        '2025-06-19 14:01:00',
+        '2025-06-19 22:02:00',
+        2
+    ),
+    (
+        2453,
+        5,
+        2,
+        '2025-06-20',
+        '2025-06-20 14:01:00',
+        '2025-06-20 22:02:00',
+        2
+    ),
+    (
+        2454,
+        5,
+        2,
+        '2025-06-21',
+        '2025-06-21 14:01:00',
+        '2025-06-21 22:02:00',
+        2
+    ),
+    (
+        2455,
+        5,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        2456,
+        5,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        2457,
+        5,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        2458,
+        5,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    ),
+    (
+        2459,
+        5,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        2460,
+        5,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        2461,
+        5,
+        2,
+        '2025-06-30',
+        '2025-06-30 14:01:00',
+        '2025-06-30 22:02:00',
+        2
+    ),
+    (
+        2462,
+        5,
+        2,
+        '2025-07-01',
+        '2025-07-01 14:01:00',
+        '2025-07-01 22:02:00',
+        2
+    ),
+    (
+        2463,
+        5,
+        2,
+        '2025-07-02',
+        '2025-07-02 14:01:00',
+        '2025-07-02 22:02:00',
+        2
+    ),
+    (
+        2464,
+        5,
+        2,
+        '2025-07-03',
+        '2025-07-03 14:01:00',
+        '2025-07-03 22:02:00',
+        2
+    ),
+    (
+        2465,
+        5,
+        2,
+        '2025-07-04',
+        '2025-07-04 14:01:00',
+        '2025-07-04 22:02:00',
+        2
+    ),
+    (
+        2466,
+        5,
+        2,
+        '2025-07-05',
+        '2025-07-05 14:01:00',
+        '2025-07-05 22:02:00',
+        2
+    ),
+    (
+        2467,
+        5,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        2468,
+        5,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        2469,
+        5,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        2470,
+        5,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        2471,
+        5,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        2472,
+        5,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        2473,
+        5,
+        2,
+        '2025-07-14',
+        '2025-07-14 14:01:00',
+        '2025-07-14 22:02:00',
+        2
+    ),
+    (
+        2474,
+        5,
+        2,
+        '2025-07-15',
+        '2025-07-15 14:01:00',
+        '2025-07-15 22:02:00',
+        2
+    ),
+    (
+        2475,
+        5,
+        2,
+        '2025-07-16',
+        '2025-07-16 14:01:00',
+        '2025-07-16 22:02:00',
+        2
+    ),
+    (
+        2476,
+        5,
+        2,
+        '2025-07-17',
+        '2025-07-17 14:01:00',
+        '2025-07-17 22:02:00',
+        2
+    ),
+    (
+        2477,
+        5,
+        2,
+        '2025-07-18',
+        '2025-07-18 14:01:00',
+        '2025-07-18 22:02:00',
+        2
+    ),
+    (
+        2478,
+        5,
+        2,
+        '2025-07-19',
+        '2025-07-19 14:01:00',
+        '2025-07-19 22:02:00',
+        2
+    ),
+    (
+        2479,
+        5,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        2480,
+        5,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        2481,
+        5,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        2482,
+        5,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        2483,
+        5,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        2484,
+        5,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        2485,
+        5,
+        2,
+        '2025-07-28',
+        '2025-07-28 14:01:00',
+        '2025-07-28 22:02:00',
+        2
+    ),
+    (
+        2486,
+        5,
+        2,
+        '2025-07-29',
+        '2025-07-29 14:01:00',
+        '2025-07-29 22:02:00',
+        2
+    ),
+    (
+        2487,
+        5,
+        2,
+        '2025-07-30',
+        '2025-07-30 14:01:00',
+        '2025-07-30 22:02:00',
+        2
+    ),
+    (
+        2488,
+        5,
+        2,
+        '2025-07-31',
+        '2025-07-31 14:01:00',
+        '2025-07-31 22:02:00',
+        2
+    ),
+    (
+        2489,
+        5,
+        2,
+        '2025-08-01',
+        '2025-08-01 14:01:00',
+        '2025-08-01 22:02:00',
+        2
+    ),
+    (
+        2490,
+        5,
+        2,
+        '2025-08-02',
+        '2025-08-02 14:01:00',
+        '2025-08-02 22:02:00',
+        2
+    ),
+    (
+        2491,
+        5,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        2492,
+        5,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        2493,
+        5,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        2494,
+        5,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        2495,
+        5,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        2496,
+        5,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        2497,
+        5,
+        2,
+        '2025-08-11',
+        '2025-08-11 14:01:00',
+        '2025-08-11 22:02:00',
+        2
+    ),
+    (
+        2498,
+        5,
+        2,
+        '2025-08-12',
+        '2025-08-12 14:01:00',
+        '2025-08-12 22:02:00',
+        2
+    ),
+    (
+        2499,
+        5,
+        2,
+        '2025-08-13',
+        '2025-08-13 14:01:00',
+        '2025-08-13 22:02:00',
+        2
+    ),
+    (
+        2500,
+        5,
+        2,
+        '2025-08-14',
+        '2025-08-14 14:01:00',
+        '2025-08-14 22:02:00',
+        2
+    ),
+    (
+        2501,
+        5,
+        2,
+        '2025-08-15',
+        '2025-08-15 14:01:00',
+        '2025-08-15 22:02:00',
+        2
+    ),
+    (
+        2502,
+        5,
+        2,
+        '2025-08-16',
+        '2025-08-16 14:01:00',
+        '2025-08-16 22:02:00',
+        2
+    ),
+    (
+        2503,
+        5,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        2504,
+        5,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        2505,
+        5,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        2506,
+        5,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        2507,
+        5,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        2508,
+        5,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        2509,
+        5,
+        2,
+        '2025-08-25',
+        '2025-08-25 14:01:00',
+        '2025-08-25 22:02:00',
+        2
+    ),
+    (
+        2510,
+        5,
+        2,
+        '2025-08-26',
+        '2025-08-26 14:01:00',
+        '2025-08-26 22:02:00',
+        2
+    ),
+    (
+        2511,
+        5,
+        2,
+        '2025-08-27',
+        '2025-08-27 14:01:00',
+        '2025-08-27 22:02:00',
+        2
+    ),
+    (
+        2512,
+        5,
+        2,
+        '2025-08-28',
+        '2025-08-28 14:01:00',
+        '2025-08-28 22:02:00',
+        2
+    ),
+    (
+        2513,
+        5,
+        2,
+        '2025-08-29',
+        '2025-08-29 14:01:00',
+        '2025-08-29 22:02:00',
+        2
+    ),
+    (
+        2514,
+        5,
+        2,
+        '2025-08-30',
+        '2025-08-30 14:01:00',
+        '2025-08-30 22:02:00',
+        2
+    ),
+    (
+        2515,
+        5,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        2516,
+        5,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        2517,
+        5,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        2518,
+        5,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        2519,
+        5,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        2520,
+        5,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        2521,
+        5,
+        2,
+        '2025-09-08',
+        '2025-09-08 14:01:00',
+        '2025-09-08 22:02:00',
+        2
+    ),
+    (
+        2522,
+        5,
+        2,
+        '2025-09-09',
+        '2025-09-09 14:01:00',
+        '2025-09-09 22:02:00',
+        2
+    ),
+    (
+        2523,
+        5,
+        2,
+        '2025-09-10',
+        '2025-09-10 14:01:00',
+        '2025-09-10 22:02:00',
+        2
+    ),
+    (
+        2524,
+        5,
+        2,
+        '2025-09-11',
+        '2025-09-11 14:01:00',
+        '2025-09-11 22:02:00',
+        2
+    ),
+    (
+        2525,
+        5,
+        2,
+        '2025-09-12',
+        '2025-09-12 14:01:00',
+        '2025-09-12 22:02:00',
+        2
+    ),
+    (
+        2526,
+        5,
+        2,
+        '2025-09-13',
+        '2025-09-13 14:01:00',
+        '2025-09-13 22:02:00',
+        2
+    ),
+    (
+        2527,
+        5,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        2528,
+        5,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        2529,
+        5,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    ),
+    (
+        2530,
+        5,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        2531,
+        5,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        2532,
+        5,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        2533,
+        5,
+        2,
+        '2025-09-22',
+        '2025-09-22 14:01:00',
+        '2025-09-22 22:02:00',
+        2
+    ),
+    (
+        2534,
+        5,
+        2,
+        '2025-09-23',
+        '2025-09-23 14:01:00',
+        '2025-09-23 22:02:00',
+        2
+    ),
+    (
+        2535,
+        5,
+        2,
+        '2025-09-24',
+        '2025-09-24 14:01:00',
+        '2025-09-24 22:02:00',
+        2
+    ),
+    (
+        2536,
+        5,
+        2,
+        '2025-09-25',
+        '2025-09-25 14:01:00',
+        '2025-09-25 22:02:00',
+        2
+    ),
+    (
+        2537,
+        5,
+        2,
+        '2025-09-26',
+        '2025-09-26 14:01:00',
+        '2025-09-26 22:02:00',
+        2
+    ),
+    (
+        2538,
+        5,
+        2,
+        '2025-09-27',
+        '2025-09-27 14:01:00',
+        '2025-09-27 22:02:00',
+        2
+    ),
+    (
+        2539,
+        5,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        2540,
+        5,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        2541,
+        5,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        2542,
+        5,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        2543,
+        5,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        2544,
+        5,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        2545,
+        5,
+        2,
+        '2025-10-06',
+        '2025-10-06 14:01:00',
+        '2025-10-06 22:02:00',
+        2
+    ),
+    (
+        2546,
+        5,
+        2,
+        '2025-10-07',
+        '2025-10-07 14:01:00',
+        '2025-10-07 22:02:00',
+        2
+    ),
+    (
+        2547,
+        5,
+        2,
+        '2025-10-08',
+        '2025-10-08 14:01:00',
+        '2025-10-08 22:02:00',
+        2
+    ),
+    (
+        2548,
+        5,
+        2,
+        '2025-10-09',
+        '2025-10-09 14:01:00',
+        '2025-10-09 22:02:00',
+        2
+    ),
+    (
+        2549,
+        5,
+        2,
+        '2025-10-10',
+        '2025-10-10 14:01:00',
+        '2025-10-10 22:02:00',
+        2
+    ),
+    (
+        2550,
+        5,
+        2,
+        '2025-10-11',
+        '2025-10-11 14:01:00',
+        '2025-10-11 22:02:00',
+        2
+    ),
+    (
+        2551,
+        5,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        2552,
+        5,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        2553,
+        5,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        2554,
+        5,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        2555,
+        5,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        2556,
+        5,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        2557,
+        5,
+        2,
+        '2025-10-20',
+        '2025-10-20 14:01:00',
+        '2025-10-20 22:02:00',
+        2
+    ),
+    (
+        2558,
+        5,
+        2,
+        '2025-10-21',
+        '2025-10-21 14:01:00',
+        '2025-10-21 22:02:00',
+        2
+    ),
+    (
+        2559,
+        5,
+        2,
+        '2025-10-22',
+        '2025-10-22 14:01:00',
+        '2025-10-22 22:02:00',
+        2
+    ),
+    (
+        2560,
+        5,
+        2,
+        '2025-10-23',
+        '2025-10-23 14:01:00',
+        '2025-10-23 22:02:00',
+        2
+    ),
+    (
+        2561,
+        5,
+        2,
+        '2025-10-24',
+        '2025-10-24 14:01:00',
+        '2025-10-24 22:02:00',
+        2
+    ),
+    (
+        2562,
+        5,
+        2,
+        '2025-10-25',
+        '2025-10-25 14:01:00',
+        '2025-10-25 22:02:00',
+        2
+    ),
+    (
+        2563,
+        5,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        2564,
+        5,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        2565,
+        5,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        2566,
+        5,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        2567,
+        5,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        2568,
+        5,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        2569,
+        5,
+        2,
+        '2025-11-03',
+        '2025-11-03 14:01:00',
+        '2025-11-03 22:02:00',
+        2
+    ),
+    (
+        2570,
+        5,
+        2,
+        '2025-11-04',
+        '2025-11-04 14:01:00',
+        '2025-11-04 22:02:00',
+        2
+    ),
+    (
+        2571,
+        5,
+        2,
+        '2025-11-05',
+        '2025-11-05 14:01:00',
+        '2025-11-05 22:02:00',
+        2
+    ),
+    (
+        2572,
+        5,
+        2,
+        '2025-11-06',
+        '2025-11-06 14:01:00',
+        '2025-11-06 22:02:00',
+        2
+    ),
+    (
+        2573,
+        5,
+        2,
+        '2025-11-07',
+        '2025-11-07 14:01:00',
+        '2025-11-07 22:02:00',
+        2
+    ),
+    (
+        2574,
+        5,
+        2,
+        '2025-11-08',
+        '2025-11-08 14:01:00',
+        '2025-11-08 22:02:00',
+        2
+    ),
+    (
+        2575,
+        5,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        2576,
+        5,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        2577,
+        5,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        2578,
+        5,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        2579,
+        5,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        2580,
+        5,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        2581,
+        5,
+        2,
+        '2025-11-17',
+        '2025-11-17 14:01:00',
+        '2025-11-17 22:02:00',
+        2
+    ),
+    (
+        2582,
+        5,
+        2,
+        '2025-11-18',
+        '2025-11-18 14:01:00',
+        '2025-11-18 22:02:00',
+        2
+    ),
+    (
+        2583,
+        5,
+        2,
+        '2025-11-19',
+        '2025-11-19 14:01:00',
+        '2025-11-19 22:02:00',
+        2
+    ),
+    (
+        2584,
+        5,
+        2,
+        '2025-11-20',
+        '2025-11-20 14:01:00',
+        '2025-11-20 22:02:00',
+        2
+    ),
+    (
+        2585,
+        5,
+        2,
+        '2025-11-21',
+        '2025-11-21 14:01:00',
+        '2025-11-21 22:02:00',
+        2
+    ),
+    (
+        2586,
+        5,
+        2,
+        '2025-11-22',
+        '2025-11-22 14:01:00',
+        '2025-11-22 22:02:00',
+        2
+    ),
+    (
+        2587,
+        5,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        2588,
+        5,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        2589,
+        5,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        2590,
+        5,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        2591,
+        5,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        2592,
+        5,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        2593,
+        5,
+        2,
+        '2025-12-01',
+        '2025-12-01 14:01:00',
+        '2025-12-01 22:02:00',
+        2
+    ),
+    (
+        2594,
+        5,
+        2,
+        '2025-12-02',
+        '2025-12-02 14:01:00',
+        '2025-12-02 22:02:00',
+        2
+    ),
+    (
+        2595,
+        5,
+        2,
+        '2025-12-03',
+        '2025-12-03 14:01:00',
+        '2025-12-03 22:02:00',
+        2
+    ),
+    (
+        2596,
+        5,
+        2,
+        '2025-12-04',
+        '2025-12-04 14:01:00',
+        '2025-12-04 22:02:00',
+        2
+    ),
+    (
+        2597,
+        5,
+        2,
+        '2025-12-05',
+        '2025-12-05 14:01:00',
+        '2025-12-05 22:02:00',
+        2
+    ),
+    (
+        2598,
+        5,
+        2,
+        '2025-12-06',
+        '2025-12-06 14:01:00',
+        '2025-12-06 22:02:00',
+        2
+    ),
+    (
+        2599,
+        5,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        2600,
+        5,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        2601,
+        5,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        2602,
+        5,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        2603,
+        5,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        2604,
+        5,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        2605,
+        5,
+        2,
+        '2025-12-15',
+        '2025-12-15 14:01:00',
+        '2025-12-15 22:02:00',
+        2
+    ),
+    (
+        2606,
+        5,
+        2,
+        '2025-12-16',
+        '2025-12-16 14:01:00',
+        '2025-12-16 22:02:00',
+        2
+    ),
+    (
+        2607,
+        5,
+        2,
+        '2025-12-17',
+        '2025-12-17 14:01:00',
+        '2025-12-17 22:02:00',
+        2
+    ),
+    (
+        2608,
+        5,
+        2,
+        '2025-12-18',
+        '2025-12-18 14:01:00',
+        '2025-12-18 22:02:00',
+        2
+    ),
+    (
+        2609,
+        5,
+        2,
+        '2025-12-19',
+        '2025-12-19 14:01:00',
+        '2025-12-19 22:02:00',
+        2
+    ),
+    (
+        2610,
+        5,
+        2,
+        '2025-12-20',
+        '2025-12-20 14:01:00',
+        '2025-12-20 22:02:00',
+        2
+    ),
+    (
+        2611,
+        5,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        2612,
+        5,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    ),
+    (
+        2613,
+        5,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        2614,
+        5,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        2615,
+        5,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        2616,
+        5,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        2617,
+        5,
+        2,
+        '2025-12-29',
+        '2025-12-29 14:01:00',
+        '2025-12-29 22:02:00',
+        2
+    ),
+    (
+        2618,
+        5,
+        2,
+        '2025-12-30',
+        '2025-12-30 14:01:00',
+        '2025-12-30 22:02:00',
+        2
+    ),
+    (
+        2619,
+        5,
+        2,
+        '2025-12-31',
+        '2025-12-31 14:01:00',
+        '2025-12-31 22:02:00',
+        2
+    ),
+    (
+        2620,
+        5,
+        2,
+        '2026-01-01',
+        '2026-01-01 14:01:00',
+        '2026-01-01 22:02:00',
+        2
+    ),
+    (
+        2621,
+        5,
+        2,
+        '2026-01-02',
+        '2026-01-02 14:01:00',
+        '2026-01-02 22:02:00',
+        2
+    ),
+    (
+        2622,
+        5,
+        2,
+        '2026-01-03',
+        '2026-01-03 14:01:00',
+        '2026-01-03 22:02:00',
+        2
+    ),
+    (
+        2623,
+        5,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        2624,
+        5,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        2625,
+        5,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        2626,
+        5,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        2627,
+        5,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        2628,
+        5,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        2629,
+        5,
+        2,
+        '2026-01-12',
+        '2026-01-12 14:01:00',
+        '2026-01-12 22:02:00',
+        2
+    ),
+    (
+        2630,
+        5,
+        2,
+        '2026-01-13',
+        '2026-01-13 14:01:00',
+        '2026-01-13 22:02:00',
+        2
+    ),
+    (
+        2631,
+        5,
+        2,
+        '2026-01-14',
+        '2026-01-14 14:01:00',
+        '2026-01-14 22:02:00',
+        2
+    ),
+    (
+        2632,
+        5,
+        2,
+        '2026-01-15',
+        '2026-01-15 14:01:00',
+        '2026-01-15 22:02:00',
+        2
+    ),
+    (
+        2633,
+        5,
+        2,
+        '2026-01-16',
+        '2026-01-16 14:01:00',
+        '2026-01-16 22:02:00',
+        2
+    ),
+    (
+        2634,
+        5,
+        2,
+        '2026-01-17',
+        '2026-01-17 14:01:00',
+        '2026-01-17 22:02:00',
+        2
+    ),
+    (
+        2635,
+        5,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        2636,
+        5,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        2637,
+        5,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        2638,
+        5,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        2639,
+        5,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        2640,
+        5,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        2641,
+        5,
+        2,
+        '2026-01-26',
+        '2026-01-26 14:01:00',
+        '2026-01-26 22:02:00',
+        2
+    ),
+    (
+        2642,
+        5,
+        2,
+        '2026-01-27',
+        '2026-01-27 14:01:00',
+        '2026-01-27 22:02:00',
+        2
+    ),
+    (
+        2643,
+        5,
+        2,
+        '2026-01-28',
+        '2026-01-28 14:01:00',
+        '2026-01-28 22:02:00',
+        2
+    ),
+    (
+        2644,
+        5,
+        2,
+        '2026-01-29',
+        '2026-01-29 14:01:00',
+        '2026-01-29 22:02:00',
+        2
+    ),
+    (
+        2645,
+        5,
+        2,
+        '2026-01-30',
+        '2026-01-30 14:01:00',
+        '2026-01-30 22:02:00',
+        2
+    ),
+    (
+        2646,
+        5,
+        2,
+        '2026-01-31',
+        '2026-01-31 14:01:00',
+        '2026-01-31 22:02:00',
+        2
+    ),
+    (
+        2647,
+        5,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        2648,
+        5,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        2649,
+        5,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        2650,
+        5,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        2651,
+        5,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        2652,
+        5,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        2653,
+        5,
+        2,
+        '2026-02-09',
+        '2026-02-09 14:01:00',
+        '2026-02-09 22:02:00',
+        2
+    ),
+    (
+        2654,
+        5,
+        2,
+        '2026-02-10',
+        '2026-02-10 14:01:00',
+        '2026-02-10 22:02:00',
+        2
+    ),
+    (
+        2655,
+        5,
+        2,
+        '2026-02-11',
+        '2026-02-11 14:01:00',
+        '2026-02-11 22:02:00',
+        2
+    ),
+    (
+        2656,
+        5,
+        2,
+        '2026-02-12',
+        '2026-02-12 14:01:00',
+        '2026-02-12 22:02:00',
+        2
+    ),
+    (
+        2657,
+        5,
+        2,
+        '2026-02-13',
+        '2026-02-13 14:01:00',
+        '2026-02-13 22:02:00',
+        2
+    ),
+    (
+        2658,
+        5,
+        2,
+        '2026-02-14',
+        '2026-02-14 14:01:00',
+        '2026-02-14 22:02:00',
+        2
+    ),
+    (
+        2659,
+        5,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        2660,
+        5,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        2661,
+        5,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        2662,
+        5,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        2663,
+        5,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        2664,
+        5,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        2665,
+        5,
+        2,
+        '2026-02-23',
+        '2026-02-23 14:01:00',
+        '2026-02-23 22:02:00',
+        2
+    ),
+    (
+        2666,
+        5,
+        2,
+        '2026-02-24',
+        '2026-02-24 14:01:00',
+        '2026-02-24 22:02:00',
+        2
+    ),
+    (
+        2667,
+        5,
+        2,
+        '2026-02-25',
+        '2026-02-25 14:01:00',
+        '2026-02-25 22:02:00',
+        2
+    ),
+    (
+        2668,
+        5,
+        2,
+        '2026-02-26',
+        '2026-02-26 14:01:00',
+        '2026-02-26 22:02:00',
+        2
+    ),
+    (
+        2669,
+        5,
+        2,
+        '2026-02-27',
+        '2026-02-27 14:01:00',
+        '2026-02-27 22:02:00',
+        2
+    ),
+    (
+        2670,
+        5,
+        2,
+        '2026-02-28',
+        '2026-02-28 14:01:00',
+        '2026-02-28 22:02:00',
+        2
+    ),
+    (
+        2671,
+        5,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        2672,
+        5,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        2673,
+        5,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        2674,
+        5,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        2675,
+        5,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        2676,
+        5,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        2677,
+        5,
+        2,
+        '2026-03-09',
+        '2026-03-09 14:01:00',
+        '2026-03-09 22:02:00',
+        2
+    ),
+    (
+        2678,
+        5,
+        2,
+        '2026-03-10',
+        '2026-03-10 14:01:00',
+        '2026-03-10 22:02:00',
+        2
+    ),
+    (
+        2679,
+        5,
+        2,
+        '2026-03-11',
+        '2026-03-11 14:01:00',
+        '2026-03-11 22:02:00',
+        2
+    ),
+    (
+        2680,
+        5,
+        2,
+        '2026-03-12',
+        '2026-03-12 14:01:00',
+        '2026-03-12 22:02:00',
+        2
+    ),
+    (
+        2681,
+        5,
+        2,
+        '2026-03-13',
+        '2026-03-13 14:01:00',
+        '2026-03-13 22:02:00',
+        2
+    ),
+    (
+        2682,
+        5,
+        2,
+        '2026-03-14',
+        '2026-03-14 14:01:00',
+        '2026-03-14 22:02:00',
+        2
+    ),
+    (
+        2683,
+        5,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        2684,
+        5,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        2685,
+        5,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        2686,
+        5,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        2687,
+        5,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        2688,
+        5,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        2689,
+        5,
+        2,
+        '2026-03-23',
+        '2026-03-23 14:01:00',
+        '2026-03-23 22:02:00',
+        2
+    ),
+    (
+        2690,
+        5,
+        2,
+        '2026-03-24',
+        '2026-03-24 14:01:00',
+        '2026-03-24 22:02:00',
+        2
+    ),
+    (
+        2691,
+        5,
+        2,
+        '2026-03-25',
+        '2026-03-25 14:01:00',
+        '2026-03-25 22:02:00',
+        2
+    ),
+    (
+        2692,
+        5,
+        2,
+        '2026-03-26',
+        '2026-03-26 14:01:00',
+        '2026-03-26 22:02:00',
+        2
+    ),
+    (
+        2693,
+        5,
+        2,
+        '2026-03-27',
+        '2026-03-27 14:01:00',
+        '2026-03-27 22:02:00',
+        2
+    ),
+    (
+        2694,
+        5,
+        2,
+        '2026-03-28',
+        '2026-03-28 14:01:00',
+        '2026-03-28 22:02:00',
+        2
+    ),
+    (
+        2695,
+        5,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        2696,
+        5,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        2697,
+        5,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        2698,
+        5,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        2699,
+        5,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        2700,
+        5,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        2701,
+        5,
+        2,
+        '2026-04-06',
+        '2026-04-06 14:01:00',
+        '2026-04-06 22:02:00',
+        2
+    ),
+    (
+        2702,
+        5,
+        2,
+        '2026-04-07',
+        '2026-04-07 14:01:00',
+        '2026-04-07 22:02:00',
+        2
+    ),
+    (
+        2703,
+        7,
+        2,
+        '2025-04-10',
+        '2025-04-10 14:01:00',
+        '2025-04-10 22:02:00',
+        2
+    ),
+    (
+        2704,
+        7,
+        2,
+        '2025-04-11',
+        '2025-04-11 14:01:00',
+        '2025-04-11 22:02:00',
+        2
+    ),
+    (
+        2705,
+        7,
+        2,
+        '2025-04-12',
+        '2025-04-12 14:01:00',
+        '2025-04-12 22:02:00',
+        2
+    ),
+    (
+        2706,
+        7,
+        1,
+        '2025-04-14',
+        '2025-04-14 08:02:00',
+        '2025-04-14 16:01:00',
+        2
+    ),
+    (
+        2707,
+        7,
+        1,
+        '2025-04-15',
+        '2025-04-15 08:02:00',
+        '2025-04-15 16:01:00',
+        2
+    ),
+    (
+        2708,
+        7,
+        1,
+        '2025-04-16',
+        '2025-04-16 08:02:00',
+        '2025-04-16 16:01:00',
+        2
+    ),
+    (
+        2709,
+        7,
+        1,
+        '2025-04-17',
+        '2025-04-17 08:02:00',
+        '2025-04-17 16:01:00',
+        2
+    ),
+    (
+        2710,
+        7,
+        1,
+        '2025-04-18',
+        '2025-04-18 08:02:00',
+        '2025-04-18 16:01:00',
+        2
+    ),
+    (
+        2711,
+        7,
+        1,
+        '2025-04-19',
+        '2025-04-19 08:02:00',
+        '2025-04-19 16:01:00',
+        2
+    ),
+    (
+        2712,
+        7,
+        2,
+        '2025-04-21',
+        '2025-04-21 14:01:00',
+        '2025-04-21 22:02:00',
+        2
+    ),
+    (
+        2713,
+        7,
+        2,
+        '2025-04-22',
+        '2025-04-22 14:01:00',
+        '2025-04-22 22:02:00',
+        2
+    ),
+    (
+        2714,
+        7,
+        2,
+        '2025-04-23',
+        '2025-04-23 14:01:00',
+        '2025-04-23 22:02:00',
+        2
+    ),
+    (
+        2715,
+        7,
+        2,
+        '2025-04-24',
+        '2025-04-24 14:01:00',
+        '2025-04-24 22:02:00',
+        2
+    ),
+    (
+        2716,
+        7,
+        2,
+        '2025-04-25',
+        '2025-04-25 14:01:00',
+        '2025-04-25 22:02:00',
+        2
+    ),
+    (
+        2717,
+        7,
+        2,
+        '2025-04-26',
+        '2025-04-26 14:01:00',
+        '2025-04-26 22:02:00',
+        2
+    ),
+    (
+        2718,
+        7,
+        1,
+        '2025-04-28',
+        '2025-04-28 08:02:00',
+        '2025-04-28 16:01:00',
+        2
+    ),
+    (
+        2719,
+        7,
+        1,
+        '2025-04-29',
+        '2025-04-29 08:02:00',
+        '2025-04-29 16:01:00',
+        2
+    ),
+    (
+        2720,
+        7,
+        1,
+        '2025-04-30',
+        '2025-04-30 08:02:00',
+        '2025-04-30 16:01:00',
+        2
+    ),
+    (
+        2721,
+        7,
+        1,
+        '2025-05-01',
+        '2025-05-01 08:02:00',
+        '2025-05-01 16:01:00',
+        2
+    ),
+    (
+        2722,
+        7,
+        1,
+        '2025-05-02',
+        '2025-05-02 08:02:00',
+        '2025-05-02 16:01:00',
+        2
+    ),
+    (
+        2723,
+        7,
+        1,
+        '2025-05-03',
+        '2025-05-03 08:02:00',
+        '2025-05-03 16:01:00',
+        2
+    ),
+    (
+        2724,
+        7,
+        2,
+        '2025-05-05',
+        '2025-05-05 14:01:00',
+        '2025-05-05 22:02:00',
+        2
+    ),
+    (
+        2725,
+        7,
+        2,
+        '2025-05-06',
+        '2025-05-06 14:01:00',
+        '2025-05-06 22:02:00',
+        2
+    ),
+    (
+        2726,
+        7,
+        2,
+        '2025-05-07',
+        '2025-05-07 14:01:00',
+        '2025-05-07 22:02:00',
+        2
+    ),
+    (
+        2727,
+        7,
+        2,
+        '2025-05-08',
+        '2025-05-08 14:01:00',
+        '2025-05-08 22:02:00',
+        2
+    ),
+    (
+        2728,
+        7,
+        2,
+        '2025-05-09',
+        '2025-05-09 14:01:00',
+        '2025-05-09 22:02:00',
+        2
+    ),
+    (
+        2729,
+        7,
+        2,
+        '2025-05-10',
+        '2025-05-10 14:01:00',
+        '2025-05-10 22:02:00',
+        2
+    ),
+    (
+        2730,
+        7,
+        1,
+        '2025-05-12',
+        '2025-05-12 08:02:00',
+        '2025-05-12 16:01:00',
+        2
+    ),
+    (
+        2731,
+        7,
+        1,
+        '2025-05-13',
+        '2025-05-13 08:02:00',
+        '2025-05-13 16:01:00',
+        2
+    ),
+    (
+        2732,
+        7,
+        1,
+        '2025-05-14',
+        '2025-05-14 08:02:00',
+        '2025-05-14 16:01:00',
+        2
+    ),
+    (
+        2733,
+        7,
+        1,
+        '2025-05-15',
+        '2025-05-15 08:02:00',
+        '2025-05-15 16:01:00',
+        2
+    ),
+    (
+        2734,
+        7,
+        1,
+        '2025-05-16',
+        '2025-05-16 08:02:00',
+        '2025-05-16 16:01:00',
+        2
+    ),
+    (
+        2735,
+        7,
+        1,
+        '2025-05-17',
+        '2025-05-17 08:02:00',
+        '2025-05-17 16:01:00',
+        2
+    ),
+    (
+        2736,
+        7,
+        2,
+        '2025-05-19',
+        '2025-05-19 14:01:00',
+        '2025-05-19 22:02:00',
+        2
+    ),
+    (
+        2737,
+        7,
+        2,
+        '2025-05-20',
+        '2025-05-20 14:01:00',
+        '2025-05-20 22:02:00',
+        2
+    ),
+    (
+        2738,
+        7,
+        2,
+        '2025-05-21',
+        '2025-05-21 14:01:00',
+        '2025-05-21 22:02:00',
+        2
+    ),
+    (
+        2739,
+        7,
+        2,
+        '2025-05-22',
+        '2025-05-22 14:01:00',
+        '2025-05-22 22:02:00',
+        2
+    ),
+    (
+        2740,
+        7,
+        2,
+        '2025-05-23',
+        '2025-05-23 14:01:00',
+        '2025-05-23 22:02:00',
+        2
+    ),
+    (
+        2741,
+        7,
+        2,
+        '2025-05-24',
+        '2025-05-24 14:01:00',
+        '2025-05-24 22:02:00',
+        2
+    ),
+    (
+        2742,
+        7,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        2743,
+        7,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        2744,
+        7,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        2745,
+        7,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        2746,
+        7,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        2747,
+        7,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        2748,
+        7,
+        2,
+        '2025-06-02',
+        '2025-06-02 14:01:00',
+        '2025-06-02 22:02:00',
+        2
+    ),
+    (
+        2749,
+        7,
+        2,
+        '2025-06-03',
+        '2025-06-03 14:01:00',
+        '2025-06-03 22:02:00',
+        2
+    ),
+    (
+        2750,
+        7,
+        2,
+        '2025-06-04',
+        '2025-06-04 14:01:00',
+        '2025-06-04 22:02:00',
+        2
+    ),
+    (
+        2751,
+        7,
+        2,
+        '2025-06-05',
+        '2025-06-05 14:01:00',
+        '2025-06-05 22:02:00',
+        2
+    ),
+    (
+        2752,
+        7,
+        2,
+        '2025-06-06',
+        '2025-06-06 14:01:00',
+        '2025-06-06 22:02:00',
+        2
+    ),
+    (
+        2753,
+        7,
+        2,
+        '2025-06-07',
+        '2025-06-07 14:01:00',
+        '2025-06-07 22:02:00',
+        2
+    ),
+    (
+        2754,
+        7,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        2755,
+        7,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        2756,
+        7,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        2757,
+        7,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        2758,
+        7,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        2759,
+        7,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        2760,
+        7,
+        2,
+        '2025-06-16',
+        '2025-06-16 14:01:00',
+        '2025-06-16 22:02:00',
+        2
+    ),
+    (
+        2761,
+        7,
+        2,
+        '2025-06-17',
+        '2025-06-17 14:01:00',
+        '2025-06-17 22:02:00',
+        2
+    ),
+    (
+        2762,
+        7,
+        2,
+        '2025-06-18',
+        '2025-06-18 14:01:00',
+        '2025-06-18 22:02:00',
+        2
+    ),
+    (
+        2763,
+        7,
+        2,
+        '2025-06-19',
+        '2025-06-19 14:01:00',
+        '2025-06-19 22:02:00',
+        2
+    ),
+    (
+        2764,
+        7,
+        2,
+        '2025-06-20',
+        '2025-06-20 14:01:00',
+        '2025-06-20 22:02:00',
+        2
+    ),
+    (
+        2765,
+        7,
+        2,
+        '2025-06-21',
+        '2025-06-21 14:01:00',
+        '2025-06-21 22:02:00',
+        2
+    ),
+    (
+        2766,
+        7,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        2767,
+        7,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        2768,
+        7,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        2769,
+        7,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    ),
+    (
+        2770,
+        7,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        2771,
+        7,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        2772,
+        7,
+        2,
+        '2025-06-30',
+        '2025-06-30 14:01:00',
+        '2025-06-30 22:02:00',
+        2
+    ),
+    (
+        2773,
+        7,
+        2,
+        '2025-07-01',
+        '2025-07-01 14:01:00',
+        '2025-07-01 22:02:00',
+        2
+    ),
+    (
+        2774,
+        7,
+        2,
+        '2025-07-02',
+        '2025-07-02 14:01:00',
+        '2025-07-02 22:02:00',
+        2
+    ),
+    (
+        2775,
+        7,
+        2,
+        '2025-07-03',
+        '2025-07-03 14:01:00',
+        '2025-07-03 22:02:00',
+        2
+    ),
+    (
+        2776,
+        7,
+        2,
+        '2025-07-04',
+        '2025-07-04 14:01:00',
+        '2025-07-04 22:02:00',
+        2
+    ),
+    (
+        2777,
+        7,
+        2,
+        '2025-07-05',
+        '2025-07-05 14:01:00',
+        '2025-07-05 22:02:00',
+        2
+    ),
+    (
+        2778,
+        7,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        2779,
+        7,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        2780,
+        7,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        2781,
+        7,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        2782,
+        7,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        2783,
+        7,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        2784,
+        7,
+        2,
+        '2025-07-14',
+        '2025-07-14 14:01:00',
+        '2025-07-14 22:02:00',
+        2
+    ),
+    (
+        2785,
+        7,
+        2,
+        '2025-07-15',
+        '2025-07-15 14:01:00',
+        '2025-07-15 22:02:00',
+        2
+    ),
+    (
+        2786,
+        7,
+        2,
+        '2025-07-16',
+        '2025-07-16 14:01:00',
+        '2025-07-16 22:02:00',
+        2
+    ),
+    (
+        2787,
+        7,
+        2,
+        '2025-07-17',
+        '2025-07-17 14:01:00',
+        '2025-07-17 22:02:00',
+        2
+    ),
+    (
+        2788,
+        7,
+        2,
+        '2025-07-18',
+        '2025-07-18 14:01:00',
+        '2025-07-18 22:02:00',
+        2
+    ),
+    (
+        2789,
+        7,
+        2,
+        '2025-07-19',
+        '2025-07-19 14:01:00',
+        '2025-07-19 22:02:00',
+        2
+    ),
+    (
+        2790,
+        7,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        2791,
+        7,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        2792,
+        7,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        2793,
+        7,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        2794,
+        7,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        2795,
+        7,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        2796,
+        7,
+        2,
+        '2025-07-28',
+        '2025-07-28 14:01:00',
+        '2025-07-28 22:02:00',
+        2
+    ),
+    (
+        2797,
+        7,
+        2,
+        '2025-07-29',
+        '2025-07-29 14:01:00',
+        '2025-07-29 22:02:00',
+        2
+    ),
+    (
+        2798,
+        7,
+        2,
+        '2025-07-30',
+        '2025-07-30 14:01:00',
+        '2025-07-30 22:02:00',
+        2
+    ),
+    (
+        2799,
+        7,
+        2,
+        '2025-07-31',
+        '2025-07-31 14:01:00',
+        '2025-07-31 22:02:00',
+        2
+    ),
+    (
+        2800,
+        7,
+        2,
+        '2025-08-01',
+        '2025-08-01 14:01:00',
+        '2025-08-01 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        2801,
+        7,
+        2,
+        '2025-08-02',
+        '2025-08-02 14:01:00',
+        '2025-08-02 22:02:00',
+        2
+    ),
+    (
+        2802,
+        7,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        2803,
+        7,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        2804,
+        7,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        2805,
+        7,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        2806,
+        7,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        2807,
+        7,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        2808,
+        7,
+        2,
+        '2025-08-11',
+        '2025-08-11 14:01:00',
+        '2025-08-11 22:02:00',
+        2
+    ),
+    (
+        2809,
+        7,
+        2,
+        '2025-08-12',
+        '2025-08-12 14:01:00',
+        '2025-08-12 22:02:00',
+        2
+    ),
+    (
+        2810,
+        7,
+        2,
+        '2025-08-13',
+        '2025-08-13 14:01:00',
+        '2025-08-13 22:02:00',
+        2
+    ),
+    (
+        2811,
+        7,
+        2,
+        '2025-08-14',
+        '2025-08-14 14:01:00',
+        '2025-08-14 22:02:00',
+        2
+    ),
+    (
+        2812,
+        7,
+        2,
+        '2025-08-15',
+        '2025-08-15 14:01:00',
+        '2025-08-15 22:02:00',
+        2
+    ),
+    (
+        2813,
+        7,
+        2,
+        '2025-08-16',
+        '2025-08-16 14:01:00',
+        '2025-08-16 22:02:00',
+        2
+    ),
+    (
+        2814,
+        7,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        2815,
+        7,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        2816,
+        7,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        2817,
+        7,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        2818,
+        7,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        2819,
+        7,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        2820,
+        7,
+        2,
+        '2025-08-25',
+        '2025-08-25 14:01:00',
+        '2025-08-25 22:02:00',
+        2
+    ),
+    (
+        2821,
+        7,
+        2,
+        '2025-08-26',
+        '2025-08-26 14:01:00',
+        '2025-08-26 22:02:00',
+        2
+    ),
+    (
+        2822,
+        7,
+        2,
+        '2025-08-27',
+        '2025-08-27 14:01:00',
+        '2025-08-27 22:02:00',
+        2
+    ),
+    (
+        2823,
+        7,
+        2,
+        '2025-08-28',
+        '2025-08-28 14:01:00',
+        '2025-08-28 22:02:00',
+        2
+    ),
+    (
+        2824,
+        7,
+        2,
+        '2025-08-29',
+        '2025-08-29 14:01:00',
+        '2025-08-29 22:02:00',
+        2
+    ),
+    (
+        2825,
+        7,
+        2,
+        '2025-08-30',
+        '2025-08-30 14:01:00',
+        '2025-08-30 22:02:00',
+        2
+    ),
+    (
+        2826,
+        7,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        2827,
+        7,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        2828,
+        7,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        2829,
+        7,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        2830,
+        7,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        2831,
+        7,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        2832,
+        7,
+        2,
+        '2025-09-08',
+        '2025-09-08 14:01:00',
+        '2025-09-08 22:02:00',
+        2
+    ),
+    (
+        2833,
+        7,
+        2,
+        '2025-09-09',
+        '2025-09-09 14:01:00',
+        '2025-09-09 22:02:00',
+        2
+    ),
+    (
+        2834,
+        7,
+        2,
+        '2025-09-10',
+        '2025-09-10 14:01:00',
+        '2025-09-10 22:02:00',
+        2
+    ),
+    (
+        2835,
+        7,
+        2,
+        '2025-09-11',
+        '2025-09-11 14:01:00',
+        '2025-09-11 22:02:00',
+        2
+    ),
+    (
+        2836,
+        7,
+        2,
+        '2025-09-12',
+        '2025-09-12 14:01:00',
+        '2025-09-12 22:02:00',
+        2
+    ),
+    (
+        2837,
+        7,
+        2,
+        '2025-09-13',
+        '2025-09-13 14:01:00',
+        '2025-09-13 22:02:00',
+        2
+    ),
+    (
+        2838,
+        7,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        2839,
+        7,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        2840,
+        7,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    ),
+    (
+        2841,
+        7,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        2842,
+        7,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        2843,
+        7,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        2844,
+        7,
+        2,
+        '2025-09-22',
+        '2025-09-22 14:01:00',
+        '2025-09-22 22:02:00',
+        2
+    ),
+    (
+        2845,
+        7,
+        2,
+        '2025-09-23',
+        '2025-09-23 14:01:00',
+        '2025-09-23 22:02:00',
+        2
+    ),
+    (
+        2846,
+        7,
+        2,
+        '2025-09-24',
+        '2025-09-24 14:01:00',
+        '2025-09-24 22:02:00',
+        2
+    ),
+    (
+        2847,
+        7,
+        2,
+        '2025-09-25',
+        '2025-09-25 14:01:00',
+        '2025-09-25 22:02:00',
+        2
+    ),
+    (
+        2848,
+        7,
+        2,
+        '2025-09-26',
+        '2025-09-26 14:01:00',
+        '2025-09-26 22:02:00',
+        2
+    ),
+    (
+        2849,
+        7,
+        2,
+        '2025-09-27',
+        '2025-09-27 14:01:00',
+        '2025-09-27 22:02:00',
+        2
+    ),
+    (
+        2850,
+        7,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        2851,
+        7,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        2852,
+        7,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        2853,
+        7,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        2854,
+        7,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        2855,
+        7,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        2856,
+        7,
+        2,
+        '2025-10-06',
+        '2025-10-06 14:01:00',
+        '2025-10-06 22:02:00',
+        2
+    ),
+    (
+        2857,
+        7,
+        2,
+        '2025-10-07',
+        '2025-10-07 14:01:00',
+        '2025-10-07 22:02:00',
+        2
+    ),
+    (
+        2858,
+        7,
+        2,
+        '2025-10-08',
+        '2025-10-08 14:01:00',
+        '2025-10-08 22:02:00',
+        2
+    ),
+    (
+        2859,
+        7,
+        2,
+        '2025-10-09',
+        '2025-10-09 14:01:00',
+        '2025-10-09 22:02:00',
+        2
+    ),
+    (
+        2860,
+        7,
+        2,
+        '2025-10-10',
+        '2025-10-10 14:01:00',
+        '2025-10-10 22:02:00',
+        2
+    ),
+    (
+        2861,
+        7,
+        2,
+        '2025-10-11',
+        '2025-10-11 14:01:00',
+        '2025-10-11 22:02:00',
+        2
+    ),
+    (
+        2862,
+        7,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        2863,
+        7,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        2864,
+        7,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        2865,
+        7,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        2866,
+        7,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        2867,
+        7,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        2868,
+        7,
+        2,
+        '2025-10-20',
+        '2025-10-20 14:01:00',
+        '2025-10-20 22:02:00',
+        2
+    ),
+    (
+        2869,
+        7,
+        2,
+        '2025-10-21',
+        '2025-10-21 14:01:00',
+        '2025-10-21 22:02:00',
+        2
+    ),
+    (
+        2870,
+        7,
+        2,
+        '2025-10-22',
+        '2025-10-22 14:01:00',
+        '2025-10-22 22:02:00',
+        2
+    ),
+    (
+        2871,
+        7,
+        2,
+        '2025-10-23',
+        '2025-10-23 14:01:00',
+        '2025-10-23 22:02:00',
+        2
+    ),
+    (
+        2872,
+        7,
+        2,
+        '2025-10-24',
+        '2025-10-24 14:01:00',
+        '2025-10-24 22:02:00',
+        2
+    ),
+    (
+        2873,
+        7,
+        2,
+        '2025-10-25',
+        '2025-10-25 14:01:00',
+        '2025-10-25 22:02:00',
+        2
+    ),
+    (
+        2874,
+        7,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        2875,
+        7,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        2876,
+        7,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        2877,
+        7,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        2878,
+        7,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        2879,
+        7,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        2880,
+        7,
+        2,
+        '2025-11-03',
+        '2025-11-03 14:01:00',
+        '2025-11-03 22:02:00',
+        2
+    ),
+    (
+        2881,
+        7,
+        2,
+        '2025-11-04',
+        '2025-11-04 14:01:00',
+        '2025-11-04 22:02:00',
+        2
+    ),
+    (
+        2882,
+        7,
+        2,
+        '2025-11-05',
+        '2025-11-05 14:01:00',
+        '2025-11-05 22:02:00',
+        2
+    ),
+    (
+        2883,
+        7,
+        2,
+        '2025-11-06',
+        '2025-11-06 14:01:00',
+        '2025-11-06 22:02:00',
+        2
+    ),
+    (
+        2884,
+        7,
+        2,
+        '2025-11-07',
+        '2025-11-07 14:01:00',
+        '2025-11-07 22:02:00',
+        2
+    ),
+    (
+        2885,
+        7,
+        2,
+        '2025-11-08',
+        '2025-11-08 14:01:00',
+        '2025-11-08 22:02:00',
+        2
+    ),
+    (
+        2886,
+        7,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        2887,
+        7,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        2888,
+        7,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        2889,
+        7,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        2890,
+        7,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        2891,
+        7,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        2892,
+        7,
+        2,
+        '2025-11-17',
+        '2025-11-17 14:01:00',
+        '2025-11-17 22:02:00',
+        2
+    ),
+    (
+        2893,
+        7,
+        2,
+        '2025-11-18',
+        '2025-11-18 14:01:00',
+        '2025-11-18 22:02:00',
+        2
+    ),
+    (
+        2894,
+        7,
+        2,
+        '2025-11-19',
+        '2025-11-19 14:01:00',
+        '2025-11-19 22:02:00',
+        2
+    ),
+    (
+        2895,
+        7,
+        2,
+        '2025-11-20',
+        '2025-11-20 14:01:00',
+        '2025-11-20 22:02:00',
+        2
+    ),
+    (
+        2896,
+        7,
+        2,
+        '2025-11-21',
+        '2025-11-21 14:01:00',
+        '2025-11-21 22:02:00',
+        2
+    ),
+    (
+        2897,
+        7,
+        2,
+        '2025-11-22',
+        '2025-11-22 14:01:00',
+        '2025-11-22 22:02:00',
+        2
+    ),
+    (
+        2898,
+        7,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        2899,
+        7,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        2900,
+        7,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        2901,
+        7,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        2902,
+        7,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        2903,
+        7,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        2904,
+        7,
+        2,
+        '2025-12-01',
+        '2025-12-01 14:01:00',
+        '2025-12-01 22:02:00',
+        2
+    ),
+    (
+        2905,
+        7,
+        2,
+        '2025-12-02',
+        '2025-12-02 14:01:00',
+        '2025-12-02 22:02:00',
+        2
+    ),
+    (
+        2906,
+        7,
+        2,
+        '2025-12-03',
+        '2025-12-03 14:01:00',
+        '2025-12-03 22:02:00',
+        2
+    ),
+    (
+        2907,
+        7,
+        2,
+        '2025-12-04',
+        '2025-12-04 14:01:00',
+        '2025-12-04 22:02:00',
+        2
+    ),
+    (
+        2908,
+        7,
+        2,
+        '2025-12-05',
+        '2025-12-05 14:01:00',
+        '2025-12-05 22:02:00',
+        2
+    ),
+    (
+        2909,
+        7,
+        2,
+        '2025-12-06',
+        '2025-12-06 14:01:00',
+        '2025-12-06 22:02:00',
+        2
+    ),
+    (
+        2910,
+        7,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        2911,
+        7,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    ),
+    (
+        2912,
+        7,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        2913,
+        7,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        2914,
+        7,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        2915,
+        7,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        2916,
+        7,
+        2,
+        '2025-12-15',
+        '2025-12-15 14:01:00',
+        '2025-12-15 22:02:00',
+        2
+    ),
+    (
+        2917,
+        7,
+        2,
+        '2025-12-16',
+        '2025-12-16 14:01:00',
+        '2025-12-16 22:02:00',
+        2
+    ),
+    (
+        2918,
+        7,
+        2,
+        '2025-12-17',
+        '2025-12-17 14:01:00',
+        '2025-12-17 22:02:00',
+        2
+    ),
+    (
+        2919,
+        7,
+        2,
+        '2025-12-18',
+        '2025-12-18 14:01:00',
+        '2025-12-18 22:02:00',
+        2
+    ),
+    (
+        2920,
+        7,
+        2,
+        '2025-12-19',
+        '2025-12-19 14:01:00',
+        '2025-12-19 22:02:00',
+        2
+    ),
+    (
+        2921,
+        7,
+        2,
+        '2025-12-20',
+        '2025-12-20 14:01:00',
+        '2025-12-20 22:02:00',
+        2
+    ),
+    (
+        2922,
+        7,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        2923,
+        7,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    ),
+    (
+        2924,
+        7,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        2925,
+        7,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        2926,
+        7,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        2927,
+        7,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        2928,
+        7,
+        2,
+        '2025-12-29',
+        '2025-12-29 14:01:00',
+        '2025-12-29 22:02:00',
+        2
+    ),
+    (
+        2929,
+        7,
+        2,
+        '2025-12-30',
+        '2025-12-30 14:01:00',
+        '2025-12-30 22:02:00',
+        2
+    ),
+    (
+        2930,
+        7,
+        2,
+        '2025-12-31',
+        '2025-12-31 14:01:00',
+        '2025-12-31 22:02:00',
+        2
+    ),
+    (
+        2931,
+        7,
+        2,
+        '2026-01-01',
+        '2026-01-01 14:01:00',
+        '2026-01-01 22:02:00',
+        2
+    ),
+    (
+        2932,
+        7,
+        2,
+        '2026-01-02',
+        '2026-01-02 14:01:00',
+        '2026-01-02 22:02:00',
+        2
+    ),
+    (
+        2933,
+        7,
+        2,
+        '2026-01-03',
+        '2026-01-03 14:01:00',
+        '2026-01-03 22:02:00',
+        2
+    ),
+    (
+        2934,
+        7,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        2935,
+        7,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        2936,
+        7,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        2937,
+        7,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        2938,
+        7,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        2939,
+        7,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        2940,
+        7,
+        2,
+        '2026-01-12',
+        '2026-01-12 14:01:00',
+        '2026-01-12 22:02:00',
+        2
+    ),
+    (
+        2941,
+        7,
+        2,
+        '2026-01-13',
+        '2026-01-13 14:01:00',
+        '2026-01-13 22:02:00',
+        2
+    ),
+    (
+        2942,
+        7,
+        2,
+        '2026-01-14',
+        '2026-01-14 14:01:00',
+        '2026-01-14 22:02:00',
+        2
+    ),
+    (
+        2943,
+        7,
+        2,
+        '2026-01-15',
+        '2026-01-15 14:01:00',
+        '2026-01-15 22:02:00',
+        2
+    ),
+    (
+        2944,
+        7,
+        2,
+        '2026-01-16',
+        '2026-01-16 14:01:00',
+        '2026-01-16 22:02:00',
+        2
+    ),
+    (
+        2945,
+        7,
+        2,
+        '2026-01-17',
+        '2026-01-17 14:01:00',
+        '2026-01-17 22:02:00',
+        2
+    ),
+    (
+        2946,
+        7,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        2947,
+        7,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        2948,
+        7,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        2949,
+        7,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        2950,
+        7,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        2951,
+        7,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        2952,
+        7,
+        2,
+        '2026-01-26',
+        '2026-01-26 14:01:00',
+        '2026-01-26 22:02:00',
+        2
+    ),
+    (
+        2953,
+        7,
+        2,
+        '2026-01-27',
+        '2026-01-27 14:01:00',
+        '2026-01-27 22:02:00',
+        2
+    ),
+    (
+        2954,
+        7,
+        2,
+        '2026-01-28',
+        '2026-01-28 14:01:00',
+        '2026-01-28 22:02:00',
+        2
+    ),
+    (
+        2955,
+        7,
+        2,
+        '2026-01-29',
+        '2026-01-29 14:01:00',
+        '2026-01-29 22:02:00',
+        2
+    ),
+    (
+        2956,
+        7,
+        2,
+        '2026-01-30',
+        '2026-01-30 14:01:00',
+        '2026-01-30 22:02:00',
+        2
+    ),
+    (
+        2957,
+        7,
+        2,
+        '2026-01-31',
+        '2026-01-31 14:01:00',
+        '2026-01-31 22:02:00',
+        2
+    ),
+    (
+        2958,
+        7,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        2959,
+        7,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        2960,
+        7,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        2961,
+        7,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        2962,
+        7,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        2963,
+        7,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        2964,
+        7,
+        2,
+        '2026-02-09',
+        '2026-02-09 14:01:00',
+        '2026-02-09 22:02:00',
+        2
+    ),
+    (
+        2965,
+        7,
+        2,
+        '2026-02-10',
+        '2026-02-10 14:01:00',
+        '2026-02-10 22:02:00',
+        2
+    ),
+    (
+        2966,
+        7,
+        2,
+        '2026-02-11',
+        '2026-02-11 14:01:00',
+        '2026-02-11 22:02:00',
+        2
+    ),
+    (
+        2967,
+        7,
+        2,
+        '2026-02-12',
+        '2026-02-12 14:01:00',
+        '2026-02-12 22:02:00',
+        2
+    ),
+    (
+        2968,
+        7,
+        2,
+        '2026-02-13',
+        '2026-02-13 14:01:00',
+        '2026-02-13 22:02:00',
+        2
+    ),
+    (
+        2969,
+        7,
+        2,
+        '2026-02-14',
+        '2026-02-14 14:01:00',
+        '2026-02-14 22:02:00',
+        2
+    ),
+    (
+        2970,
+        7,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        2971,
+        7,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        2972,
+        7,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        2973,
+        7,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        2974,
+        7,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        2975,
+        7,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        2976,
+        7,
+        2,
+        '2026-02-23',
+        '2026-02-23 14:01:00',
+        '2026-02-23 22:02:00',
+        2
+    ),
+    (
+        2977,
+        7,
+        2,
+        '2026-02-24',
+        '2026-02-24 14:01:00',
+        '2026-02-24 22:02:00',
+        2
+    ),
+    (
+        2978,
+        7,
+        2,
+        '2026-02-25',
+        '2026-02-25 14:01:00',
+        '2026-02-25 22:02:00',
+        2
+    ),
+    (
+        2979,
+        7,
+        2,
+        '2026-02-26',
+        '2026-02-26 14:01:00',
+        '2026-02-26 22:02:00',
+        2
+    ),
+    (
+        2980,
+        7,
+        2,
+        '2026-02-27',
+        '2026-02-27 14:01:00',
+        '2026-02-27 22:02:00',
+        2
+    ),
+    (
+        2981,
+        7,
+        2,
+        '2026-02-28',
+        '2026-02-28 14:01:00',
+        '2026-02-28 22:02:00',
+        2
+    ),
+    (
+        2982,
+        7,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        2983,
+        7,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        2984,
+        7,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        2985,
+        7,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        2986,
+        7,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        2987,
+        7,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        2988,
+        7,
+        2,
+        '2026-03-09',
+        '2026-03-09 14:01:00',
+        '2026-03-09 22:02:00',
+        2
+    ),
+    (
+        2989,
+        7,
+        2,
+        '2026-03-10',
+        '2026-03-10 14:01:00',
+        '2026-03-10 22:02:00',
+        2
+    ),
+    (
+        2990,
+        7,
+        2,
+        '2026-03-11',
+        '2026-03-11 14:01:00',
+        '2026-03-11 22:02:00',
+        2
+    ),
+    (
+        2991,
+        7,
+        2,
+        '2026-03-12',
+        '2026-03-12 14:01:00',
+        '2026-03-12 22:02:00',
+        2
+    ),
+    (
+        2992,
+        7,
+        2,
+        '2026-03-13',
+        '2026-03-13 14:01:00',
+        '2026-03-13 22:02:00',
+        2
+    ),
+    (
+        2993,
+        7,
+        2,
+        '2026-03-14',
+        '2026-03-14 14:01:00',
+        '2026-03-14 22:02:00',
+        2
+    ),
+    (
+        2994,
+        7,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        2995,
+        7,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        2996,
+        7,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        2997,
+        7,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        2998,
+        7,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        2999,
+        7,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        3000,
+        7,
+        2,
+        '2026-03-23',
+        '2026-03-23 14:01:00',
+        '2026-03-23 22:02:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        3001,
+        7,
+        2,
+        '2026-03-24',
+        '2026-03-24 14:01:00',
+        '2026-03-24 22:02:00',
+        2
+    ),
+    (
+        3002,
+        7,
+        2,
+        '2026-03-25',
+        '2026-03-25 14:01:00',
+        '2026-03-25 22:02:00',
+        2
+    ),
+    (
+        3003,
+        7,
+        2,
+        '2026-03-26',
+        '2026-03-26 14:01:00',
+        '2026-03-26 22:02:00',
+        2
+    ),
+    (
+        3004,
+        7,
+        2,
+        '2026-03-27',
+        '2026-03-27 14:01:00',
+        '2026-03-27 22:02:00',
+        2
+    ),
+    (
+        3005,
+        7,
+        2,
+        '2026-03-28',
+        '2026-03-28 14:01:00',
+        '2026-03-28 22:02:00',
+        2
+    ),
+    (
+        3006,
+        7,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        3007,
+        7,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        3008,
+        7,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        3009,
+        7,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        3010,
+        7,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        3011,
+        7,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        3012,
+        7,
+        2,
+        '2026-04-06',
+        '2026-04-06 14:01:00',
+        '2026-04-06 22:02:00',
+        2
+    ),
+    (
+        3013,
+        7,
+        2,
+        '2026-04-07',
+        '2026-04-07 14:01:00',
+        '2026-04-07 22:02:00',
+        2
+    ),
+    (
+        3014,
+        8,
+        2,
+        '2025-05-20',
+        '2025-05-20 14:01:00',
+        '2025-05-20 22:02:00',
+        2
+    ),
+    (
+        3015,
+        8,
+        2,
+        '2025-05-21',
+        '2025-05-21 14:01:00',
+        '2025-05-21 22:02:00',
+        2
+    ),
+    (
+        3016,
+        8,
+        2,
+        '2025-05-22',
+        '2025-05-22 14:01:00',
+        '2025-05-22 22:02:00',
+        2
+    ),
+    (
+        3017,
+        8,
+        2,
+        '2025-05-23',
+        '2025-05-23 14:01:00',
+        '2025-05-23 22:02:00',
+        2
+    ),
+    (
+        3018,
+        8,
+        2,
+        '2025-05-24',
+        '2025-05-24 14:01:00',
+        '2025-05-24 22:02:00',
+        2
+    ),
+    (
+        3019,
+        8,
+        1,
+        '2025-05-26',
+        '2025-05-26 08:02:00',
+        '2025-05-26 16:01:00',
+        2
+    ),
+    (
+        3020,
+        8,
+        1,
+        '2025-05-27',
+        '2025-05-27 08:02:00',
+        '2025-05-27 16:01:00',
+        2
+    ),
+    (
+        3021,
+        8,
+        1,
+        '2025-05-28',
+        '2025-05-28 08:02:00',
+        '2025-05-28 16:01:00',
+        2
+    ),
+    (
+        3022,
+        8,
+        1,
+        '2025-05-29',
+        '2025-05-29 08:02:00',
+        '2025-05-29 16:01:00',
+        2
+    ),
+    (
+        3023,
+        8,
+        1,
+        '2025-05-30',
+        '2025-05-30 08:02:00',
+        '2025-05-30 16:01:00',
+        2
+    ),
+    (
+        3024,
+        8,
+        1,
+        '2025-05-31',
+        '2025-05-31 08:02:00',
+        '2025-05-31 16:01:00',
+        2
+    ),
+    (
+        3025,
+        8,
+        2,
+        '2025-06-02',
+        '2025-06-02 14:01:00',
+        '2025-06-02 22:02:00',
+        2
+    ),
+    (
+        3026,
+        8,
+        2,
+        '2025-06-03',
+        '2025-06-03 14:01:00',
+        '2025-06-03 22:02:00',
+        2
+    ),
+    (
+        3027,
+        8,
+        2,
+        '2025-06-04',
+        '2025-06-04 14:01:00',
+        '2025-06-04 22:02:00',
+        2
+    ),
+    (
+        3028,
+        8,
+        2,
+        '2025-06-05',
+        '2025-06-05 14:01:00',
+        '2025-06-05 22:02:00',
+        2
+    ),
+    (
+        3029,
+        8,
+        2,
+        '2025-06-06',
+        '2025-06-06 14:01:00',
+        '2025-06-06 22:02:00',
+        2
+    ),
+    (
+        3030,
+        8,
+        2,
+        '2025-06-07',
+        '2025-06-07 14:01:00',
+        '2025-06-07 22:02:00',
+        2
+    ),
+    (
+        3031,
+        8,
+        1,
+        '2025-06-09',
+        '2025-06-09 08:02:00',
+        '2025-06-09 16:01:00',
+        2
+    ),
+    (
+        3032,
+        8,
+        1,
+        '2025-06-10',
+        '2025-06-10 08:02:00',
+        '2025-06-10 16:01:00',
+        2
+    ),
+    (
+        3033,
+        8,
+        1,
+        '2025-06-11',
+        '2025-06-11 08:02:00',
+        '2025-06-11 16:01:00',
+        2
+    ),
+    (
+        3034,
+        8,
+        1,
+        '2025-06-12',
+        '2025-06-12 08:02:00',
+        '2025-06-12 16:01:00',
+        2
+    ),
+    (
+        3035,
+        8,
+        1,
+        '2025-06-13',
+        '2025-06-13 08:02:00',
+        '2025-06-13 16:01:00',
+        2
+    ),
+    (
+        3036,
+        8,
+        1,
+        '2025-06-14',
+        '2025-06-14 08:02:00',
+        '2025-06-14 16:01:00',
+        2
+    ),
+    (
+        3037,
+        8,
+        2,
+        '2025-06-16',
+        '2025-06-16 14:01:00',
+        '2025-06-16 22:02:00',
+        2
+    ),
+    (
+        3038,
+        8,
+        2,
+        '2025-06-17',
+        '2025-06-17 14:01:00',
+        '2025-06-17 22:02:00',
+        2
+    ),
+    (
+        3039,
+        8,
+        2,
+        '2025-06-18',
+        '2025-06-18 14:01:00',
+        '2025-06-18 22:02:00',
+        2
+    ),
+    (
+        3040,
+        8,
+        2,
+        '2025-06-19',
+        '2025-06-19 14:01:00',
+        '2025-06-19 22:02:00',
+        2
+    ),
+    (
+        3041,
+        8,
+        2,
+        '2025-06-20',
+        '2025-06-20 14:01:00',
+        '2025-06-20 22:02:00',
+        2
+    ),
+    (
+        3042,
+        8,
+        2,
+        '2025-06-21',
+        '2025-06-21 14:01:00',
+        '2025-06-21 22:02:00',
+        2
+    ),
+    (
+        3043,
+        8,
+        1,
+        '2025-06-23',
+        '2025-06-23 08:02:00',
+        '2025-06-23 16:01:00',
+        2
+    ),
+    (
+        3044,
+        8,
+        1,
+        '2025-06-24',
+        '2025-06-24 08:02:00',
+        '2025-06-24 16:01:00',
+        2
+    ),
+    (
+        3045,
+        8,
+        1,
+        '2025-06-25',
+        '2025-06-25 08:02:00',
+        '2025-06-25 16:01:00',
+        2
+    ),
+    (
+        3046,
+        8,
+        1,
+        '2025-06-26',
+        '2025-06-26 08:02:00',
+        '2025-06-26 16:01:00',
+        2
+    ),
+    (
+        3047,
+        8,
+        1,
+        '2025-06-27',
+        '2025-06-27 08:02:00',
+        '2025-06-27 16:01:00',
+        2
+    ),
+    (
+        3048,
+        8,
+        1,
+        '2025-06-28',
+        '2025-06-28 08:02:00',
+        '2025-06-28 16:01:00',
+        2
+    ),
+    (
+        3049,
+        8,
+        2,
+        '2025-06-30',
+        '2025-06-30 14:01:00',
+        '2025-06-30 22:02:00',
+        2
+    ),
+    (
+        3050,
+        8,
+        2,
+        '2025-07-01',
+        '2025-07-01 14:01:00',
+        '2025-07-01 22:02:00',
+        2
+    ),
+    (
+        3051,
+        8,
+        2,
+        '2025-07-02',
+        '2025-07-02 14:01:00',
+        '2025-07-02 22:02:00',
+        2
+    ),
+    (
+        3052,
+        8,
+        2,
+        '2025-07-03',
+        '2025-07-03 14:01:00',
+        '2025-07-03 22:02:00',
+        2
+    ),
+    (
+        3053,
+        8,
+        2,
+        '2025-07-04',
+        '2025-07-04 14:01:00',
+        '2025-07-04 22:02:00',
+        2
+    ),
+    (
+        3054,
+        8,
+        2,
+        '2025-07-05',
+        '2025-07-05 14:01:00',
+        '2025-07-05 22:02:00',
+        2
+    ),
+    (
+        3055,
+        8,
+        1,
+        '2025-07-07',
+        '2025-07-07 08:02:00',
+        '2025-07-07 16:01:00',
+        2
+    ),
+    (
+        3056,
+        8,
+        1,
+        '2025-07-08',
+        '2025-07-08 08:02:00',
+        '2025-07-08 16:01:00',
+        2
+    ),
+    (
+        3057,
+        8,
+        1,
+        '2025-07-09',
+        '2025-07-09 08:02:00',
+        '2025-07-09 16:01:00',
+        2
+    ),
+    (
+        3058,
+        8,
+        1,
+        '2025-07-10',
+        '2025-07-10 08:02:00',
+        '2025-07-10 16:01:00',
+        2
+    ),
+    (
+        3059,
+        8,
+        1,
+        '2025-07-11',
+        '2025-07-11 08:02:00',
+        '2025-07-11 16:01:00',
+        2
+    ),
+    (
+        3060,
+        8,
+        1,
+        '2025-07-12',
+        '2025-07-12 08:02:00',
+        '2025-07-12 16:01:00',
+        2
+    ),
+    (
+        3061,
+        8,
+        2,
+        '2025-07-14',
+        '2025-07-14 14:01:00',
+        '2025-07-14 22:02:00',
+        2
+    ),
+    (
+        3062,
+        8,
+        2,
+        '2025-07-15',
+        '2025-07-15 14:01:00',
+        '2025-07-15 22:02:00',
+        2
+    ),
+    (
+        3063,
+        8,
+        2,
+        '2025-07-16',
+        '2025-07-16 14:01:00',
+        '2025-07-16 22:02:00',
+        2
+    ),
+    (
+        3064,
+        8,
+        2,
+        '2025-07-17',
+        '2025-07-17 14:01:00',
+        '2025-07-17 22:02:00',
+        2
+    ),
+    (
+        3065,
+        8,
+        2,
+        '2025-07-18',
+        '2025-07-18 14:01:00',
+        '2025-07-18 22:02:00',
+        2
+    ),
+    (
+        3066,
+        8,
+        2,
+        '2025-07-19',
+        '2025-07-19 14:01:00',
+        '2025-07-19 22:02:00',
+        2
+    ),
+    (
+        3067,
+        8,
+        1,
+        '2025-07-21',
+        '2025-07-21 08:02:00',
+        '2025-07-21 16:01:00',
+        2
+    ),
+    (
+        3068,
+        8,
+        1,
+        '2025-07-22',
+        '2025-07-22 08:02:00',
+        '2025-07-22 16:01:00',
+        2
+    ),
+    (
+        3069,
+        8,
+        1,
+        '2025-07-23',
+        '2025-07-23 08:02:00',
+        '2025-07-23 16:01:00',
+        2
+    ),
+    (
+        3070,
+        8,
+        1,
+        '2025-07-24',
+        '2025-07-24 08:02:00',
+        '2025-07-24 16:01:00',
+        2
+    ),
+    (
+        3071,
+        8,
+        1,
+        '2025-07-25',
+        '2025-07-25 08:02:00',
+        '2025-07-25 16:01:00',
+        2
+    ),
+    (
+        3072,
+        8,
+        1,
+        '2025-07-26',
+        '2025-07-26 08:02:00',
+        '2025-07-26 16:01:00',
+        2
+    ),
+    (
+        3073,
+        8,
+        2,
+        '2025-07-28',
+        '2025-07-28 14:01:00',
+        '2025-07-28 22:02:00',
+        2
+    ),
+    (
+        3074,
+        8,
+        2,
+        '2025-07-29',
+        '2025-07-29 14:01:00',
+        '2025-07-29 22:02:00',
+        2
+    ),
+    (
+        3075,
+        8,
+        2,
+        '2025-07-30',
+        '2025-07-30 14:01:00',
+        '2025-07-30 22:02:00',
+        2
+    ),
+    (
+        3076,
+        8,
+        2,
+        '2025-07-31',
+        '2025-07-31 14:01:00',
+        '2025-07-31 22:02:00',
+        2
+    ),
+    (
+        3077,
+        8,
+        2,
+        '2025-08-01',
+        '2025-08-01 14:01:00',
+        '2025-08-01 22:02:00',
+        2
+    ),
+    (
+        3078,
+        8,
+        2,
+        '2025-08-02',
+        '2025-08-02 14:01:00',
+        '2025-08-02 22:02:00',
+        2
+    ),
+    (
+        3079,
+        8,
+        1,
+        '2025-08-04',
+        '2025-08-04 08:02:00',
+        '2025-08-04 16:01:00',
+        2
+    ),
+    (
+        3080,
+        8,
+        1,
+        '2025-08-05',
+        '2025-08-05 08:02:00',
+        '2025-08-05 16:01:00',
+        2
+    ),
+    (
+        3081,
+        8,
+        1,
+        '2025-08-06',
+        '2025-08-06 08:02:00',
+        '2025-08-06 16:01:00',
+        2
+    ),
+    (
+        3082,
+        8,
+        1,
+        '2025-08-07',
+        '2025-08-07 08:02:00',
+        '2025-08-07 16:01:00',
+        2
+    ),
+    (
+        3083,
+        8,
+        1,
+        '2025-08-08',
+        '2025-08-08 08:02:00',
+        '2025-08-08 16:01:00',
+        2
+    ),
+    (
+        3084,
+        8,
+        1,
+        '2025-08-09',
+        '2025-08-09 08:02:00',
+        '2025-08-09 16:01:00',
+        2
+    ),
+    (
+        3085,
+        8,
+        2,
+        '2025-08-11',
+        '2025-08-11 14:01:00',
+        '2025-08-11 22:02:00',
+        2
+    ),
+    (
+        3086,
+        8,
+        2,
+        '2025-08-12',
+        '2025-08-12 14:01:00',
+        '2025-08-12 22:02:00',
+        2
+    ),
+    (
+        3087,
+        8,
+        2,
+        '2025-08-13',
+        '2025-08-13 14:01:00',
+        '2025-08-13 22:02:00',
+        2
+    ),
+    (
+        3088,
+        8,
+        2,
+        '2025-08-14',
+        '2025-08-14 14:01:00',
+        '2025-08-14 22:02:00',
+        2
+    ),
+    (
+        3089,
+        8,
+        2,
+        '2025-08-15',
+        '2025-08-15 14:01:00',
+        '2025-08-15 22:02:00',
+        2
+    ),
+    (
+        3090,
+        8,
+        2,
+        '2025-08-16',
+        '2025-08-16 14:01:00',
+        '2025-08-16 22:02:00',
+        2
+    ),
+    (
+        3091,
+        8,
+        1,
+        '2025-08-18',
+        '2025-08-18 08:02:00',
+        '2025-08-18 16:01:00',
+        2
+    ),
+    (
+        3092,
+        8,
+        1,
+        '2025-08-19',
+        '2025-08-19 08:02:00',
+        '2025-08-19 16:01:00',
+        2
+    ),
+    (
+        3093,
+        8,
+        1,
+        '2025-08-20',
+        '2025-08-20 08:02:00',
+        '2025-08-20 16:01:00',
+        2
+    ),
+    (
+        3094,
+        8,
+        1,
+        '2025-08-21',
+        '2025-08-21 08:02:00',
+        '2025-08-21 16:01:00',
+        2
+    ),
+    (
+        3095,
+        8,
+        1,
+        '2025-08-22',
+        '2025-08-22 08:02:00',
+        '2025-08-22 16:01:00',
+        2
+    ),
+    (
+        3096,
+        8,
+        1,
+        '2025-08-23',
+        '2025-08-23 08:02:00',
+        '2025-08-23 16:01:00',
+        2
+    ),
+    (
+        3097,
+        8,
+        2,
+        '2025-08-25',
+        '2025-08-25 14:01:00',
+        '2025-08-25 22:02:00',
+        2
+    ),
+    (
+        3098,
+        8,
+        2,
+        '2025-08-26',
+        '2025-08-26 14:01:00',
+        '2025-08-26 22:02:00',
+        2
+    ),
+    (
+        3099,
+        8,
+        2,
+        '2025-08-27',
+        '2025-08-27 14:01:00',
+        '2025-08-27 22:02:00',
+        2
+    ),
+    (
+        3100,
+        8,
+        2,
+        '2025-08-28',
+        '2025-08-28 14:01:00',
+        '2025-08-28 22:02:00',
+        2
+    ),
+    (
+        3101,
+        8,
+        2,
+        '2025-08-29',
+        '2025-08-29 14:01:00',
+        '2025-08-29 22:02:00',
+        2
+    ),
+    (
+        3102,
+        8,
+        2,
+        '2025-08-30',
+        '2025-08-30 14:01:00',
+        '2025-08-30 22:02:00',
+        2
+    ),
+    (
+        3103,
+        8,
+        1,
+        '2025-09-01',
+        '2025-09-01 08:02:00',
+        '2025-09-01 16:01:00',
+        2
+    ),
+    (
+        3104,
+        8,
+        1,
+        '2025-09-02',
+        '2025-09-02 08:02:00',
+        '2025-09-02 16:01:00',
+        2
+    ),
+    (
+        3105,
+        8,
+        1,
+        '2025-09-03',
+        '2025-09-03 08:02:00',
+        '2025-09-03 16:01:00',
+        2
+    ),
+    (
+        3106,
+        8,
+        1,
+        '2025-09-04',
+        '2025-09-04 08:02:00',
+        '2025-09-04 16:01:00',
+        2
+    ),
+    (
+        3107,
+        8,
+        1,
+        '2025-09-05',
+        '2025-09-05 08:02:00',
+        '2025-09-05 16:01:00',
+        2
+    ),
+    (
+        3108,
+        8,
+        1,
+        '2025-09-06',
+        '2025-09-06 08:02:00',
+        '2025-09-06 16:01:00',
+        2
+    ),
+    (
+        3109,
+        8,
+        2,
+        '2025-09-08',
+        '2025-09-08 14:01:00',
+        '2025-09-08 22:02:00',
+        2
+    ),
+    (
+        3110,
+        8,
+        2,
+        '2025-09-09',
+        '2025-09-09 14:01:00',
+        '2025-09-09 22:02:00',
+        2
+    ),
+    (
+        3111,
+        8,
+        2,
+        '2025-09-10',
+        '2025-09-10 14:01:00',
+        '2025-09-10 22:02:00',
+        2
+    ),
+    (
+        3112,
+        8,
+        2,
+        '2025-09-11',
+        '2025-09-11 14:01:00',
+        '2025-09-11 22:02:00',
+        2
+    ),
+    (
+        3113,
+        8,
+        2,
+        '2025-09-12',
+        '2025-09-12 14:01:00',
+        '2025-09-12 22:02:00',
+        2
+    ),
+    (
+        3114,
+        8,
+        2,
+        '2025-09-13',
+        '2025-09-13 14:01:00',
+        '2025-09-13 22:02:00',
+        2
+    ),
+    (
+        3115,
+        8,
+        1,
+        '2025-09-15',
+        '2025-09-15 08:02:00',
+        '2025-09-15 16:01:00',
+        2
+    ),
+    (
+        3116,
+        8,
+        1,
+        '2025-09-16',
+        '2025-09-16 08:02:00',
+        '2025-09-16 16:01:00',
+        2
+    ),
+    (
+        3117,
+        8,
+        1,
+        '2025-09-17',
+        '2025-09-17 08:02:00',
+        '2025-09-17 16:01:00',
+        2
+    ),
+    (
+        3118,
+        8,
+        1,
+        '2025-09-18',
+        '2025-09-18 08:02:00',
+        '2025-09-18 16:01:00',
+        2
+    ),
+    (
+        3119,
+        8,
+        1,
+        '2025-09-19',
+        '2025-09-19 08:02:00',
+        '2025-09-19 16:01:00',
+        2
+    ),
+    (
+        3120,
+        8,
+        1,
+        '2025-09-20',
+        '2025-09-20 08:02:00',
+        '2025-09-20 16:01:00',
+        2
+    ),
+    (
+        3121,
+        8,
+        2,
+        '2025-09-22',
+        '2025-09-22 14:01:00',
+        '2025-09-22 22:02:00',
+        2
+    ),
+    (
+        3122,
+        8,
+        2,
+        '2025-09-23',
+        '2025-09-23 14:01:00',
+        '2025-09-23 22:02:00',
+        2
+    ),
+    (
+        3123,
+        8,
+        2,
+        '2025-09-24',
+        '2025-09-24 14:01:00',
+        '2025-09-24 22:02:00',
+        2
+    ),
+    (
+        3124,
+        8,
+        2,
+        '2025-09-25',
+        '2025-09-25 14:01:00',
+        '2025-09-25 22:02:00',
+        2
+    ),
+    (
+        3125,
+        8,
+        2,
+        '2025-09-26',
+        '2025-09-26 14:01:00',
+        '2025-09-26 22:02:00',
+        2
+    ),
+    (
+        3126,
+        8,
+        2,
+        '2025-09-27',
+        '2025-09-27 14:01:00',
+        '2025-09-27 22:02:00',
+        2
+    ),
+    (
+        3127,
+        8,
+        1,
+        '2025-09-29',
+        '2025-09-29 08:02:00',
+        '2025-09-29 16:01:00',
+        2
+    ),
+    (
+        3128,
+        8,
+        1,
+        '2025-09-30',
+        '2025-09-30 08:02:00',
+        '2025-09-30 16:01:00',
+        2
+    ),
+    (
+        3129,
+        8,
+        1,
+        '2025-10-01',
+        '2025-10-01 08:02:00',
+        '2025-10-01 16:01:00',
+        2
+    ),
+    (
+        3130,
+        8,
+        1,
+        '2025-10-02',
+        '2025-10-02 08:02:00',
+        '2025-10-02 16:01:00',
+        2
+    ),
+    (
+        3131,
+        8,
+        1,
+        '2025-10-03',
+        '2025-10-03 08:02:00',
+        '2025-10-03 16:01:00',
+        2
+    ),
+    (
+        3132,
+        8,
+        1,
+        '2025-10-04',
+        '2025-10-04 08:02:00',
+        '2025-10-04 16:01:00',
+        2
+    ),
+    (
+        3133,
+        8,
+        2,
+        '2025-10-06',
+        '2025-10-06 14:01:00',
+        '2025-10-06 22:02:00',
+        2
+    ),
+    (
+        3134,
+        8,
+        2,
+        '2025-10-07',
+        '2025-10-07 14:01:00',
+        '2025-10-07 22:02:00',
+        2
+    ),
+    (
+        3135,
+        8,
+        2,
+        '2025-10-08',
+        '2025-10-08 14:01:00',
+        '2025-10-08 22:02:00',
+        2
+    ),
+    (
+        3136,
+        8,
+        2,
+        '2025-10-09',
+        '2025-10-09 14:01:00',
+        '2025-10-09 22:02:00',
+        2
+    ),
+    (
+        3137,
+        8,
+        2,
+        '2025-10-10',
+        '2025-10-10 14:01:00',
+        '2025-10-10 22:02:00',
+        2
+    ),
+    (
+        3138,
+        8,
+        2,
+        '2025-10-11',
+        '2025-10-11 14:01:00',
+        '2025-10-11 22:02:00',
+        2
+    ),
+    (
+        3139,
+        8,
+        1,
+        '2025-10-13',
+        '2025-10-13 08:02:00',
+        '2025-10-13 16:01:00',
+        2
+    ),
+    (
+        3140,
+        8,
+        1,
+        '2025-10-14',
+        '2025-10-14 08:02:00',
+        '2025-10-14 16:01:00',
+        2
+    ),
+    (
+        3141,
+        8,
+        1,
+        '2025-10-15',
+        '2025-10-15 08:02:00',
+        '2025-10-15 16:01:00',
+        2
+    ),
+    (
+        3142,
+        8,
+        1,
+        '2025-10-16',
+        '2025-10-16 08:02:00',
+        '2025-10-16 16:01:00',
+        2
+    ),
+    (
+        3143,
+        8,
+        1,
+        '2025-10-17',
+        '2025-10-17 08:02:00',
+        '2025-10-17 16:01:00',
+        2
+    ),
+    (
+        3144,
+        8,
+        1,
+        '2025-10-18',
+        '2025-10-18 08:02:00',
+        '2025-10-18 16:01:00',
+        2
+    ),
+    (
+        3145,
+        8,
+        2,
+        '2025-10-20',
+        '2025-10-20 14:01:00',
+        '2025-10-20 22:02:00',
+        2
+    ),
+    (
+        3146,
+        8,
+        2,
+        '2025-10-21',
+        '2025-10-21 14:01:00',
+        '2025-10-21 22:02:00',
+        2
+    ),
+    (
+        3147,
+        8,
+        2,
+        '2025-10-22',
+        '2025-10-22 14:01:00',
+        '2025-10-22 22:02:00',
+        2
+    ),
+    (
+        3148,
+        8,
+        2,
+        '2025-10-23',
+        '2025-10-23 14:01:00',
+        '2025-10-23 22:02:00',
+        2
+    ),
+    (
+        3149,
+        8,
+        2,
+        '2025-10-24',
+        '2025-10-24 14:01:00',
+        '2025-10-24 22:02:00',
+        2
+    ),
+    (
+        3150,
+        8,
+        2,
+        '2025-10-25',
+        '2025-10-25 14:01:00',
+        '2025-10-25 22:02:00',
+        2
+    ),
+    (
+        3151,
+        8,
+        1,
+        '2025-10-27',
+        '2025-10-27 08:02:00',
+        '2025-10-27 16:01:00',
+        2
+    ),
+    (
+        3152,
+        8,
+        1,
+        '2025-10-28',
+        '2025-10-28 08:02:00',
+        '2025-10-28 16:01:00',
+        2
+    ),
+    (
+        3153,
+        8,
+        1,
+        '2025-10-29',
+        '2025-10-29 08:02:00',
+        '2025-10-29 16:01:00',
+        2
+    ),
+    (
+        3154,
+        8,
+        1,
+        '2025-10-30',
+        '2025-10-30 08:02:00',
+        '2025-10-30 16:01:00',
+        2
+    ),
+    (
+        3155,
+        8,
+        1,
+        '2025-10-31',
+        '2025-10-31 08:02:00',
+        '2025-10-31 16:01:00',
+        2
+    ),
+    (
+        3156,
+        8,
+        1,
+        '2025-11-01',
+        '2025-11-01 08:02:00',
+        '2025-11-01 16:01:00',
+        2
+    ),
+    (
+        3157,
+        8,
+        2,
+        '2025-11-03',
+        '2025-11-03 14:01:00',
+        '2025-11-03 22:02:00',
+        2
+    ),
+    (
+        3158,
+        8,
+        2,
+        '2025-11-04',
+        '2025-11-04 14:01:00',
+        '2025-11-04 22:02:00',
+        2
+    ),
+    (
+        3159,
+        8,
+        2,
+        '2025-11-05',
+        '2025-11-05 14:01:00',
+        '2025-11-05 22:02:00',
+        2
+    ),
+    (
+        3160,
+        8,
+        2,
+        '2025-11-06',
+        '2025-11-06 14:01:00',
+        '2025-11-06 22:02:00',
+        2
+    ),
+    (
+        3161,
+        8,
+        2,
+        '2025-11-07',
+        '2025-11-07 14:01:00',
+        '2025-11-07 22:02:00',
+        2
+    ),
+    (
+        3162,
+        8,
+        2,
+        '2025-11-08',
+        '2025-11-08 14:01:00',
+        '2025-11-08 22:02:00',
+        2
+    ),
+    (
+        3163,
+        8,
+        1,
+        '2025-11-10',
+        '2025-11-10 08:02:00',
+        '2025-11-10 16:01:00',
+        2
+    ),
+    (
+        3164,
+        8,
+        1,
+        '2025-11-11',
+        '2025-11-11 08:02:00',
+        '2025-11-11 16:01:00',
+        2
+    ),
+    (
+        3165,
+        8,
+        1,
+        '2025-11-12',
+        '2025-11-12 08:02:00',
+        '2025-11-12 16:01:00',
+        2
+    ),
+    (
+        3166,
+        8,
+        1,
+        '2025-11-13',
+        '2025-11-13 08:02:00',
+        '2025-11-13 16:01:00',
+        2
+    ),
+    (
+        3167,
+        8,
+        1,
+        '2025-11-14',
+        '2025-11-14 08:02:00',
+        '2025-11-14 16:01:00',
+        2
+    ),
+    (
+        3168,
+        8,
+        1,
+        '2025-11-15',
+        '2025-11-15 08:02:00',
+        '2025-11-15 16:01:00',
+        2
+    ),
+    (
+        3169,
+        8,
+        2,
+        '2025-11-17',
+        '2025-11-17 14:01:00',
+        '2025-11-17 22:02:00',
+        2
+    ),
+    (
+        3170,
+        8,
+        2,
+        '2025-11-18',
+        '2025-11-18 14:01:00',
+        '2025-11-18 22:02:00',
+        2
+    ),
+    (
+        3171,
+        8,
+        2,
+        '2025-11-19',
+        '2025-11-19 14:01:00',
+        '2025-11-19 22:02:00',
+        2
+    ),
+    (
+        3172,
+        8,
+        2,
+        '2025-11-20',
+        '2025-11-20 14:01:00',
+        '2025-11-20 22:02:00',
+        2
+    ),
+    (
+        3173,
+        8,
+        2,
+        '2025-11-21',
+        '2025-11-21 14:01:00',
+        '2025-11-21 22:02:00',
+        2
+    ),
+    (
+        3174,
+        8,
+        2,
+        '2025-11-22',
+        '2025-11-22 14:01:00',
+        '2025-11-22 22:02:00',
+        2
+    ),
+    (
+        3175,
+        8,
+        1,
+        '2025-11-24',
+        '2025-11-24 08:02:00',
+        '2025-11-24 16:01:00',
+        2
+    ),
+    (
+        3176,
+        8,
+        1,
+        '2025-11-25',
+        '2025-11-25 08:02:00',
+        '2025-11-25 16:01:00',
+        2
+    ),
+    (
+        3177,
+        8,
+        1,
+        '2025-11-26',
+        '2025-11-26 08:02:00',
+        '2025-11-26 16:01:00',
+        2
+    ),
+    (
+        3178,
+        8,
+        1,
+        '2025-11-27',
+        '2025-11-27 08:02:00',
+        '2025-11-27 16:01:00',
+        2
+    ),
+    (
+        3179,
+        8,
+        1,
+        '2025-11-28',
+        '2025-11-28 08:02:00',
+        '2025-11-28 16:01:00',
+        2
+    ),
+    (
+        3180,
+        8,
+        1,
+        '2025-11-29',
+        '2025-11-29 08:02:00',
+        '2025-11-29 16:01:00',
+        2
+    ),
+    (
+        3181,
+        8,
+        2,
+        '2025-12-01',
+        '2025-12-01 14:01:00',
+        '2025-12-01 22:02:00',
+        2
+    ),
+    (
+        3182,
+        8,
+        2,
+        '2025-12-02',
+        '2025-12-02 14:01:00',
+        '2025-12-02 22:02:00',
+        2
+    ),
+    (
+        3183,
+        8,
+        2,
+        '2025-12-03',
+        '2025-12-03 14:01:00',
+        '2025-12-03 22:02:00',
+        2
+    ),
+    (
+        3184,
+        8,
+        2,
+        '2025-12-04',
+        '2025-12-04 14:01:00',
+        '2025-12-04 22:02:00',
+        2
+    ),
+    (
+        3185,
+        8,
+        2,
+        '2025-12-05',
+        '2025-12-05 14:01:00',
+        '2025-12-05 22:02:00',
+        2
+    ),
+    (
+        3186,
+        8,
+        2,
+        '2025-12-06',
+        '2025-12-06 14:01:00',
+        '2025-12-06 22:02:00',
+        2
+    ),
+    (
+        3187,
+        8,
+        1,
+        '2025-12-08',
+        '2025-12-08 08:02:00',
+        '2025-12-08 16:01:00',
+        2
+    ),
+    (
+        3188,
+        8,
+        1,
+        '2025-12-09',
+        '2025-12-09 08:02:00',
+        '2025-12-09 16:01:00',
+        2
+    ),
+    (
+        3189,
+        8,
+        1,
+        '2025-12-10',
+        '2025-12-10 08:02:00',
+        '2025-12-10 16:01:00',
+        2
+    ),
+    (
+        3190,
+        8,
+        1,
+        '2025-12-11',
+        '2025-12-11 08:02:00',
+        '2025-12-11 16:01:00',
+        2
+    ),
+    (
+        3191,
+        8,
+        1,
+        '2025-12-12',
+        '2025-12-12 08:02:00',
+        '2025-12-12 16:01:00',
+        2
+    ),
+    (
+        3192,
+        8,
+        1,
+        '2025-12-13',
+        '2025-12-13 08:02:00',
+        '2025-12-13 16:01:00',
+        2
+    ),
+    (
+        3193,
+        8,
+        2,
+        '2025-12-15',
+        '2025-12-15 14:01:00',
+        '2025-12-15 22:02:00',
+        2
+    ),
+    (
+        3194,
+        8,
+        2,
+        '2025-12-16',
+        '2025-12-16 14:01:00',
+        '2025-12-16 22:02:00',
+        2
+    ),
+    (
+        3195,
+        8,
+        2,
+        '2025-12-17',
+        '2025-12-17 14:01:00',
+        '2025-12-17 22:02:00',
+        2
+    ),
+    (
+        3196,
+        8,
+        2,
+        '2025-12-18',
+        '2025-12-18 14:01:00',
+        '2025-12-18 22:02:00',
+        2
+    ),
+    (
+        3197,
+        8,
+        2,
+        '2025-12-19',
+        '2025-12-19 14:01:00',
+        '2025-12-19 22:02:00',
+        2
+    ),
+    (
+        3198,
+        8,
+        2,
+        '2025-12-20',
+        '2025-12-20 14:01:00',
+        '2025-12-20 22:02:00',
+        2
+    ),
+    (
+        3199,
+        8,
+        1,
+        '2025-12-22',
+        '2025-12-22 08:02:00',
+        '2025-12-22 16:01:00',
+        2
+    ),
+    (
+        3200,
+        8,
+        1,
+        '2025-12-23',
+        '2025-12-23 08:02:00',
+        '2025-12-23 16:01:00',
+        2
+    );
+INSERT INTO `PHANCALAM` (
+        `MPCL`,
+        `MNV`,
+        `MCA`,
+        `NGAY`,
+        `GIO_CHECKIN`,
+        `GIO_CHECKOUT`,
+        `TT`
+    )
+VALUES (
+        3201,
+        8,
+        1,
+        '2025-12-24',
+        '2025-12-24 08:02:00',
+        '2025-12-24 16:01:00',
+        2
+    ),
+    (
+        3202,
+        8,
+        1,
+        '2025-12-25',
+        '2025-12-25 08:02:00',
+        '2025-12-25 16:01:00',
+        2
+    ),
+    (
+        3203,
+        8,
+        1,
+        '2025-12-26',
+        '2025-12-26 08:02:00',
+        '2025-12-26 16:01:00',
+        2
+    ),
+    (
+        3204,
+        8,
+        1,
+        '2025-12-27',
+        '2025-12-27 08:02:00',
+        '2025-12-27 16:01:00',
+        2
+    ),
+    (
+        3205,
+        8,
+        2,
+        '2025-12-29',
+        '2025-12-29 14:01:00',
+        '2025-12-29 22:02:00',
+        2
+    ),
+    (
+        3206,
+        8,
+        2,
+        '2025-12-30',
+        '2025-12-30 14:01:00',
+        '2025-12-30 22:02:00',
+        2
+    ),
+    (
+        3207,
+        8,
+        2,
+        '2025-12-31',
+        '2025-12-31 14:01:00',
+        '2025-12-31 22:02:00',
+        2
+    ),
+    (
+        3208,
+        8,
+        2,
+        '2026-01-01',
+        '2026-01-01 14:01:00',
+        '2026-01-01 22:02:00',
+        2
+    ),
+    (
+        3209,
+        8,
+        2,
+        '2026-01-02',
+        '2026-01-02 14:01:00',
+        '2026-01-02 22:02:00',
+        2
+    ),
+    (
+        3210,
+        8,
+        2,
+        '2026-01-03',
+        '2026-01-03 14:01:00',
+        '2026-01-03 22:02:00',
+        2
+    ),
+    (
+        3211,
+        8,
+        1,
+        '2026-01-05',
+        '2026-01-05 08:02:00',
+        '2026-01-05 16:01:00',
+        2
+    ),
+    (
+        3212,
+        8,
+        1,
+        '2026-01-06',
+        '2026-01-06 08:02:00',
+        '2026-01-06 16:01:00',
+        2
+    ),
+    (
+        3213,
+        8,
+        1,
+        '2026-01-07',
+        '2026-01-07 08:02:00',
+        '2026-01-07 16:01:00',
+        2
+    ),
+    (
+        3214,
+        8,
+        1,
+        '2026-01-08',
+        '2026-01-08 08:02:00',
+        '2026-01-08 16:01:00',
+        2
+    ),
+    (
+        3215,
+        8,
+        1,
+        '2026-01-09',
+        '2026-01-09 08:02:00',
+        '2026-01-09 16:01:00',
+        2
+    ),
+    (
+        3216,
+        8,
+        1,
+        '2026-01-10',
+        '2026-01-10 08:02:00',
+        '2026-01-10 16:01:00',
+        2
+    ),
+    (
+        3217,
+        8,
+        2,
+        '2026-01-12',
+        '2026-01-12 14:01:00',
+        '2026-01-12 22:02:00',
+        2
+    ),
+    (
+        3218,
+        8,
+        2,
+        '2026-01-13',
+        '2026-01-13 14:01:00',
+        '2026-01-13 22:02:00',
+        2
+    ),
+    (
+        3219,
+        8,
+        2,
+        '2026-01-14',
+        '2026-01-14 14:01:00',
+        '2026-01-14 22:02:00',
+        2
+    ),
+    (
+        3220,
+        8,
+        2,
+        '2026-01-15',
+        '2026-01-15 14:01:00',
+        '2026-01-15 22:02:00',
+        2
+    ),
+    (
+        3221,
+        8,
+        2,
+        '2026-01-16',
+        '2026-01-16 14:01:00',
+        '2026-01-16 22:02:00',
+        2
+    ),
+    (
+        3222,
+        8,
+        2,
+        '2026-01-17',
+        '2026-01-17 14:01:00',
+        '2026-01-17 22:02:00',
+        2
+    ),
+    (
+        3223,
+        8,
+        1,
+        '2026-01-19',
+        '2026-01-19 08:02:00',
+        '2026-01-19 16:01:00',
+        2
+    ),
+    (
+        3224,
+        8,
+        1,
+        '2026-01-20',
+        '2026-01-20 08:02:00',
+        '2026-01-20 16:01:00',
+        2
+    ),
+    (
+        3225,
+        8,
+        1,
+        '2026-01-21',
+        '2026-01-21 08:02:00',
+        '2026-01-21 16:01:00',
+        2
+    ),
+    (
+        3226,
+        8,
+        1,
+        '2026-01-22',
+        '2026-01-22 08:02:00',
+        '2026-01-22 16:01:00',
+        2
+    ),
+    (
+        3227,
+        8,
+        1,
+        '2026-01-23',
+        '2026-01-23 08:02:00',
+        '2026-01-23 16:01:00',
+        2
+    ),
+    (
+        3228,
+        8,
+        1,
+        '2026-01-24',
+        '2026-01-24 08:02:00',
+        '2026-01-24 16:01:00',
+        2
+    ),
+    (
+        3229,
+        8,
+        2,
+        '2026-01-26',
+        '2026-01-26 14:01:00',
+        '2026-01-26 22:02:00',
+        2
+    ),
+    (
+        3230,
+        8,
+        2,
+        '2026-01-27',
+        '2026-01-27 14:01:00',
+        '2026-01-27 22:02:00',
+        2
+    ),
+    (
+        3231,
+        8,
+        2,
+        '2026-01-28',
+        '2026-01-28 14:01:00',
+        '2026-01-28 22:02:00',
+        2
+    ),
+    (
+        3232,
+        8,
+        2,
+        '2026-01-29',
+        '2026-01-29 14:01:00',
+        '2026-01-29 22:02:00',
+        2
+    ),
+    (
+        3233,
+        8,
+        2,
+        '2026-01-30',
+        '2026-01-30 14:01:00',
+        '2026-01-30 22:02:00',
+        2
+    ),
+    (
+        3234,
+        8,
+        2,
+        '2026-01-31',
+        '2026-01-31 14:01:00',
+        '2026-01-31 22:02:00',
+        2
+    ),
+    (
+        3235,
+        8,
+        1,
+        '2026-02-02',
+        '2026-02-02 08:02:00',
+        '2026-02-02 16:01:00',
+        2
+    ),
+    (
+        3236,
+        8,
+        1,
+        '2026-02-03',
+        '2026-02-03 08:02:00',
+        '2026-02-03 16:01:00',
+        2
+    ),
+    (
+        3237,
+        8,
+        1,
+        '2026-02-04',
+        '2026-02-04 08:02:00',
+        '2026-02-04 16:01:00',
+        2
+    ),
+    (
+        3238,
+        8,
+        1,
+        '2026-02-05',
+        '2026-02-05 08:02:00',
+        '2026-02-05 16:01:00',
+        2
+    ),
+    (
+        3239,
+        8,
+        1,
+        '2026-02-06',
+        '2026-02-06 08:02:00',
+        '2026-02-06 16:01:00',
+        2
+    ),
+    (
+        3240,
+        8,
+        1,
+        '2026-02-07',
+        '2026-02-07 08:02:00',
+        '2026-02-07 16:01:00',
+        2
+    ),
+    (
+        3241,
+        8,
+        2,
+        '2026-02-09',
+        '2026-02-09 14:01:00',
+        '2026-02-09 22:02:00',
+        2
+    ),
+    (
+        3242,
+        8,
+        2,
+        '2026-02-10',
+        '2026-02-10 14:01:00',
+        '2026-02-10 22:02:00',
+        2
+    ),
+    (
+        3243,
+        8,
+        2,
+        '2026-02-11',
+        '2026-02-11 14:01:00',
+        '2026-02-11 22:02:00',
+        2
+    ),
+    (
+        3244,
+        8,
+        2,
+        '2026-02-12',
+        '2026-02-12 14:01:00',
+        '2026-02-12 22:02:00',
+        2
+    ),
+    (
+        3245,
+        8,
+        2,
+        '2026-02-13',
+        '2026-02-13 14:01:00',
+        '2026-02-13 22:02:00',
+        2
+    ),
+    (
+        3246,
+        8,
+        2,
+        '2026-02-14',
+        '2026-02-14 14:01:00',
+        '2026-02-14 22:02:00',
+        2
+    ),
+    (
+        3247,
+        8,
+        1,
+        '2026-02-16',
+        '2026-02-16 08:02:00',
+        '2026-02-16 16:01:00',
+        2
+    ),
+    (
+        3248,
+        8,
+        1,
+        '2026-02-17',
+        '2026-02-17 08:02:00',
+        '2026-02-17 16:01:00',
+        2
+    ),
+    (
+        3249,
+        8,
+        1,
+        '2026-02-18',
+        '2026-02-18 08:02:00',
+        '2026-02-18 16:01:00',
+        2
+    ),
+    (
+        3250,
+        8,
+        1,
+        '2026-02-19',
+        '2026-02-19 08:02:00',
+        '2026-02-19 16:01:00',
+        2
+    ),
+    (
+        3251,
+        8,
+        1,
+        '2026-02-20',
+        '2026-02-20 08:02:00',
+        '2026-02-20 16:01:00',
+        2
+    ),
+    (
+        3252,
+        8,
+        1,
+        '2026-02-21',
+        '2026-02-21 08:02:00',
+        '2026-02-21 16:01:00',
+        2
+    ),
+    (
+        3253,
+        8,
+        2,
+        '2026-02-23',
+        '2026-02-23 14:01:00',
+        '2026-02-23 22:02:00',
+        2
+    ),
+    (
+        3254,
+        8,
+        2,
+        '2026-02-24',
+        '2026-02-24 14:01:00',
+        '2026-02-24 22:02:00',
+        2
+    ),
+    (
+        3255,
+        8,
+        2,
+        '2026-02-25',
+        '2026-02-25 14:01:00',
+        '2026-02-25 22:02:00',
+        2
+    ),
+    (
+        3256,
+        8,
+        2,
+        '2026-02-26',
+        '2026-02-26 14:01:00',
+        '2026-02-26 22:02:00',
+        2
+    ),
+    (
+        3257,
+        8,
+        2,
+        '2026-02-27',
+        '2026-02-27 14:01:00',
+        '2026-02-27 22:02:00',
+        2
+    ),
+    (
+        3258,
+        8,
+        2,
+        '2026-02-28',
+        '2026-02-28 14:01:00',
+        '2026-02-28 22:02:00',
+        2
+    ),
+    (
+        3259,
+        8,
+        1,
+        '2026-03-02',
+        '2026-03-02 08:02:00',
+        '2026-03-02 16:01:00',
+        2
+    ),
+    (
+        3260,
+        8,
+        1,
+        '2026-03-03',
+        '2026-03-03 08:02:00',
+        '2026-03-03 16:01:00',
+        2
+    ),
+    (
+        3261,
+        8,
+        1,
+        '2026-03-04',
+        '2026-03-04 08:02:00',
+        '2026-03-04 16:01:00',
+        2
+    ),
+    (
+        3262,
+        8,
+        1,
+        '2026-03-05',
+        '2026-03-05 08:02:00',
+        '2026-03-05 16:01:00',
+        2
+    ),
+    (
+        3263,
+        8,
+        1,
+        '2026-03-06',
+        '2026-03-06 08:02:00',
+        '2026-03-06 16:01:00',
+        2
+    ),
+    (
+        3264,
+        8,
+        1,
+        '2026-03-07',
+        '2026-03-07 08:02:00',
+        '2026-03-07 16:01:00',
+        2
+    ),
+    (
+        3265,
+        8,
+        2,
+        '2026-03-09',
+        '2026-03-09 14:01:00',
+        '2026-03-09 22:02:00',
+        2
+    ),
+    (
+        3266,
+        8,
+        2,
+        '2026-03-10',
+        '2026-03-10 14:01:00',
+        '2026-03-10 22:02:00',
+        2
+    ),
+    (
+        3267,
+        8,
+        2,
+        '2026-03-11',
+        '2026-03-11 14:01:00',
+        '2026-03-11 22:02:00',
+        2
+    ),
+    (
+        3268,
+        8,
+        2,
+        '2026-03-12',
+        '2026-03-12 14:01:00',
+        '2026-03-12 22:02:00',
+        2
+    ),
+    (
+        3269,
+        8,
+        2,
+        '2026-03-13',
+        '2026-03-13 14:01:00',
+        '2026-03-13 22:02:00',
+        2
+    ),
+    (
+        3270,
+        8,
+        2,
+        '2026-03-14',
+        '2026-03-14 14:01:00',
+        '2026-03-14 22:02:00',
+        2
+    ),
+    (
+        3271,
+        8,
+        1,
+        '2026-03-16',
+        '2026-03-16 08:02:00',
+        '2026-03-16 16:01:00',
+        2
+    ),
+    (
+        3272,
+        8,
+        1,
+        '2026-03-17',
+        '2026-03-17 08:02:00',
+        '2026-03-17 16:01:00',
+        2
+    ),
+    (
+        3273,
+        8,
+        1,
+        '2026-03-18',
+        '2026-03-18 08:02:00',
+        '2026-03-18 16:01:00',
+        2
+    ),
+    (
+        3274,
+        8,
+        1,
+        '2026-03-19',
+        '2026-03-19 08:02:00',
+        '2026-03-19 16:01:00',
+        2
+    ),
+    (
+        3275,
+        8,
+        1,
+        '2026-03-20',
+        '2026-03-20 08:02:00',
+        '2026-03-20 16:01:00',
+        2
+    ),
+    (
+        3276,
+        8,
+        1,
+        '2026-03-21',
+        '2026-03-21 08:02:00',
+        '2026-03-21 16:01:00',
+        2
+    ),
+    (
+        3277,
+        8,
+        2,
+        '2026-03-23',
+        '2026-03-23 14:01:00',
+        '2026-03-23 22:02:00',
+        2
+    ),
+    (
+        3278,
+        8,
+        2,
+        '2026-03-24',
+        '2026-03-24 14:01:00',
+        '2026-03-24 22:02:00',
+        2
+    ),
+    (
+        3279,
+        8,
+        2,
+        '2026-03-25',
+        '2026-03-25 14:01:00',
+        '2026-03-25 22:02:00',
+        2
+    ),
+    (
+        3280,
+        8,
+        2,
+        '2026-03-26',
+        '2026-03-26 14:01:00',
+        '2026-03-26 22:02:00',
+        2
+    ),
+    (
+        3281,
+        8,
+        2,
+        '2026-03-27',
+        '2026-03-27 14:01:00',
+        '2026-03-27 22:02:00',
+        2
+    ),
+    (
+        3282,
+        8,
+        2,
+        '2026-03-28',
+        '2026-03-28 14:01:00',
+        '2026-03-28 22:02:00',
+        2
+    ),
+    (
+        3283,
+        8,
+        1,
+        '2026-03-30',
+        '2026-03-30 08:02:00',
+        '2026-03-30 16:01:00',
+        2
+    ),
+    (
+        3284,
+        8,
+        1,
+        '2026-03-31',
+        '2026-03-31 08:02:00',
+        '2026-03-31 16:01:00',
+        2
+    ),
+    (
+        3285,
+        8,
+        1,
+        '2026-04-01',
+        '2026-04-01 08:02:00',
+        '2026-04-01 16:01:00',
+        2
+    ),
+    (
+        3286,
+        8,
+        1,
+        '2026-04-02',
+        '2026-04-02 08:02:00',
+        '2026-04-02 16:01:00',
+        2
+    ),
+    (
+        3287,
+        8,
+        1,
+        '2026-04-03',
+        '2026-04-03 08:02:00',
+        '2026-04-03 16:01:00',
+        2
+    ),
+    (
+        3288,
+        8,
+        1,
+        '2026-04-04',
+        '2026-04-04 08:02:00',
+        '2026-04-04 16:01:00',
+        2
+    ),
+    (
+        3289,
+        8,
+        2,
+        '2026-04-06',
+        '2026-04-06 14:01:00',
+        '2026-04-06 22:02:00',
+        2
+    ),
+    (
+        3290,
+        8,
+        2,
+        '2026-04-07',
+        '2026-04-07 14:01:00',
+        '2026-04-07 22:02:00',
+        2
+    );
 -- ============================================================
 -- ĐƠN XIN NGHỈ PHÉP (1 ngày/tháng, đã duyệt)
 -- ============================================================
-INSERT INTO `DONXINNGH` 
-(`MDN`, `MNV`, `LOAI`, `NGAYNGHI`, `NGAYKETTHUC`, `NGAY_NGHIVIEC`, `LYDO`, `MINHCHUNG`, `TRANGTHAI`, `NGUOIDUYET`, `NGAYTAO`, `GHICHU`) 
-VALUES
-
--- --- NĂM 2024 ---
-(1,  1, 0, '2024-07-08', '2024-07-08', NULL, 'Nghỉ phép định kỳ', NULL, 1, 1, '2024-07-06', NULL),
-(2,  2, 0, '2024-08-05', '2024-08-05', NULL, 'Nghỉ phép định kỳ', NULL, 1, 1, '2024-08-03', NULL),
-(3,  3, 0, '2024-08-12', '2024-08-12', NULL, 'Nghỉ phép định kỳ', NULL, 1, 1, '2024-08-10', NULL),
-(4,  1, 2, '2024-08-15', '2024-08-15', NULL, 'Con nuôi kết hôn', 'minhchung/MDN4_connuoi.jpg', 1, 1, '2024-08-10', 'Hưởng nguyên lương'),
-(5,  1, 0, '2024-09-02', '2024-09-02', NULL, 'Nghỉ phép định kỳ', NULL, 2, 1, '2024-08-31', 'Trùng lịch trực lễ'),
-(6,  2, 2, '2024-09-10', '2024-09-12', NULL, 'Bản thân kết hôn', 'minhchung/MDN6_kethon.jpg', 1, 1, '2024-09-01', 'Hưởng nguyên lương'), -- Nghỉ 3 ngày
-(7,  3, 2, '2024-09-15', '2024-09-15', NULL, 'Con đẻ kết hôn', 'minhchung/MDN7_conde.jpg', 1, 1, '2024-09-10', 'Hưởng nguyên lương'),
-(8,  5, 2, '2024-09-16', '2024-09-18', NULL, 'Tứ thân phụ mẫu mất', 'minhchung/MDN8_giayts.jpg', 1, 1, '2024-09-15', 'Hưởng nguyên lương'), -- Nghỉ 3 ngày
-(9,  2, 0, '2024-10-07', '2024-10-07', NULL, 'Giải quyết việc gia đình', NULL, 2, 1, '2024-10-05', 'Dự án đang gấp'),
-(10, 5, 1, '2024-10-10', '2024-10-19', NULL, 'Việc riêng kéo dài', NULL, 2, 1, '2024-10-10', 'Thời gian quá lâu, từ chối'), -- Nghỉ 10 ngày
-(11, 2, 1, '2024-11-15', '2024-11-16', NULL, 'Nghỉ không lương đi du lịch', NULL, 1, 1, '2024-11-15', NULL), -- Nghỉ 2 ngày
-(12, 5, 0, '2024-12-16', '2024-12-16', NULL, 'Nghỉ phép định kỳ', NULL, 1, 1, '2024-12-14', NULL),
-
--- MDN 21-23: NGHỈ VIỆC (LOAI = 3)
-(21, 4, 3, '2024-05-20', NULL, '2024-06-01', 'Xin nghỉ việc', 'minhchung/MDN21_donnghiviec.jpg', 1, 1, '2024-05-18', 'Đã bàn giao công việc'),
-(22, 6, 3, '2024-07-20', NULL, '2024-08-01', 'Xin nghỉ việc', 'minhchung/MDN22_donnghiviec.jpg', 1, 1, '2024-07-18', 'Đã bàn giao công việc'),
-
--- --- NĂM 2025 ---
-(13, 3, 2, '2025-01-10', '2025-01-14', NULL, 'Nghỉ ốm đau (có giấy viện)', 'minhchung/MDN13_giayvien.jpg', 1, 1, '2025-01-08', 'Chế độ BHXH'), -- Nghỉ 5 ngày
-(14, 7, 2, '2025-10-06', '2026-04-03', NULL, 'Nghỉ thai sản', 'minhchung/MDN14_thaiSan.jpg', 1, 1, '2025-09-20', 'Chế độ thai sản 6 tháng'), -- Nghỉ 180 ngày
-(15, 8, 2, '2025-11-10', '2025-11-12', NULL, 'Vợ/Chồng mất', 'minhchung/MDN15_giayts.jpg', 1, 1, '2025-11-09', 'Hưởng nguyên lương'), -- Nghỉ 3 ngày
-(16, 8, 0, '2025-12-08', '2025-12-08', NULL, 'Nghỉ phép định kỳ', NULL, 1, 1, '2025-12-06', NULL),
-
--- --- NĂM 2026 ---
-(17, 8, 1, '2026-01-10', '2026-01-10', NULL, 'Nghỉ không lương', NULL, 1, 1, '2026-01-10', NULL),
-(18, 1, 0, '2026-03-02', '2026-03-02', NULL, 'Nghỉ phép định kỳ', NULL, 0, NULL, '2026-02-28', 'Chờ duyệt'), -- Trạng thái 0 = Chờ duyệt
-(19, 3, 0, '2026-03-09', '2026-03-09', NULL, 'Nghỉ phép định kỳ', NULL, 0, NULL, '2026-03-07', 'Chờ duyệt'),
-(20, 7, 0, '2026-04-01', '2026-04-01', NULL, 'Nghỉ phép sau thai sản', NULL, 0, NULL, '2026-03-25', 'Chờ duyệt'),
-(23, 9, 3, '2026-03-04', NULL, '2026-04-03', 'Xin nghỉ việc', 'minhchung/MDN23_donnghiviec.jpg', 1, 1, '2026-03-03', 'Đã bàn giao công việc');
-
+INSERT INTO `DONXINNGH` (
+        `MDN`,
+        `MNV`,
+        `LOAI`,
+        `NGAYNGHI`,
+        `NGAYKETTHUC`,
+        `NGAY_NGHIVIEC`,
+        `LYDO`,
+        `MINHCHUNG`,
+        `TRANGTHAI`,
+        `NGUOIDUYET`,
+        `NGAYTAO`,
+        `GHICHU`
+    )
+VALUES -- --- NĂM 2024 ---
+    (
+        1,
+        1,
+        0,
+        '2024-07-08',
+        '2024-07-08',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        1,
+        1,
+        '2024-07-06',
+        NULL
+    ),
+    (
+        2,
+        2,
+        0,
+        '2024-08-05',
+        '2024-08-05',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        1,
+        1,
+        '2024-08-03',
+        NULL
+    ),
+    (
+        3,
+        3,
+        0,
+        '2024-08-12',
+        '2024-08-12',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        1,
+        1,
+        '2024-08-10',
+        NULL
+    ),
+    (
+        4,
+        1,
+        2,
+        '2024-08-15',
+        '2024-08-15',
+        NULL,
+        'Con nuôi kết hôn',
+        'minhchung/MDN4_connuoi.jpg',
+        1,
+        1,
+        '2024-08-10',
+        'Hưởng nguyên lương'
+    ),
+    (
+        5,
+        1,
+        0,
+        '2024-09-02',
+        '2024-09-02',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        2,
+        1,
+        '2024-08-31',
+        'Đang thiếu nhân viên'
+    ),
+    (
+        6,
+        2,
+        2,
+        '2024-09-10',
+        '2024-09-12',
+        NULL,
+        'Bản thân kết hôn',
+        'minhchung/MDN6_kethon.jpg',
+        1,
+        1,
+        '2024-09-01',
+        'Hưởng nguyên lương'
+    ),
+    -- Nghỉ 3 ngày
+    (
+        7,
+        3,
+        2,
+        '2024-09-15',
+        '2024-09-15',
+        NULL,
+        'Con đẻ kết hôn',
+        'minhchung/MDN7_conde.jpg',
+        1,
+        1,
+        '2024-09-10',
+        'Hưởng nguyên lương'
+    ),
+    (
+        8,
+        5,
+        2,
+        '2024-09-16',
+        '2024-09-18',
+        NULL,
+        'Tứ thân phụ mẫu mất',
+        'minhchung/MDN8_giayts.jpg',
+        1,
+        1,
+        '2024-09-15',
+        'Hưởng nguyên lương'
+    ),
+    -- Nghỉ 3 ngày
+    (
+        9,
+        2,
+        0,
+        '2024-10-07',
+        '2024-10-07',
+        NULL,
+        'Giải quyết việc gia đình',
+        NULL,
+        2,
+        1,
+        '2024-10-05',
+        'Đang thiếu nhân viên'
+    ),
+    (
+        10,
+        5,
+        1,
+        '2024-10-10',
+        '2024-10-19',
+        NULL,
+        'Việc riêng kéo dài',
+        NULL,
+        2,
+        1,
+        '2024-10-10',
+        'Thời gian quá lâu, từ chối'
+    ),
+    -- Nghỉ 10 ngày
+    (
+        11,
+        2,
+        1,
+        '2024-11-15',
+        '2024-11-16',
+        NULL,
+        'Nghỉ không lương đi du lịch',
+        NULL,
+        1,
+        1,
+        '2024-11-15',
+        NULL
+    ),
+    -- Nghỉ 2 ngày
+    (
+        12,
+        5,
+        0,
+        '2024-12-16',
+        '2024-12-16',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        1,
+        1,
+        '2024-12-14',
+        NULL
+    ),
+    -- MDN 21-23: NGHỈ VIỆC (LOAI = 3)
+    (
+        21,
+        4,
+        3,
+        '2024-05-20',
+        NULL,
+        '2024-06-01',
+        'Xin nghỉ việc',
+        'minhchung/MDN21_donnghiviec.jpg',
+        1,
+        1,
+        '2024-05-18',
+        'Đã bàn giao công việc'
+    ),
+    (
+        22,
+        6,
+        3,
+        '2024-07-20',
+        NULL,
+        '2024-08-01',
+        'Xin nghỉ việc',
+        'minhchung/MDN22_donnghiviec.jpg',
+        1,
+        1,
+        '2024-07-18',
+        'Đã bàn giao công việc'
+    ),
+    -- --- NĂM 2025 ---
+    (
+        13,
+        3,
+        2,
+        '2025-01-10',
+        '2025-01-14',
+        NULL,
+        'Nghỉ ốm đau (có giấy viện)',
+        'minhchung/MDN13_giayvien.jpg',
+        1,
+        1,
+        '2025-01-08',
+        'Chế độ BHXH'
+    ),
+    -- Nghỉ 5 ngày
+    (
+        14,
+        7,
+        2,
+        '2025-10-06',
+        '2026-04-03',
+        NULL,
+        'Nghỉ thai sản',
+        'minhchung/MDN14_thaiSan.jpg',
+        1,
+        1,
+        '2025-09-20',
+        'Chế độ thai sản 6 tháng'
+    ),
+    -- Nghỉ 180 ngày
+    (
+        15,
+        8,
+        2,
+        '2025-11-10',
+        '2025-11-12',
+        NULL,
+        'Vợ/Chồng mất',
+        'minhchung/MDN15_giayts.jpg',
+        1,
+        1,
+        '2025-11-09',
+        'Hưởng nguyên lương'
+    ),
+    -- Nghỉ 3 ngày
+    (
+        16,
+        8,
+        0,
+        '2025-12-08',
+        '2025-12-08',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        1,
+        1,
+        '2025-12-06',
+        NULL
+    ),
+    -- --- NĂM 2026 ---
+    (
+        17,
+        8,
+        1,
+        '2026-01-10',
+        '2026-01-10',
+        NULL,
+        'Nghỉ không lương',
+        NULL,
+        1,
+        1,
+        '2026-01-10',
+        NULL
+    ),
+    (
+        18,
+        1,
+        0,
+        '2026-03-02',
+        '2026-03-02',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        0,
+        NULL,
+        '2026-02-28',
+        ''
+    ),
+    -- Trạng thái 0 = Chờ duyệt
+    (
+        19,
+        3,
+        0,
+        '2026-03-09',
+        '2026-03-09',
+        NULL,
+        'Nghỉ phép định kỳ',
+        NULL,
+        0,
+        NULL,
+        '2026-03-07',
+        ''
+    ),
+    (
+        20,
+        7,
+        0,
+        '2026-04-01',
+        '2026-04-01',
+        NULL,
+        'Nghỉ phép sau thai sản',
+        NULL,
+        0,
+        NULL,
+        '2026-03-25',
+        ''
+    ),
+    (
+        23,
+        9,
+        3,
+        '2026-03-04',
+        NULL,
+        '2026-04-03',
+        'Xin nghỉ việc',
+        'minhchung/MDN23_donnghiviec.jpg',
+        1,
+        1,
+        '2026-03-03',
+        'Đã bàn giao công việc'
+    );
 -- ============================================================
 -- BẢNG CHẤM CÔNG
 -- ============================================================
-INSERT INTO `BANGCHAMCONG` (`MCC`, `MNV`, `THANG`, `NAM`, `NGAYCONG`, `NGAYNGHI_PHEP`, `NGAYNGHI_KP`, `TT`) VALUES
-  (1, 1, 1, 2024, 19.0, 0, 0, 2),
-  (2, 1, 2, 2024, 25.0, 0, 0, 2),
-  (3, 1, 3, 2024, 26.0, 0, 0, 2),
-  (4, 1, 4, 2024, 26.0, 0, 0, 2),
-  (5, 1, 5, 2024, 27.0, 0, 0, 2),
-  (6, 1, 6, 2024, 25.0, 0, 0, 2),
-  (7, 1, 7, 2024, 27.0, 1, 0, 2),
-  (8, 1, 8, 2024, 27.0, 1, 0, 2),
-  (9, 1, 9, 2024, 25.0, 1, 0, 2),
-  (10, 1, 10, 2024, 27.0, 1, 0, 2),
-  (11, 1, 11, 2024, 26.0, 1, 0, 2),
-  (12, 1, 12, 2024, 26.0, 1, 0, 2),
-  (13, 1, 1, 2025, 27.0, 1, 0, 2),
-  (14, 1, 2, 2025, 24.0, 1, 0, 2),
-  (15, 1, 3, 2025, 26.0, 1, 0, 2),
-  (16, 1, 4, 2025, 26.0, 1, 0, 2),
-  (17, 1, 5, 2025, 27.0, 1, 0, 2),
-  (18, 1, 6, 2025, 25.0, 1, 0, 2),
-  (19, 1, 7, 2025, 27.0, 1, 0, 2),
-  (20, 1, 8, 2025, 26.0, 1, 0, 2),
-  (21, 1, 9, 2025, 26.0, 1, 0, 2),
-  (22, 1, 10, 2025, 27.0, 1, 0, 2),
-  (23, 1, 11, 2025, 25.0, 1, 0, 2),
-  (24, 1, 12, 2025, 27.0, 1, 0, 2),
-  (25, 1, 1, 2026, 29.0, 1, 0, 2),
-  (26, 1, 2, 2026, 24.0, 1, 0, 2),
-  (27, 1, 3, 2026, 26.0, 1, 0, 2),
-  (28, 1, 4, 2026, 6.0, 0, 0, 1),
-  (29, 2, 2, 2024, 13.0, 0, 0, 2),
-  (30, 2, 3, 2024, 26.0, 0, 0, 2),
-  (31, 2, 4, 2024, 26.0, 0, 0, 2),
-  (32, 2, 5, 2024, 27.0, 0, 0, 2),
-  (33, 2, 6, 2024, 25.0, 0, 0, 2),
-  (34, 2, 7, 2024, 27.0, 0, 0, 2),
-  (35, 2, 8, 2024, 27.0, 1, 0, 2),
-  (36, 2, 9, 2024, 25.0, 1, 0, 2),
-  (37, 2, 10, 2024, 27.0, 1, 0, 2),
-  (38, 2, 11, 2024, 24.0, 1, 2, 2), -- Trừ 2 ngày nghỉ KL (MDN11: 15-16/11)
-  (39, 2, 12, 2024, 26.0, 1, 0, 2),
-  (40, 2, 1, 2025, 27.0, 1, 0, 2),
-  (41, 2, 2, 2025, 24.0, 1, 0, 2),
-  (42, 2, 3, 2025, 26.0, 1, 0, 2),
-  (43, 2, 4, 2025, 26.0, 1, 0, 2),
-  (44, 2, 5, 2025, 27.0, 1, 0, 2),
-  (45, 2, 6, 2025, 25.0, 1, 0, 2),
-  (46, 2, 7, 2025, 27.0, 1, 0, 2),
-  (47, 2, 8, 2025, 26.0, 1, 0, 2),
-  (48, 2, 9, 2025, 26.0, 1, 0, 2),
-  (49, 2, 10, 2025, 27.0, 1, 0, 2),
-  (50, 2, 11, 2025, 25.0, 1, 0, 2),
-  (51, 2, 12, 2025, 27.0, 1, 0, 2),
-  (52, 2, 1, 2026, 29.0, 1, 0, 2),
-  (53, 2, 2, 2026, 24.0, 1, 0, 2),
-  (54, 2, 3, 2026, 26.0, 1, 0, 2),
-  (55, 2, 4, 2026, 6.0, 0, 0, 1),
-  (56, 3, 2, 2024, 13.0, 0, 0, 2),
-  (57, 3, 3, 2024, 26.0, 0, 0, 2),
-  (58, 3, 4, 2024, 26.0, 0, 0, 2),
-  (59, 3, 5, 2024, 27.0, 0, 0, 2),
-  (60, 3, 6, 2024, 25.0, 0, 0, 2),
-  (61, 3, 7, 2024, 27.0, 0, 0, 2),
-  (62, 3, 8, 2024, 27.0, 1, 0, 2),
-  (63, 3, 9, 2024, 25.0, 1, 0, 2),
-  (64, 3, 10, 2024, 27.0, 1, 0, 2),
-  (65, 3, 11, 2024, 26.0, 1, 0, 2),
-  (66, 3, 12, 2024, 26.0, 1, 0, 2),
-  (67, 3, 1, 2025, 27.0, 1, 0, 2),
-  (68, 3, 2, 2025, 24.0, 1, 0, 2),
-  (69, 3, 3, 2025, 26.0, 1, 0, 2),
-  (70, 3, 4, 2025, 26.0, 1, 0, 2),
-  (71, 3, 5, 2025, 27.0, 1, 0, 2),
-  (72, 3, 6, 2025, 25.0, 1, 0, 2),
-  (73, 3, 7, 2025, 27.0, 1, 0, 2),
-  (74, 3, 8, 2025, 26.0, 1, 0, 2),
-  (75, 3, 9, 2025, 26.0, 1, 0, 2),
-  (76, 3, 10, 2025, 27.0, 1, 0, 2),
-  (77, 3, 11, 2025, 25.0, 1, 0, 2),
-  (78, 3, 12, 2025, 27.0, 1, 0, 2),
-  (79, 3, 1, 2026, 29.0, 1, 0, 2),
-  (80, 3, 2, 2026, 24.0, 1, 0, 2),
-  (81, 3, 3, 2026, 26.0, 1, 0, 2),
-  (82, 3, 4, 2026, 6.0, 0, 0, 1),
-  (83, 5, 3, 2024, 26.0, 0, 0, 2),
-  (84, 5, 4, 2024, 26.0, 0, 0, 2),
-  (85, 5, 5, 2024, 27.0, 0, 0, 2),
-  (86, 5, 6, 2024, 25.0, 0, 0, 2),
-  (87, 5, 7, 2024, 27.0, 0, 0, 2),
-  (88, 5, 8, 2024, 27.0, 0, 0, 2),
-  (89, 5, 9, 2024, 25.0, 1, 0, 2),
-  (90, 5, 10, 2024, 27.0, 1, 0, 2),
-  (91, 5, 11, 2024, 26.0, 1, 0, 2),
-  (92, 5, 12, 2024, 26.0, 1, 0, 2),
-  (93, 5, 1, 2025, 27.0, 1, 0, 2),
-  (94, 5, 2, 2025, 24.0, 1, 0, 2),
-  (95, 5, 3, 2025, 26.0, 1, 0, 2),
-  (96, 5, 4, 2025, 26.0, 1, 0, 2),
-  (97, 5, 5, 2025, 27.0, 1, 0, 2),
-  (98, 5, 6, 2025, 25.0, 1, 0, 2),
-  (99, 5, 7, 2025, 27.0, 1, 0, 2),
-  (100, 5, 8, 2025, 26.0, 1, 0, 2),
-  (101, 5, 9, 2025, 26.0, 1, 0, 2),
-  (102, 5, 10, 2025, 27.0, 1, 0, 2),
-  (103, 5, 11, 2025, 25.0, 1, 0, 2),
-  (104, 5, 12, 2025, 27.0, 1, 0, 2),
-  (105, 5, 1, 2026, 29.0, 1, 0, 2),
-  (106, 5, 2, 2026, 24.0, 1, 0, 2),
-  (107, 5, 3, 2026, 26.0, 1, 0, 2),
-  (108, 5, 4, 2026, 6.0, 0, 0, 1),
-  (109, 7, 4, 2025, 18.0, 0, 0, 2),
-  (110, 7, 5, 2025, 27.0, 0, 0, 2),
-  (111, 7, 6, 2025, 25.0, 0, 0, 2),
-  (112, 7, 7, 2025, 27.0, 0, 0, 2),
-  (113, 7, 8, 2025, 26.0, 0, 0, 2),
-  (114, 7, 9, 2025, 26.0, 0, 0, 2),
-  (115, 7, 10, 2025, 27.0, 1, 0, 2),
-  (116, 7, 11, 2025, 25.0, 1, 0, 2),
-  (117, 7, 12, 2025, 27.0, 1, 0, 2),
-  (118, 7, 1, 2026, 29.0, 1, 0, 2),
-  (119, 7, 2, 2026, 24.0, 1, 0, 2),
-  (120, 7, 3, 2026, 26.0, 1, 0, 2),
-  (121, 7, 4, 2026, 6.0, 0, 0, 1),
-  (122, 8, 5, 2025, 11.0, 0, 0, 2),
-  (123, 8, 6, 2025, 25.0, 0, 0, 2),
-  (124, 8, 7, 2025, 27.0, 0, 0, 2),
-  (125, 8, 8, 2025, 26.0, 0, 0, 2),
-  (126, 8, 9, 2025, 26.0, 0, 0, 2),
-  (127, 8, 10, 2025, 27.0, 0, 0, 2),
-  (128, 8, 11, 2025, 25.0, 1, 0, 2),
-  (129, 8, 12, 2025, 27.0, 1, 0, 2),
-  (130, 8, 1, 2026, 28.0, 1, 1, 2), -- Trừ 1 ngày nghỉ KL (MDN17: 10/01/2026)
-  (131, 8, 2, 2026, 24.0, 1, 0, 2),
-  (132, 8, 3, 2026, 26.0, 1, 0, 2),
-  (133, 8, 4, 2026, 6.0, 0, 0, 1);
-
+INSERT INTO `BANGCHAMCONG` (
+        `MCC`,
+        `MNV`,
+        `THANG`,
+        `NAM`,
+        `NGAYCONG`,
+        `NGAYNGHI_PHEP`,
+        `NGAYNGHI_KP`,
+        `TT`
+    )
+VALUES (1, 1, 1, 2024, 19.0, 0, 0, 2),
+    (2, 1, 2, 2024, 25.0, 0, 0, 2),
+    (3, 1, 3, 2024, 26.0, 0, 0, 2),
+    (4, 1, 4, 2024, 26.0, 0, 0, 2),
+    (5, 1, 5, 2024, 27.0, 0, 0, 2),
+    (6, 1, 6, 2024, 25.0, 0, 0, 2),
+    (7, 1, 7, 2024, 27.0, 1, 0, 2),
+    (8, 1, 8, 2024, 27.0, 1, 0, 2),
+    (9, 1, 9, 2024, 25.0, 1, 0, 2),
+    (10, 1, 10, 2024, 27.0, 1, 0, 2),
+    (11, 1, 11, 2024, 26.0, 1, 0, 2),
+    (12, 1, 12, 2024, 26.0, 1, 0, 2),
+    (13, 1, 1, 2025, 27.0, 1, 0, 2),
+    (14, 1, 2, 2025, 24.0, 1, 0, 2),
+    (15, 1, 3, 2025, 26.0, 1, 0, 2),
+    (16, 1, 4, 2025, 26.0, 1, 0, 2),
+    (17, 1, 5, 2025, 27.0, 1, 0, 2),
+    (18, 1, 6, 2025, 25.0, 1, 0, 2),
+    (19, 1, 7, 2025, 27.0, 1, 0, 2),
+    (20, 1, 8, 2025, 26.0, 1, 0, 2),
+    (21, 1, 9, 2025, 26.0, 1, 0, 2),
+    (22, 1, 10, 2025, 27.0, 1, 0, 2),
+    (23, 1, 11, 2025, 25.0, 1, 0, 2),
+    (24, 1, 12, 2025, 27.0, 1, 0, 2),
+    (25, 1, 1, 2026, 29.0, 1, 0, 2),
+    (26, 1, 2, 2026, 24.0, 1, 0, 2),
+    (27, 1, 3, 2026, 26.0, 1, 0, 2),
+    (28, 1, 4, 2026, 6.0, 0, 0, 1),
+    (29, 2, 2, 2024, 13.0, 0, 0, 2),
+    (30, 2, 3, 2024, 26.0, 0, 0, 2),
+    (31, 2, 4, 2024, 26.0, 0, 0, 2),
+    (32, 2, 5, 2024, 27.0, 0, 0, 2),
+    (33, 2, 6, 2024, 25.0, 0, 0, 2),
+    (34, 2, 7, 2024, 27.0, 0, 0, 2),
+    (35, 2, 8, 2024, 27.0, 1, 0, 2),
+    (36, 2, 9, 2024, 25.0, 1, 0, 2),
+    (37, 2, 10, 2024, 27.0, 1, 0, 2),
+    (38, 2, 11, 2024, 26.0, 1, 0, 2),
+    (39, 2, 12, 2024, 26.0, 1, 0, 2),
+    (40, 2, 1, 2025, 27.0, 1, 0, 2),
+    (41, 2, 2, 2025, 24.0, 1, 0, 2),
+    (42, 2, 3, 2025, 26.0, 1, 0, 2),
+    (43, 2, 4, 2025, 26.0, 1, 0, 2),
+    (44, 2, 5, 2025, 27.0, 1, 0, 2),
+    (45, 2, 6, 2025, 25.0, 1, 0, 2),
+    (46, 2, 7, 2025, 27.0, 1, 0, 2),
+    (47, 2, 8, 2025, 26.0, 1, 0, 2),
+    (48, 2, 9, 2025, 26.0, 1, 0, 2),
+    (49, 2, 10, 2025, 27.0, 1, 0, 2),
+    (50, 2, 11, 2025, 25.0, 1, 0, 2),
+    (51, 2, 12, 2025, 27.0, 1, 0, 2),
+    (52, 2, 1, 2026, 29.0, 1, 0, 2),
+    (53, 2, 2, 2026, 24.0, 1, 0, 2),
+    (54, 2, 3, 2026, 26.0, 1, 0, 2),
+    (55, 2, 4, 2026, 6.0, 0, 0, 1),
+    (56, 3, 2, 2024, 13.0, 0, 0, 2),
+    (57, 3, 3, 2024, 26.0, 0, 0, 2),
+    (58, 3, 4, 2024, 26.0, 0, 0, 2),
+    (59, 3, 5, 2024, 27.0, 0, 0, 2),
+    (60, 3, 6, 2024, 25.0, 0, 0, 2),
+    (61, 3, 7, 2024, 27.0, 0, 0, 2),
+    (62, 3, 8, 2024, 27.0, 1, 0, 2),
+    (63, 3, 9, 2024, 25.0, 1, 0, 2),
+    (64, 3, 10, 2024, 27.0, 1, 0, 2),
+    (65, 3, 11, 2024, 26.0, 1, 0, 2),
+    (66, 3, 12, 2024, 26.0, 1, 0, 2),
+    (67, 3, 1, 2025, 27.0, 1, 0, 2),
+    (68, 3, 2, 2025, 24.0, 1, 0, 2),
+    (69, 3, 3, 2025, 26.0, 1, 0, 2),
+    (70, 3, 4, 2025, 26.0, 1, 0, 2),
+    (71, 3, 5, 2025, 27.0, 1, 0, 2),
+    (72, 3, 6, 2025, 25.0, 1, 0, 2),
+    (73, 3, 7, 2025, 27.0, 1, 0, 2),
+    (74, 3, 8, 2025, 26.0, 1, 0, 2),
+    (75, 3, 9, 2025, 26.0, 1, 0, 2),
+    (76, 3, 10, 2025, 27.0, 1, 0, 2),
+    (77, 3, 11, 2025, 25.0, 1, 0, 2),
+    (78, 3, 12, 2025, 27.0, 1, 0, 2),
+    (79, 3, 1, 2026, 29.0, 1, 0, 2),
+    (80, 3, 2, 2026, 24.0, 1, 0, 2),
+    (81, 3, 3, 2026, 26.0, 1, 0, 2),
+    (82, 3, 4, 2026, 6.0, 0, 0, 1),
+    (83, 5, 3, 2024, 26.0, 0, 0, 2),
+    (84, 5, 4, 2024, 26.0, 0, 0, 2),
+    (85, 5, 5, 2024, 27.0, 0, 0, 2),
+    (86, 5, 6, 2024, 25.0, 0, 0, 2),
+    (87, 5, 7, 2024, 27.0, 0, 0, 2),
+    (88, 5, 8, 2024, 27.0, 0, 0, 2),
+    (89, 5, 9, 2024, 25.0, 1, 0, 2),
+    (90, 5, 10, 2024, 27.0, 1, 0, 2),
+    (91, 5, 11, 2024, 26.0, 1, 0, 2),
+    (92, 5, 12, 2024, 26.0, 1, 0, 2),
+    (93, 5, 1, 2025, 27.0, 1, 0, 2),
+    (94, 5, 2, 2025, 24.0, 1, 0, 2),
+    (95, 5, 3, 2025, 26.0, 1, 0, 2),
+    (96, 5, 4, 2025, 26.0, 1, 0, 2),
+    (97, 5, 5, 2025, 27.0, 1, 0, 2),
+    (98, 5, 6, 2025, 25.0, 1, 0, 2),
+    (99, 5, 7, 2025, 27.0, 1, 0, 2),
+    (100, 5, 8, 2025, 26.0, 1, 0, 2),
+    (101, 5, 9, 2025, 26.0, 1, 0, 2),
+    (102, 5, 10, 2025, 27.0, 1, 0, 2),
+    (103, 5, 11, 2025, 25.0, 1, 0, 2),
+    (104, 5, 12, 2025, 27.0, 1, 0, 2),
+    (105, 5, 1, 2026, 29.0, 1, 0, 2),
+    (106, 5, 2, 2026, 24.0, 1, 0, 2),
+    (107, 5, 3, 2026, 26.0, 1, 0, 2),
+    (108, 5, 4, 2026, 6.0, 0, 0, 1),
+    (109, 7, 4, 2025, 18.0, 0, 0, 2),
+    (110, 7, 5, 2025, 27.0, 0, 0, 2),
+    (111, 7, 6, 2025, 25.0, 0, 0, 2),
+    (112, 7, 7, 2025, 27.0, 0, 0, 2),
+    (113, 7, 8, 2025, 26.0, 0, 0, 2),
+    (114, 7, 9, 2025, 26.0, 0, 0, 2),
+    (115, 7, 10, 2025, 27.0, 1, 0, 2),
+    (116, 7, 11, 2025, 25.0, 1, 0, 2),
+    (117, 7, 12, 2025, 27.0, 1, 0, 2),
+    (118, 7, 1, 2026, 29.0, 1, 0, 2),
+    (119, 7, 2, 2026, 24.0, 1, 0, 2),
+    (120, 7, 3, 2026, 26.0, 1, 0, 2),
+    (121, 7, 4, 2026, 6.0, 0, 0, 1),
+    (122, 8, 5, 2025, 11.0, 0, 0, 2),
+    (123, 8, 6, 2025, 25.0, 0, 0, 2),
+    (124, 8, 7, 2025, 27.0, 0, 0, 2),
+    (125, 8, 8, 2025, 26.0, 0, 0, 2),
+    (126, 8, 9, 2025, 26.0, 0, 0, 2),
+    (127, 8, 10, 2025, 27.0, 0, 0, 2),
+    (128, 8, 11, 2025, 25.0, 1, 0, 2),
+    (129, 8, 12, 2025, 27.0, 1, 0, 2),
+    (130, 8, 1, 2026, 29.0, 1, 0, 2),
+    (131, 8, 2, 2026, 24.0, 1, 0, 2),
+    (132, 8, 3, 2026, 26.0, 1, 0, 2),
+    (133, 8, 4, 2026, 6.0, 0, 0, 1);
 -- ============================================================
 -- BẢNG LƯƠNG
 -- Công thức: (LUONGCOBAN/26) * NGAYCONG_QUYĐỔI + HOA_HONG - BHXH(8%) - BHYT(1.5%) - BHTN(1%)
 -- Ngày lễ: hệ số nhân (x2 hoặc x3) đã tích hợp vào NGAYCONG
 -- ============================================================
-INSERT INTO `BANGLUONG` (`MBL`, `MNV`, `THANG`, `NAM`, `LUONGCOBAN`, `NGAYCONG`, `DOANH_SO`, `TY_LE_HOA_HONG`, `HOA_HONG`, `BHXH`, `BHYT`, `BHTN`, `KHAUTRU_KHAC`, `LUONGTHUCLANH`, `TT`) VALUES
--- ============================================================
--- NV1 - Võ Thị Thu Luyện (Quản lý, lương 15tr, hoa hồng 1% tổng DS)
--- Vào làm: 2024-01-10 → tháng đầu tiên 1/2024
--- ============================================================
-  (1, 1, 1, 2024, 15000000, 19.0, 205000000, 1.0, 2050000.0, 1200000.0, 225000.0, 150000.0, 0, 11436538.46, 2),
-  (2, 1, 2, 2024, 15000000, 25.0, 210000000, 1.0, 2100000.0, 1200000.0, 225000.0, 150000.0, 0, 14948076.92, 2),
-  (3, 1, 3, 2024, 15000000, 26.0, 215000000, 1.0, 2150000.0, 1200000.0, 225000.0, 150000.0, 0, 15575000.0, 2),
-  (4, 1, 4, 2024, 15000000, 26.0, 220000000, 1.0, 2200000.0, 1200000.0, 225000.0, 150000.0, 0, 15625000.0, 2),
-  (5, 1, 5, 2024, 15000000, 27.0, 225000000, 1.0, 2250000.0, 1200000.0, 225000.0, 150000.0, 0, 16251923.08, 2),
-  (6, 1, 6, 2024, 15000000, 25.0, 230000000, 1.0, 2300000.0, 1200000.0, 225000.0, 150000.0, 0, 15148076.92, 2),
-  (7, 1, 7, 2024, 15000000, 27.0, 235000000, 1.0, 2350000.0, 1200000.0, 225000.0, 150000.0, 0, 16351923.08, 2),
-  (8, 1, 8, 2024, 15000000, 27.0, 240000000, 1.0, 2400000.0, 1200000.0, 225000.0, 150000.0, 0, 16401923.08, 2),
-  (9, 1, 9, 2024, 15000000, 25.0, 245000000, 1.0, 2450000.0, 1200000.0, 225000.0, 150000.0, 0, 15298076.92, 2),
-  (10, 1, 10, 2024, 15000000, 27.0, 250000000, 1.0, 2500000.0, 1200000.0, 225000.0, 150000.0, 0, 16501923.08, 2),
-  (11, 1, 11, 2024, 15000000, 26.0, 255000000, 1.0, 2550000.0, 1200000.0, 225000.0, 150000.0, 0, 15975000.0, 2),
-  (12, 1, 12, 2024, 15000000, 26.0, 260000000, 1.0, 2600000.0, 1200000.0, 225000.0, 150000.0, 0, 16025000.0, 2),
-  (13, 1, 1, 2025, 15000000, 27.0, 205000000, 1.0, 2050000.0, 1200000.0, 225000.0, 150000.0, 0, 16051923.08, 2),
-  (14, 1, 2, 2025, 15000000, 24.0, 210000000, 1.0, 2100000.0, 1200000.0, 225000.0, 150000.0, 0, 14371153.85, 2),
-  (15, 1, 3, 2025, 15000000, 26.0, 215000000, 1.0, 2150000.0, 1200000.0, 225000.0, 150000.0, 0, 15575000.0, 2),
-  (16, 1, 4, 2025, 15000000, 26.0, 220000000, 1.0, 2200000.0, 1200000.0, 225000.0, 150000.0, 0, 15625000.0, 2),
-  (17, 1, 5, 2025, 15000000, 27.0, 225000000, 1.0, 2250000.0, 1200000.0, 225000.0, 150000.0, 0, 16251923.08, 2),
-  (18, 1, 6, 2025, 15000000, 25.0, 230000000, 1.0, 2300000.0, 1200000.0, 225000.0, 150000.0, 0, 15148076.92, 2),
-  (19, 1, 7, 2025, 15000000, 27.0, 235000000, 1.0, 2350000.0, 1200000.0, 225000.0, 150000.0, 0, 16351923.08, 2),
-  (20, 1, 8, 2025, 15000000, 26.0, 240000000, 1.0, 2400000.0, 1200000.0, 225000.0, 150000.0, 0, 15825000.0, 2),
-  (21, 1, 9, 2025, 15000000, 26.0, 245000000, 1.0, 2450000.0, 1200000.0, 225000.0, 150000.0, 0, 15875000.0, 2),
-  (22, 1, 10, 2025, 15000000, 27.0, 250000000, 1.0, 2500000.0, 1200000.0, 225000.0, 150000.0, 0, 16501923.08, 2),
-  (23, 1, 11, 2025, 15000000, 25.0, 255000000, 1.0, 2550000.0, 1200000.0, 225000.0, 150000.0, 0, 15398076.92, 2),
-  (24, 1, 12, 2025, 15000000, 27.0, 260000000, 1.0, 2600000.0, 1200000.0, 225000.0, 150000.0, 0, 16601923.08, 2),
-  (25, 1, 1, 2026, 15000000, 29.0, 205000000, 1.0, 2050000.0, 1200000.0, 225000.0, 150000.0, 0, 17205769.23, 2),
-  (26, 1, 2, 2026, 15000000, 24.0, 210000000, 1.0, 2100000.0, 1200000.0, 225000.0, 150000.0, 0, 14371153.85, 2),
-  (27, 1, 3, 2026, 15000000, 26.0, 215000000, 1.0, 2150000.0, 1200000.0, 225000.0, 150000.0, 0, 15575000.0, 2),
-  (28, 1, 4, 2026, 15000000, 6.0, 220000000, 1.0, 2200000.0, 1200000.0, 225000.0, 150000.0, 0, 4086538.46, 1),
--- ============================================================
--- NV2 - Nguyễn Thị Ngọc Tú (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
--- Vào làm: 2024-02-15 → bắt đầu từ T2/2024
--- ============================================================
-  (29, 2, 2, 2024, 7000000, 13.0, 29800000, 2.0, 596000.0, 560000.0, 105000.0, 70000.0, 0, 3361000.0, 2),
-  (30, 2, 3, 2024, 7000000, 26.0, 25600000, 2.0, 512000.0, 560000.0, 105000.0, 70000.0, 0, 6777000.0, 2),
-  (31, 2, 4, 2024, 7000000, 26.0, 245000000, 2.0, 4900000.0, 560000.0, 105000.0, 70000.0, 0, 11165000.0, 2),
-  (32, 2, 5, 2024, 7000000, 27.0, 5150000, 2.0, 103000.0, 560000.0, 105000.0, 70000.0, 0, 6637230.77, 2),
-  (33, 2, 6, 2024, 7000000, 25.0, 215000000, 2.0, 4300000.0, 560000.0, 105000.0, 70000.0, 0, 10295769.23, 2),
-  (34, 2, 7, 2024, 7000000, 27.0, 30000000, 2.0, 600000.0, 560000.0, 105000.0, 70000.0, 0, 7134230.77, 2),
-  (35, 2, 8, 2024, 7000000, 27.0, 195000000, 2.0, 3900000.0, 560000.0, 105000.0, 70000.0, 0, 10434230.77, 2),
-  (36, 2, 9, 2024, 7000000, 25.0, 30200000, 2.0, 604000.0, 560000.0, 105000.0, 70000.0, 0, 6599769.23, 2),
-  (37, 2, 10, 2024, 7000000, 27.0, 15700000, 2.0, 314000.0, 560000.0, 105000.0, 70000.0, 0, 6848230.77, 2),
-  (38, 2, 11, 2024, 7000000, 24.0, 20500000, 2.0, 410000.0, 560000.0, 105000.0, 70000.0, 0, 6136538.46, 2), -- Trừ 2 ngày nghỉ KL (MDN11)
-  (39, 2, 12, 2024, 7000000, 26.0, 18680000, 2.0, 373600.0, 560000.0, 105000.0, 70000.0, 0, 6638600.0, 2),
-  (40, 2, 1, 2025, 7000000, 27.0, 23500000, 2.0, 470000.0, 560000.0, 105000.0, 70000.0, 0, 7004230.77, 2),
-  (41, 2, 2, 2025, 7000000, 24.0, 25500000, 2.0, 510000.0, 560000.0, 105000.0, 70000.0, 0, 6236538.46, 2),
-  (42, 2, 3, 2025, 7000000, 26.0, 245000000, 2.0, 4900000.0, 560000.0, 105000.0, 70000.0, 0, 11165000.0, 2),
-  (43, 2, 4, 2025, 7000000, 26.0, 16800000, 2.0, 336000.0, 560000.0, 105000.0, 70000.0, 0, 6601000.0, 2),
-  (44, 2, 5, 2025, 7000000, 27.0, 215000000, 2.0, 4300000.0, 560000.0, 105000.0, 70000.0, 0, 10834230.77, 2),
-  (45, 2, 6, 2025, 7000000, 25.0, 14000000, 2.0, 280000.0, 560000.0, 105000.0, 70000.0, 0, 6275769.23, 2),
-  (46, 2, 7, 2025, 7000000, 27.0, 195000000, 2.0, 3900000.0, 560000.0, 105000.0, 70000.0, 0, 10434230.77, 2),
-  (47, 2, 8, 2025, 7000000, 26.0, 17400000, 2.0, 348000.0, 560000.0, 105000.0, 70000.0, 0, 6613000.0, 2),
-  (48, 2, 9, 2025, 7000000, 26.0, 32800000, 2.0, 656000.0, 560000.0, 105000.0, 70000.0, 0, 6921000.0, 2),
-  (49, 2, 10, 2025, 7000000, 27.0, 27700000, 2.0, 554000.0, 560000.0, 105000.0, 70000.0, 0, 7088230.77, 2),
-  (50, 2, 11, 2025, 7000000, 25.0, 245000000, 2.0, 4900000.0, 560000.0, 105000.0, 70000.0, 0, 10895769.23, 2),
-  (51, 2, 12, 2025, 7000000, 27.0, 25900000, 2.0, 518000.0, 560000.0, 105000.0, 70000.0, 0, 7052230.77, 2),
-  (52, 2, 1, 2026, 7000000, 29.0, 215000000, 2.0, 4300000.0, 560000.0, 105000.0, 70000.0, 0, 11372692.31, 2),
-  (53, 2, 2, 2026, 7000000, 24.0, 195000000, 2.0, 3900000.0, 560000.0, 105000.0, 70000.0, 0, 9626538.46, 2),
-  (54, 2, 3, 2026, 7000000, 26.0, 16800000, 2.0, 336000.0, 560000.0, 105000.0, 70000.0, 0, 6601000.0, 2),
-  (55, 2, 4, 2026, 7000000, 6.0, 14750000, 2.0, 295000.0, 560000.0, 105000.0, 70000.0, 0, 1175384.62, 1),
--- ============================================================
--- NV3 - Trần Thị Xuân Thanh (Kho, lương 8tr, không hoa hồng)
--- Vào làm: 2024-02-15 → bắt đầu từ T2/2024
--- ============================================================
-  (56, 3, 2, 2024, 8000000, 13.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 3160000.0, 2),
-  (57, 3, 3, 2024, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (58, 3, 4, 2024, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (59, 3, 5, 2024, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (60, 3, 6, 2024, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (61, 3, 7, 2024, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (62, 3, 8, 2024, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (63, 3, 9, 2024, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (64, 3, 10, 2024, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (65, 3, 11, 2024, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (66, 3, 12, 2024, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (67, 3, 1, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (68, 3, 2, 2025, 8000000, 24.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6544615.38, 2),
-  (69, 3, 3, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (70, 3, 4, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (71, 3, 5, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (72, 3, 6, 2025, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (73, 3, 7, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (74, 3, 8, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (75, 3, 9, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (76, 3, 10, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (77, 3, 11, 2025, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (78, 3, 12, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (79, 3, 1, 2026, 8000000, 29.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 8083076.92, 2),
-  (80, 3, 2, 2026, 8000000, 24.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6544615.38, 2),
-  (81, 3, 3, 2026, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (82, 3, 4, 2026, 8000000, 6.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 1006153.85, 1),
--- ============================================================
--- NV5 - Đỗ Nam Anh (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
--- Vào làm: 2024-03-01 → bắt đầu từ T3/2024
--- ============================================================
-  (83, 5, 3, 2024, 7000000, 26.0, 19500000, 2.0, 390000.0, 560000.0, 105000.0, 70000.0, 0, 6655000.0, 2),
-  (84, 5, 4, 2024, 7000000, 26.0, 38800000, 2.0, 776000.0, 560000.0, 105000.0, 70000.0, 0, 7041000.0, 2),
-  (85, 5, 5, 2024, 7000000, 27.0, 4900000, 2.0, 98000.0, 560000.0, 105000.0, 70000.0, 0, 6632230.77, 2),
-  (86, 5, 6, 2024, 7000000, 25.0, 32200000, 2.0, 644000.0, 560000.0, 105000.0, 70000.0, 0, 6639769.23, 2),
-  (87, 5, 7, 2024, 7000000, 27.0, 16600000, 2.0, 332000.0, 560000.0, 105000.0, 70000.0, 0, 6866230.77, 2),
-  (88, 5, 8, 2024, 7000000, 27.0, 25500000, 2.0, 510000.0, 560000.0, 105000.0, 70000.0, 0, 7044230.77, 2),
-  (89, 5, 9, 2024, 7000000, 25.0, 19600000, 2.0, 392000.0, 560000.0, 105000.0, 70000.0, 0, 6387769.23, 2),
-  (90, 5, 10, 2024, 7000000, 27.0, 17450000, 2.0, 349000.0, 560000.0, 105000.0, 70000.0, 0, 6883230.77, 2),
-  (91, 5, 11, 2024, 7000000, 26.0, 16100000, 2.0, 322000.0, 560000.0, 105000.0, 70000.0, 0, 6587000.0, 2),
-  (92, 5, 12, 2024, 7000000, 26.0, 9950000, 2.0, 199000.0, 560000.0, 105000.0, 70000.0, 0, 6464000.0, 2),
-  (93, 5, 1, 2025, 7000000, 27.0, 17300000, 2.0, 346000.0, 560000.0, 105000.0, 70000.0, 0, 6880230.77, 2),
-  (94, 5, 2, 2025, 7000000, 24.0, 34600000, 2.0, 692000.0, 560000.0, 105000.0, 70000.0, 0, 6418538.46, 2),
-  (95, 5, 3, 2025, 7000000, 26.0, 25600000, 2.0, 512000.0, 560000.0, 105000.0, 70000.0, 0, 6777000.0, 2),
-  (96, 5, 4, 2025, 7000000, 26.0, 20600000, 2.0, 412000.0, 560000.0, 105000.0, 70000.0, 0, 6677000.0, 2),
-  (97, 5, 5, 2025, 7000000, 27.0, 30000000, 2.0, 600000.0, 560000.0, 105000.0, 70000.0, 0, 7134230.77, 2),
-  (98, 5, 6, 2025, 7000000, 25.0, 7400000, 2.0, 148000.0, 560000.0, 105000.0, 70000.0, 0, 6143769.23, 2),
-  (99, 5, 7, 2025, 7000000, 27.0, 23400000, 2.0, 468000.0, 560000.0, 105000.0, 70000.0, 0, 7002230.77, 2),
-  (100, 5, 8, 2025, 7000000, 26.0, 21100000, 2.0, 422000.0, 560000.0, 105000.0, 70000.0, 0, 6687000.0, 2),
-  (101, 5, 9, 2025, 7000000, 26.0, 19000000, 2.0, 380000.0, 560000.0, 105000.0, 70000.0, 0, 6645000.0, 2),
-  (102, 5, 10, 2025, 7000000, 27.0, 22600000, 2.0, 452000.0, 560000.0, 105000.0, 70000.0, 0, 6986230.77, 2),
-  (103, 5, 11, 2025, 7000000, 25.0, 16600000, 2.0, 332000.0, 560000.0, 105000.0, 70000.0, 0, 6327769.23, 2),
-  (104, 5, 12, 2025, 7000000, 27.0, 19070000, 2.0, 381400.0, 560000.0, 105000.0, 70000.0, 0, 6915630.77, 2),
-  (105, 5, 1, 2026, 7000000, 29.0, 25600000, 2.0, 512000.0, 560000.0, 105000.0, 70000.0, 0, 7584692.31, 2),
-  (106, 5, 2, 2026, 7000000, 24.0, 25500000, 2.0, 510000.0, 560000.0, 105000.0, 70000.0, 0, 6236538.46, 2),
-  (107, 5, 3, 2026, 7000000, 26.0, 16800000, 2.0, 336000.0, 560000.0, 105000.0, 70000.0, 0, 6601000.0, 2),
-  (108, 5, 4, 2026, 7000000, 6.0, 4850000, 2.0, 97000.0, 560000.0, 105000.0, 70000.0, 0, 977384.62, 1),
--- ============================================================
--- NV6 - Đinh Ngọc Ánh (Bán hàng, đã nghỉ việc TT=0, lương 7tr, hoa hồng 2%)
--- Vào làm: 2024-04-10 → T4/2024 đến T12/2024 + 2025 + 1/2026-3/2026
--- (theo BANGCHAMCONG hiện có)
--- ============================================================
-  (109, 6, 4, 2024, 7000000, 26.0, 26300000, 2.0, 526000.0, 560000.0, 105000.0, 70000.0, 0, 6791000.0, 2),
-  (110, 6, 5, 2024, 7000000, 27.0, 4350000, 2.0, 87000.0, 560000.0, 105000.0, 70000.0, 0, 6621230.77, 2),
-  (111, 6, 6, 2024, 7000000, 25.0, 23100000, 2.0, 462000.0, 560000.0, 105000.0, 70000.0, 0, 6457769.23, 2),
-  (112, 6, 7, 2024, 7000000, 27.0, 8300000, 2.0, 166000.0, 560000.0, 105000.0, 70000.0, 0, 6700230.77, 2),
-  (113, 6, 8, 2024, 7000000, 27.0, 18000000, 2.0, 360000.0, 560000.0, 105000.0, 70000.0, 0, 6894230.77, 2),
-  (114, 6, 9, 2024, 7000000, 25.0, 16700000, 2.0, 334000.0, 560000.0, 105000.0, 70000.0, 0, 6329769.23, 2),
-  (115, 6, 10, 2024, 7000000, 27.0, 22100000, 2.0, 442000.0, 560000.0, 105000.0, 70000.0, 0, 6976230.77, 2),
-  (116, 6, 11, 2024, 7000000, 26.0, 23100000, 2.0, 462000.0, 560000.0, 105000.0, 70000.0, 0, 6727000.0, 2),
-  (117, 6, 12, 2024, 7000000, 26.0, 8180000, 2.0, 163600.0, 560000.0, 105000.0, 70000.0, 0, 6428600.0, 2),
-  (118, 6, 1, 2025, 7000000, 27.0, 12800000, 2.0, 256000.0, 560000.0, 105000.0, 70000.0, 0, 6790230.77, 2),
-  (119, 6, 2, 2025, 7000000, 24.0, 19000000, 2.0, 380000.0, 560000.0, 105000.0, 70000.0, 0, 6106538.46, 2),
-  (120, 6, 3, 2025, 7000000, 26.0, 13200000, 2.0, 264000.0, 560000.0, 105000.0, 70000.0, 0, 6529000.0, 2),
-  (121, 6, 4, 2025, 7000000, 26.0, 15500000, 2.0, 310000.0, 560000.0, 105000.0, 70000.0, 0, 6575000.0, 2),
-  (122, 6, 5, 2025, 7000000, 27.0, 13700000, 2.0, 274000.0, 560000.0, 105000.0, 70000.0, 0, 6808230.77, 2),
-  (123, 6, 6, 2025, 7000000, 25.0, 15200000, 2.0, 304000.0, 560000.0, 105000.0, 70000.0, 0, 6299769.23, 2),
-  (124, 6, 7, 2025, 7000000, 27.0, 23700000, 2.0, 474000.0, 560000.0, 105000.0, 70000.0, 0, 7008230.77, 2),
-  (125, 6, 8, 2025, 7000000, 26.0, 19200000, 2.0, 384000.0, 560000.0, 105000.0, 70000.0, 0, 6649000.0, 2),
-  (126, 6, 9, 2025, 7000000, 26.0, 10000000, 2.0, 200000.0, 560000.0, 105000.0, 70000.0, 0, 6465000.0, 2),
-  (127, 6, 10, 2025, 7000000, 27.0, 17700000, 2.0, 354000.0, 560000.0, 105000.0, 70000.0, 0, 6888230.77, 2),
-  (128, 6, 11, 2025, 7000000, 25.0, 17900000, 2.0, 358000.0, 560000.0, 105000.0, 70000.0, 0, 6353769.23, 2),
-  (129, 6, 12, 2025, 7000000, 27.0, 18800000, 2.0, 376000.0, 560000.0, 105000.0, 70000.0, 0, 6910230.77, 2),
-  (130, 6, 1, 2026, 7000000, 29.0, 17000000, 2.0, 340000.0, 560000.0, 105000.0, 70000.0, 0, 7412692.31, 2),
-  (131, 6, 2, 2026, 7000000, 24.0, 31400000, 2.0, 628000.0, 560000.0, 105000.0, 70000.0, 0, 6354538.46, 2),
-  (132, 6, 3, 2026, 7000000, 26.0, 17500000, 2.0, 350000.0, 560000.0, 105000.0, 70000.0, 0, 6615000.0, 2),
--- ============================================================
--- NV7 - Phạm Minh Khang (Kho, lương 8tr, không hoa hồng)
--- Vào làm: 2025-04-10 → bắt đầu T4/2025
--- ============================================================
-  (133, 7, 4, 2025, 8000000, 18.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 4698461.54, 2),
-  (134, 7, 5, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (135, 7, 6, 2025, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (136, 7, 7, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (137, 7, 8, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (138, 7, 9, 2025, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (139, 7, 10, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (140, 7, 11, 2025, 8000000, 25.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6852307.69, 2),
-  (141, 7, 12, 2025, 8000000, 27.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7467692.31, 2),
-  (142, 7, 1, 2026, 8000000, 29.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 8083076.92, 2),
-  (143, 7, 2, 2026, 8000000, 24.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 6544615.38, 2),
-  (144, 7, 3, 2026, 8000000, 26.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 7160000.0, 2),
-  (145, 7, 4, 2026, 8000000, 6.0, 0, 0.0, 0.0, 640000.0, 120000.0, 80000.0, 0, 1006153.85, 1),
--- ============================================================
--- NV8 - Lê Thảo Nhi (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
--- Vào làm: 2025-05-20 → bắt đầu T5/2025
--- Chưa có phiếu xuất riêng → doanh số = 0 (nhân viên mới đang học việc)
--- ============================================================
-  (146, 8, 5, 2025, 7000000, 11.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 2226538.46, 2),
-  (147, 8, 6, 2025, 7000000, 25.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 5995769.23, 2),
-  (148, 8, 7, 2025, 7000000, 27.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6534230.77, 2),
-  (149, 8, 8, 2025, 7000000, 26.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6265000.0, 2),
-  (150, 8, 9, 2025, 7000000, 26.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6265000.0, 2),
-  (151, 8, 10, 2025, 7000000, 27.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6534230.77, 2),
-  (152, 8, 11, 2025, 7000000, 25.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 5995769.23, 2),
-  (153, 8, 12, 2025, 7000000, 27.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6534230.77, 2),
-  (154, 8, 1, 2026, 7000000, 28.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6803461.54, 2), -- Trừ 1 ngày nghỉ KL (MDN17)
-  (155, 8, 2, 2026, 7000000, 24.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 5726538.46, 2),
-  (156, 8, 3, 2026, 7000000, 26.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 6265000.0, 2),
-  (157, 8, 4, 2026, 7000000, 6.0, 0, 2.0, 0.0, 560000.0, 105000.0, 70000.0, 0, 880384.62, 1);
-
+INSERT INTO `BANGLUONG` (
+        `MBL`,
+        `MNV`,
+        `THANG`,
+        `NAM`,
+        `LUONGCOBAN`,
+        `NGAYCONG`,
+        `DOANH_SO`,
+        `TY_LE_HOA_HONG`,
+        `HOA_HONG`,
+        `BHXH`,
+        `BHYT`,
+        `BHTN`,
+        `KHAUTRU_KHAC`,
+        `LUONGTHUCLANH`,
+        `TT`
+    )
+VALUES -- ============================================================
+    -- NV1 - Võ Thị Thu Luyện (Quản lý, lương 15tr, hoa hồng 1% tổng DS)
+    -- Vào làm: 2024-01-10 → tháng đầu tiên 1/2024
+    -- ============================================================
+    (
+        1,
+        1,
+        1,
+        2024,
+        15000000,
+        19.0,
+        205000000,
+        1.0,
+        2050000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        11436538.46,
+        2
+    ),
+    (
+        2,
+        1,
+        2,
+        2024,
+        15000000,
+        25.0,
+        210000000,
+        1.0,
+        2100000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        14948076.92,
+        2
+    ),
+    (
+        3,
+        1,
+        3,
+        2024,
+        15000000,
+        26.0,
+        215000000,
+        1.0,
+        2150000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15575000.0,
+        2
+    ),
+    (
+        4,
+        1,
+        4,
+        2024,
+        15000000,
+        26.0,
+        220000000,
+        1.0,
+        2200000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15625000.0,
+        2
+    ),
+    (
+        5,
+        1,
+        5,
+        2024,
+        15000000,
+        27.0,
+        225000000,
+        1.0,
+        2250000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16251923.08,
+        2
+    ),
+    (
+        6,
+        1,
+        6,
+        2024,
+        15000000,
+        25.0,
+        230000000,
+        1.0,
+        2300000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15148076.92,
+        2
+    ),
+    (
+        7,
+        1,
+        7,
+        2024,
+        15000000,
+        27.0,
+        235000000,
+        1.0,
+        2350000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16351923.08,
+        2
+    ),
+    (
+        8,
+        1,
+        8,
+        2024,
+        15000000,
+        27.0,
+        240000000,
+        1.0,
+        2400000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16401923.08,
+        2
+    ),
+    (
+        9,
+        1,
+        9,
+        2024,
+        15000000,
+        25.0,
+        245000000,
+        1.0,
+        2450000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15298076.92,
+        2
+    ),
+    (
+        10,
+        1,
+        10,
+        2024,
+        15000000,
+        27.0,
+        250000000,
+        1.0,
+        2500000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16501923.08,
+        2
+    ),
+    (
+        11,
+        1,
+        11,
+        2024,
+        15000000,
+        26.0,
+        255000000,
+        1.0,
+        2550000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15975000.0,
+        2
+    ),
+    (
+        12,
+        1,
+        12,
+        2024,
+        15000000,
+        26.0,
+        260000000,
+        1.0,
+        2600000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16025000.0,
+        2
+    ),
+    (
+        13,
+        1,
+        1,
+        2025,
+        15000000,
+        27.0,
+        205000000,
+        1.0,
+        2050000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16051923.08,
+        2
+    ),
+    (
+        14,
+        1,
+        2,
+        2025,
+        15000000,
+        24.0,
+        210000000,
+        1.0,
+        2100000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        14371153.85,
+        2
+    ),
+    (
+        15,
+        1,
+        3,
+        2025,
+        15000000,
+        26.0,
+        215000000,
+        1.0,
+        2150000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15575000.0,
+        2
+    ),
+    (
+        16,
+        1,
+        4,
+        2025,
+        15000000,
+        26.0,
+        220000000,
+        1.0,
+        2200000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15625000.0,
+        2
+    ),
+    (
+        17,
+        1,
+        5,
+        2025,
+        15000000,
+        27.0,
+        225000000,
+        1.0,
+        2250000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16251923.08,
+        2
+    ),
+    (
+        18,
+        1,
+        6,
+        2025,
+        15000000,
+        25.0,
+        230000000,
+        1.0,
+        2300000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15148076.92,
+        2
+    ),
+    (
+        19,
+        1,
+        7,
+        2025,
+        15000000,
+        27.0,
+        235000000,
+        1.0,
+        2350000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16351923.08,
+        2
+    ),
+    (
+        20,
+        1,
+        8,
+        2025,
+        15000000,
+        26.0,
+        240000000,
+        1.0,
+        2400000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15825000.0,
+        2
+    ),
+    (
+        21,
+        1,
+        9,
+        2025,
+        15000000,
+        26.0,
+        245000000,
+        1.0,
+        2450000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15875000.0,
+        2
+    ),
+    (
+        22,
+        1,
+        10,
+        2025,
+        15000000,
+        27.0,
+        250000000,
+        1.0,
+        2500000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16501923.08,
+        2
+    ),
+    (
+        23,
+        1,
+        11,
+        2025,
+        15000000,
+        25.0,
+        255000000,
+        1.0,
+        2550000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15398076.92,
+        2
+    ),
+    (
+        24,
+        1,
+        12,
+        2025,
+        15000000,
+        27.0,
+        260000000,
+        1.0,
+        2600000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        16601923.08,
+        2
+    ),
+    (
+        25,
+        1,
+        1,
+        2026,
+        15000000,
+        29.0,
+        205000000,
+        1.0,
+        2050000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        17205769.23,
+        2
+    ),
+    (
+        26,
+        1,
+        2,
+        2026,
+        15000000,
+        24.0,
+        210000000,
+        1.0,
+        2100000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        14371153.85,
+        2
+    ),
+    (
+        27,
+        1,
+        3,
+        2026,
+        15000000,
+        26.0,
+        215000000,
+        1.0,
+        2150000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        15575000.0,
+        2
+    ),
+    (
+        28,
+        1,
+        4,
+        2026,
+        15000000,
+        6.0,
+        220000000,
+        1.0,
+        2200000.0,
+        1200000.0,
+        225000.0,
+        150000.0,
+        0,
+        4086538.46,
+        1
+    ),
+    -- ============================================================
+    -- NV2 - Nguyễn Thị Ngọc Tú (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
+    -- Vào làm: 2024-02-15 → bắt đầu từ T2/2024
+    -- ============================================================
+    (
+        29,
+        2,
+        2,
+        2024,
+        7000000,
+        13.0,
+        29800000,
+        2.0,
+        596000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        3361000.0,
+        2
+    ),
+    (
+        30,
+        2,
+        3,
+        2024,
+        7000000,
+        26.0,
+        25600000,
+        2.0,
+        512000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6777000.0,
+        2
+    ),
+    (
+        31,
+        2,
+        4,
+        2024,
+        7000000,
+        26.0,
+        245000000,
+        2.0,
+        4900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        11165000.0,
+        2
+    ),
+    (
+        32,
+        2,
+        5,
+        2024,
+        7000000,
+        27.0,
+        5150000,
+        2.0,
+        103000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6637230.77,
+        2
+    ),
+    (
+        33,
+        2,
+        6,
+        2024,
+        7000000,
+        25.0,
+        215000000,
+        2.0,
+        4300000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        10295769.23,
+        2
+    ),
+    (
+        34,
+        2,
+        7,
+        2024,
+        7000000,
+        27.0,
+        30000000,
+        2.0,
+        600000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7134230.77,
+        2
+    ),
+    (
+        35,
+        2,
+        8,
+        2024,
+        7000000,
+        27.0,
+        195000000,
+        2.0,
+        3900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        10434230.77,
+        2
+    ),
+    (
+        36,
+        2,
+        9,
+        2024,
+        7000000,
+        25.0,
+        30200000,
+        2.0,
+        604000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6599769.23,
+        2
+    ),
+    (
+        37,
+        2,
+        10,
+        2024,
+        7000000,
+        27.0,
+        15700000,
+        2.0,
+        314000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6848230.77,
+        2
+    ),
+    (
+        38,
+        2,
+        11,
+        2024,
+        7000000,
+        26.0,
+        20500000,
+        2.0,
+        410000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6675000.0,
+        2
+    ),
+    (
+        39,
+        2,
+        12,
+        2024,
+        7000000,
+        26.0,
+        18680000,
+        2.0,
+        373600.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6638600.0,
+        2
+    ),
+    (
+        40,
+        2,
+        1,
+        2025,
+        7000000,
+        27.0,
+        23500000,
+        2.0,
+        470000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7004230.77,
+        2
+    ),
+    (
+        41,
+        2,
+        2,
+        2025,
+        7000000,
+        24.0,
+        25500000,
+        2.0,
+        510000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6236538.46,
+        2
+    ),
+    (
+        42,
+        2,
+        3,
+        2025,
+        7000000,
+        26.0,
+        245000000,
+        2.0,
+        4900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        11165000.0,
+        2
+    ),
+    (
+        43,
+        2,
+        4,
+        2025,
+        7000000,
+        26.0,
+        16800000,
+        2.0,
+        336000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6601000.0,
+        2
+    ),
+    (
+        44,
+        2,
+        5,
+        2025,
+        7000000,
+        27.0,
+        215000000,
+        2.0,
+        4300000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        10834230.77,
+        2
+    ),
+    (
+        45,
+        2,
+        6,
+        2025,
+        7000000,
+        25.0,
+        14000000,
+        2.0,
+        280000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6275769.23,
+        2
+    ),
+    (
+        46,
+        2,
+        7,
+        2025,
+        7000000,
+        27.0,
+        195000000,
+        2.0,
+        3900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        10434230.77,
+        2
+    ),
+    (
+        47,
+        2,
+        8,
+        2025,
+        7000000,
+        26.0,
+        17400000,
+        2.0,
+        348000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6613000.0,
+        2
+    ),
+    (
+        48,
+        2,
+        9,
+        2025,
+        7000000,
+        26.0,
+        32800000,
+        2.0,
+        656000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6921000.0,
+        2
+    ),
+    (
+        49,
+        2,
+        10,
+        2025,
+        7000000,
+        27.0,
+        27700000,
+        2.0,
+        554000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7088230.77,
+        2
+    ),
+    (
+        50,
+        2,
+        11,
+        2025,
+        7000000,
+        25.0,
+        245000000,
+        2.0,
+        4900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        10895769.23,
+        2
+    ),
+    (
+        51,
+        2,
+        12,
+        2025,
+        7000000,
+        27.0,
+        25900000,
+        2.0,
+        518000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7052230.77,
+        2
+    ),
+    (
+        52,
+        2,
+        1,
+        2026,
+        7000000,
+        29.0,
+        215000000,
+        2.0,
+        4300000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        11372692.31,
+        2
+    ),
+    (
+        53,
+        2,
+        2,
+        2026,
+        7000000,
+        24.0,
+        195000000,
+        2.0,
+        3900000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        9626538.46,
+        2
+    ),
+    (
+        54,
+        2,
+        3,
+        2026,
+        7000000,
+        26.0,
+        16800000,
+        2.0,
+        336000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6601000.0,
+        2
+    ),
+    (
+        55,
+        2,
+        4,
+        2026,
+        7000000,
+        6.0,
+        14750000,
+        2.0,
+        295000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        1175384.62,
+        1
+    ),
+    -- ============================================================
+    -- NV3 - Trần Thị Xuân Thanh (Kho, lương 8tr, không hoa hồng)
+    -- Vào làm: 2024-02-15 → bắt đầu từ T2/2024
+    -- ============================================================
+    (
+        56,
+        3,
+        2,
+        2024,
+        8000000,
+        13.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        3160000.0,
+        2
+    ),
+    (
+        57,
+        3,
+        3,
+        2024,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        58,
+        3,
+        4,
+        2024,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        59,
+        3,
+        5,
+        2024,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        60,
+        3,
+        6,
+        2024,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        61,
+        3,
+        7,
+        2024,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        62,
+        3,
+        8,
+        2024,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        63,
+        3,
+        9,
+        2024,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        64,
+        3,
+        10,
+        2024,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        65,
+        3,
+        11,
+        2024,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        66,
+        3,
+        12,
+        2024,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        67,
+        3,
+        1,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        68,
+        3,
+        2,
+        2025,
+        8000000,
+        24.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6544615.38,
+        2
+    ),
+    (
+        69,
+        3,
+        3,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        70,
+        3,
+        4,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        71,
+        3,
+        5,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        72,
+        3,
+        6,
+        2025,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        73,
+        3,
+        7,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        74,
+        3,
+        8,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        75,
+        3,
+        9,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        76,
+        3,
+        10,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        77,
+        3,
+        11,
+        2025,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        78,
+        3,
+        12,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        79,
+        3,
+        1,
+        2026,
+        8000000,
+        29.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        8083076.92,
+        2
+    ),
+    (
+        80,
+        3,
+        2,
+        2026,
+        8000000,
+        24.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6544615.38,
+        2
+    ),
+    (
+        81,
+        3,
+        3,
+        2026,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        82,
+        3,
+        4,
+        2026,
+        8000000,
+        6.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        1006153.85,
+        1
+    ),
+    -- ============================================================
+    -- NV5 - Đỗ Nam Anh (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
+    -- Vào làm: 2024-03-01 → bắt đầu từ T3/2024
+    -- ============================================================
+    (
+        83,
+        5,
+        3,
+        2024,
+        7000000,
+        26.0,
+        19500000,
+        2.0,
+        390000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6655000.0,
+        2
+    ),
+    (
+        84,
+        5,
+        4,
+        2024,
+        7000000,
+        26.0,
+        38800000,
+        2.0,
+        776000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7041000.0,
+        2
+    ),
+    (
+        85,
+        5,
+        5,
+        2024,
+        7000000,
+        27.0,
+        4900000,
+        2.0,
+        98000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6632230.77,
+        2
+    ),
+    (
+        86,
+        5,
+        6,
+        2024,
+        7000000,
+        25.0,
+        32200000,
+        2.0,
+        644000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6639769.23,
+        2
+    ),
+    (
+        87,
+        5,
+        7,
+        2024,
+        7000000,
+        27.0,
+        16600000,
+        2.0,
+        332000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6866230.77,
+        2
+    ),
+    (
+        88,
+        5,
+        8,
+        2024,
+        7000000,
+        27.0,
+        25500000,
+        2.0,
+        510000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7044230.77,
+        2
+    ),
+    (
+        89,
+        5,
+        9,
+        2024,
+        7000000,
+        25.0,
+        19600000,
+        2.0,
+        392000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6387769.23,
+        2
+    ),
+    (
+        90,
+        5,
+        10,
+        2024,
+        7000000,
+        27.0,
+        17450000,
+        2.0,
+        349000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6883230.77,
+        2
+    ),
+    (
+        91,
+        5,
+        11,
+        2024,
+        7000000,
+        26.0,
+        16100000,
+        2.0,
+        322000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6587000.0,
+        2
+    ),
+    (
+        92,
+        5,
+        12,
+        2024,
+        7000000,
+        26.0,
+        9950000,
+        2.0,
+        199000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6464000.0,
+        2
+    ),
+    (
+        93,
+        5,
+        1,
+        2025,
+        7000000,
+        27.0,
+        17300000,
+        2.0,
+        346000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6880230.77,
+        2
+    ),
+    (
+        94,
+        5,
+        2,
+        2025,
+        7000000,
+        24.0,
+        34600000,
+        2.0,
+        692000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6418538.46,
+        2
+    ),
+    (
+        95,
+        5,
+        3,
+        2025,
+        7000000,
+        26.0,
+        25600000,
+        2.0,
+        512000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6777000.0,
+        2
+    ),
+    (
+        96,
+        5,
+        4,
+        2025,
+        7000000,
+        26.0,
+        20600000,
+        2.0,
+        412000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6677000.0,
+        2
+    ),
+    (
+        97,
+        5,
+        5,
+        2025,
+        7000000,
+        27.0,
+        30000000,
+        2.0,
+        600000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7134230.77,
+        2
+    ),
+    (
+        98,
+        5,
+        6,
+        2025,
+        7000000,
+        25.0,
+        7400000,
+        2.0,
+        148000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6143769.23,
+        2
+    ),
+    (
+        99,
+        5,
+        7,
+        2025,
+        7000000,
+        27.0,
+        23400000,
+        2.0,
+        468000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7002230.77,
+        2
+    ),
+    (
+        100,
+        5,
+        8,
+        2025,
+        7000000,
+        26.0,
+        21100000,
+        2.0,
+        422000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6687000.0,
+        2
+    ),
+    (
+        101,
+        5,
+        9,
+        2025,
+        7000000,
+        26.0,
+        19000000,
+        2.0,
+        380000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6645000.0,
+        2
+    ),
+    (
+        102,
+        5,
+        10,
+        2025,
+        7000000,
+        27.0,
+        22600000,
+        2.0,
+        452000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6986230.77,
+        2
+    ),
+    (
+        103,
+        5,
+        11,
+        2025,
+        7000000,
+        25.0,
+        16600000,
+        2.0,
+        332000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6327769.23,
+        2
+    ),
+    (
+        104,
+        5,
+        12,
+        2025,
+        7000000,
+        27.0,
+        19070000,
+        2.0,
+        381400.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6915630.77,
+        2
+    ),
+    (
+        105,
+        5,
+        1,
+        2026,
+        7000000,
+        29.0,
+        25600000,
+        2.0,
+        512000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7584692.31,
+        2
+    ),
+    (
+        106,
+        5,
+        2,
+        2026,
+        7000000,
+        24.0,
+        25500000,
+        2.0,
+        510000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6236538.46,
+        2
+    ),
+    (
+        107,
+        5,
+        3,
+        2026,
+        7000000,
+        26.0,
+        16800000,
+        2.0,
+        336000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6601000.0,
+        2
+    ),
+    (
+        108,
+        5,
+        4,
+        2026,
+        7000000,
+        6.0,
+        4850000,
+        2.0,
+        97000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        977384.62,
+        1
+    ),
+    -- ============================================================
+    -- NV6 - Đinh Ngọc Ánh (Bán hàng, đã nghỉ việc TT=0, lương 7tr, hoa hồng 2%)
+    -- Vào làm: 2024-04-10 → T4/2024 đến T12/2024 + 2025 + 1/2026-3/2026
+    -- (theo BANGCHAMCONG hiện có)
+    -- ============================================================
+    (
+        109,
+        6,
+        4,
+        2024,
+        7000000,
+        26.0,
+        26300000,
+        2.0,
+        526000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6791000.0,
+        2
+    ),
+    (
+        110,
+        6,
+        5,
+        2024,
+        7000000,
+        27.0,
+        4350000,
+        2.0,
+        87000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6621230.77,
+        2
+    ),
+    (
+        111,
+        6,
+        6,
+        2024,
+        7000000,
+        25.0,
+        23100000,
+        2.0,
+        462000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6457769.23,
+        2
+    ),
+    (
+        112,
+        6,
+        7,
+        2024,
+        7000000,
+        27.0,
+        8300000,
+        2.0,
+        166000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6700230.77,
+        2
+    ),
+    (
+        113,
+        6,
+        8,
+        2024,
+        7000000,
+        27.0,
+        18000000,
+        2.0,
+        360000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6894230.77,
+        2
+    ),
+    (
+        114,
+        6,
+        9,
+        2024,
+        7000000,
+        25.0,
+        16700000,
+        2.0,
+        334000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6329769.23,
+        2
+    ),
+    (
+        115,
+        6,
+        10,
+        2024,
+        7000000,
+        27.0,
+        22100000,
+        2.0,
+        442000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6976230.77,
+        2
+    ),
+    (
+        116,
+        6,
+        11,
+        2024,
+        7000000,
+        26.0,
+        23100000,
+        2.0,
+        462000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6727000.0,
+        2
+    ),
+    (
+        117,
+        6,
+        12,
+        2024,
+        7000000,
+        26.0,
+        8180000,
+        2.0,
+        163600.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6428600.0,
+        2
+    ),
+    (
+        118,
+        6,
+        1,
+        2025,
+        7000000,
+        27.0,
+        12800000,
+        2.0,
+        256000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6790230.77,
+        2
+    ),
+    (
+        119,
+        6,
+        2,
+        2025,
+        7000000,
+        24.0,
+        19000000,
+        2.0,
+        380000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6106538.46,
+        2
+    ),
+    (
+        120,
+        6,
+        3,
+        2025,
+        7000000,
+        26.0,
+        13200000,
+        2.0,
+        264000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6529000.0,
+        2
+    ),
+    (
+        121,
+        6,
+        4,
+        2025,
+        7000000,
+        26.0,
+        15500000,
+        2.0,
+        310000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6575000.0,
+        2
+    ),
+    (
+        122,
+        6,
+        5,
+        2025,
+        7000000,
+        27.0,
+        13700000,
+        2.0,
+        274000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6808230.77,
+        2
+    ),
+    (
+        123,
+        6,
+        6,
+        2025,
+        7000000,
+        25.0,
+        15200000,
+        2.0,
+        304000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6299769.23,
+        2
+    ),
+    (
+        124,
+        6,
+        7,
+        2025,
+        7000000,
+        27.0,
+        23700000,
+        2.0,
+        474000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7008230.77,
+        2
+    ),
+    (
+        125,
+        6,
+        8,
+        2025,
+        7000000,
+        26.0,
+        19200000,
+        2.0,
+        384000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6649000.0,
+        2
+    ),
+    (
+        126,
+        6,
+        9,
+        2025,
+        7000000,
+        26.0,
+        10000000,
+        2.0,
+        200000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6465000.0,
+        2
+    ),
+    (
+        127,
+        6,
+        10,
+        2025,
+        7000000,
+        27.0,
+        17700000,
+        2.0,
+        354000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6888230.77,
+        2
+    ),
+    (
+        128,
+        6,
+        11,
+        2025,
+        7000000,
+        25.0,
+        17900000,
+        2.0,
+        358000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6353769.23,
+        2
+    ),
+    (
+        129,
+        6,
+        12,
+        2025,
+        7000000,
+        27.0,
+        18800000,
+        2.0,
+        376000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6910230.77,
+        2
+    ),
+    (
+        130,
+        6,
+        1,
+        2026,
+        7000000,
+        29.0,
+        17000000,
+        2.0,
+        340000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7412692.31,
+        2
+    ),
+    (
+        131,
+        6,
+        2,
+        2026,
+        7000000,
+        24.0,
+        31400000,
+        2.0,
+        628000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6354538.46,
+        2
+    ),
+    (
+        132,
+        6,
+        3,
+        2026,
+        7000000,
+        26.0,
+        17500000,
+        2.0,
+        350000.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6615000.0,
+        2
+    ),
+    -- ============================================================
+    -- NV7 - Phạm Minh Khang (Kho, lương 8tr, không hoa hồng)
+    -- Vào làm: 2025-04-10 → bắt đầu T4/2025
+    -- ============================================================
+    (
+        133,
+        7,
+        4,
+        2025,
+        8000000,
+        18.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        4698461.54,
+        2
+    ),
+    (
+        134,
+        7,
+        5,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        135,
+        7,
+        6,
+        2025,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        136,
+        7,
+        7,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        137,
+        7,
+        8,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        138,
+        7,
+        9,
+        2025,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        139,
+        7,
+        10,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        140,
+        7,
+        11,
+        2025,
+        8000000,
+        25.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6852307.69,
+        2
+    ),
+    (
+        141,
+        7,
+        12,
+        2025,
+        8000000,
+        27.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7467692.31,
+        2
+    ),
+    (
+        142,
+        7,
+        1,
+        2026,
+        8000000,
+        29.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        8083076.92,
+        2
+    ),
+    (
+        143,
+        7,
+        2,
+        2026,
+        8000000,
+        24.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        6544615.38,
+        2
+    ),
+    (
+        144,
+        7,
+        3,
+        2026,
+        8000000,
+        26.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        7160000.0,
+        2
+    ),
+    (
+        145,
+        7,
+        4,
+        2026,
+        8000000,
+        6.0,
+        0,
+        0.0,
+        0.0,
+        640000.0,
+        120000.0,
+        80000.0,
+        0,
+        1006153.85,
+        1
+    ),
+    -- ============================================================
+    -- NV8 - Lê Thảo Nhi (Bán hàng, lương 7tr, hoa hồng 2% DS cá nhân)
+    -- Vào làm: 2025-05-20 → bắt đầu T5/2025
+    -- Chưa có phiếu xuất riêng → doanh số = 0 (nhân viên mới đang học việc)
+    -- ============================================================
+    (
+        146,
+        8,
+        5,
+        2025,
+        7000000,
+        11.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        2226538.46,
+        2
+    ),
+    (
+        147,
+        8,
+        6,
+        2025,
+        7000000,
+        25.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        5995769.23,
+        2
+    ),
+    (
+        148,
+        8,
+        7,
+        2025,
+        7000000,
+        27.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6534230.77,
+        2
+    ),
+    (
+        149,
+        8,
+        8,
+        2025,
+        7000000,
+        26.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6265000.0,
+        2
+    ),
+    (
+        150,
+        8,
+        9,
+        2025,
+        7000000,
+        26.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6265000.0,
+        2
+    ),
+    (
+        151,
+        8,
+        10,
+        2025,
+        7000000,
+        27.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6534230.77,
+        2
+    ),
+    (
+        152,
+        8,
+        11,
+        2025,
+        7000000,
+        25.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        5995769.23,
+        2
+    ),
+    (
+        153,
+        8,
+        12,
+        2025,
+        7000000,
+        27.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6534230.77,
+        2
+    ),
+    (
+        154,
+        8,
+        1,
+        2026,
+        7000000,
+        29.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        7072692.31,
+        2
+    ),
+    (
+        155,
+        8,
+        2,
+        2026,
+        7000000,
+        24.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        5726538.46,
+        2
+    ),
+    (
+        156,
+        8,
+        3,
+        2026,
+        7000000,
+        26.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        6265000.0,
+        2
+    ),
+    (
+        157,
+        8,
+        4,
+        2026,
+        7000000,
+        6.0,
+        0,
+        2.0,
+        0.0,
+        560000.0,
+        105000.0,
+        70000.0,
+        0,
+        880384.62,
+        1
+    );
 -- ------------------------------------------------------------
 --  3.13 Khách hàng
 -- ------------------------------------------------------------
-INSERT INTO `KHACHHANG` (`HOTEN`, `DIACHI`, `SDT`, `TT`, `NGAYTHAMGIA`) VALUES
-	( 'Mặc định',               '',                                                     '',           1, '2025-04-15' ),
-	( 'Nguyễn Văn Anh',         '45 An Dương Vương, P. Chợ Quán, TP. Hồ Chí Minh',      '0387913347', 1, '2025-04-15' ),
-	( 'Trần Nhất Nhất',         '270 Hưng Phú, P. Chánh Hưng, TP. Hồ Chí Minh',         '0123456789', 1, '2025-04-15' ),
-	( 'Hoàng Gia Bảo',          '45 Trương Đình Hội, P. Phú Định, TP. Hồ Chí Minh',     '0987654321', 1, '2025-04-15' ),
-	( 'Hồ Minh Hưng',           '5 Võ Thị Sáu, P. Xuân Hòa, TP. Hồ Chí Minh',           '0867987456', 1, '2025-04-15' ),
-	( 'Nguyễn Thị Minh Anh',    '50 Phạm Văn Chí, P. Bình Tiên, TP. Hồ Chí Minh',       '0935123456', 1, '2025-04-16' ),
-	( 'Trần Đức Minh',          '789 Lê Hồng Phong, TP. Đà Nẵng',                       '0983456789', 1, '2025-04-16' ),
-	( 'Lê Hải Yến',             '180 Hoàng Ngân, X. Trung Hòa, Hà Nội',                 '0977234567', 1, '2025-04-16' ),
-	( 'Phạm Thanh Hằng',        '325 Nguyễn Văn Tăng, P. Long Bình, TP. Hồ Chí Minh',   '0965876543', 1, '2025-04-16' ),
-	( 'Hoàng Đức Anh',          '321 Lý Thường Kiệt, TP. Cần Thơ',                      '0946789012', 1, '2025-04-16' ),
-	( 'Ngô Thanh Tùng',         '393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',        '0912345678', 1, '2025-04-16' ),
-	( 'Võ Thị Kim Ngân',        '123 Đường Lê Lợi, P. Hồng Bàng, TP. Hải Phòng',        '0916789123', 1, '2025-04-16' ),
-	( 'Đỗ Văn Tú',              '777 Hùng Vương, TP. Huế',                              '0982345678', 1, '2025-04-30' ),
-	( 'Lý Thanh Trúc',          '81 Hoàng Cầm, P. Linh Xuân, TP. Hồ Chí Minh',          '0982123456', 1, '2025-04-16' ),
-	( 'Bùi Văn Hoàng',          '222 Đường 2/4, TP. Nha Trang',                         '0933789012', 1, '2025-04-16' ),
-	( 'Lê Văn Thành',           '23 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',     '0933456789', 1, '2025-04-16' ),
-	( 'Nguyễn Thị Lan Anh',     '45 Hàng Bạc, P. Hoàn Kiếm, Hà Nội',                    '0965123456', 1, '2025-04-16' ),
-	( 'Phạm Thị Mai',           '234 Nguyễn Trãi, P. Chợ Quán, TP. Hồ Chí Minh',        '0946789013', 1, '2025-04-17' ),
-	( 'Hoàng Văn Nam',          '567 Phố Huế, P. Hai Bà Trưng, Hà Nội',                 '0912345679', 1, '2025-04-17' );
-    
+INSERT INTO `KHACHHANG` (`HOTEN`, `DIACHI`, `SDT`, `TT`, `NGAYTHAMGIA`)
+VALUES (
+        'Mặc định',
+        '',
+        '',
+        1,
+        '2025-04-15'
+    ),
+    (
+        'Nguyễn Văn Anh',
+        '45 An Dương Vương, P. Chợ Quán, TP. Hồ Chí Minh',
+        '0387913347',
+        1,
+        '2025-04-15'
+    ),
+    (
+        'Trần Nhất Nhất',
+        '270 Hưng Phú, P. Chánh Hưng, TP. Hồ Chí Minh',
+        '0123456789',
+        1,
+        '2025-04-15'
+    ),
+    (
+        'Hoàng Gia Bảo',
+        '45 Trương Đình Hội, P. Phú Định, TP. Hồ Chí Minh',
+        '0987654321',
+        1,
+        '2025-04-15'
+    ),
+    (
+        'Hồ Minh Hưng',
+        '5 Võ Thị Sáu, P. Xuân Hòa, TP. Hồ Chí Minh',
+        '0867987456',
+        1,
+        '2025-04-15'
+    ),
+    (
+        'Nguyễn Thị Minh Anh',
+        '50 Phạm Văn Chí, P. Bình Tiên, TP. Hồ Chí Minh',
+        '0935123456',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Trần Đức Minh',
+        '789 Lê Hồng Phong, TP. Đà Nẵng',
+        '0983456789',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Lê Hải Yến',
+        '180 Hoàng Ngân, X. Trung Hòa, Hà Nội',
+        '0977234567',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Phạm Thanh Hằng',
+        '325 Nguyễn Văn Tăng, P. Long Bình, TP. Hồ Chí Minh',
+        '0965876543',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Hoàng Đức Anh',
+        '321 Lý Thường Kiệt, TP. Cần Thơ',
+        '0946789012',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Ngô Thanh Tùng',
+        '393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',
+        '0912345678',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Võ Thị Kim Ngân',
+        '123 Đường Lê Lợi, P. Hồng Bàng, TP. Hải Phòng',
+        '0916789123',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Đỗ Văn Tú',
+        '777 Hùng Vương, TP. Huế',
+        '0982345678',
+        1,
+        '2025-04-30'
+    ),
+    (
+        'Lý Thanh Trúc',
+        '81 Hoàng Cầm, P. Linh Xuân, TP. Hồ Chí Minh',
+        '0982123456',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Bùi Văn Hoàng',
+        '222 Đường 2/4, TP. Nha Trang',
+        '0933789012',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Lê Văn Thành',
+        '23 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',
+        '0933456789',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Nguyễn Thị Lan Anh',
+        '45 Hàng Bạc, P. Hoàn Kiếm, Hà Nội',
+        '0965123456',
+        1,
+        '2025-04-16'
+    ),
+    (
+        'Phạm Thị Mai',
+        '234 Nguyễn Trãi, P. Chợ Quán, TP. Hồ Chí Minh',
+        '0946789013',
+        1,
+        '2025-04-17'
+    ),
+    (
+        'Hoàng Văn Nam',
+        '567 Phố Huế, P. Hai Bà Trưng, Hà Nội',
+        '0912345679',
+        1,
+        '2025-04-17'
+    );
 -- ------------------------------------------------------------
 --  3.14 Nhà cung cấp
 -- ------------------------------------------------------------
-INSERT INTO `NHACUNGCAP` (`TEN`, `DIACHI`, `SDT`, `EMAIL`, `TT`) VALUES
-	( 'Công Ty CP Anh Khuê Watch',        'Số 20 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',  '1900866858', 'online@anhkhuewatch.com.vn',        1 ),
-	( 'Công Ty TNHH Citizen Việt Nam',    '160 đường số 30, P. An Lạc, TP. Hồ Chí Minh',          '0903996733', 'contact@citizen.com.vn',            1 ),
-	( 'Công Ty CP Orient Việt Nam',       '157 Cách Mạng Tháng Tám, P. Bàn Cờ, TP. Hồ Chí Minh',  '02822539787','info@lpd.com.vn',                  1 ),
-	( 'Công Ty TNHH Seiko Việt Nam',      'KCN Đại An, P. Việt Hòa, Hải Dương',                    '02438621520','support@seiko.com.vn',             1 ),
-	( 'Công Ty TNHH Rolex Việt Nam',      'Tầng Trệt, 88 Đồng Khởi, P. Sài Gòn, TP. Hồ Chí Minh', '02462821922','service@rolex.com',                1 ),
-	( 'Công Ty TNHH Frederique Constant VN','393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',      '18006785',   'info@frederiqueconstant.com.vn',  1 ),
-	( 'Công Ty TNHH Fossil Việt Nam',     'Tầng 7, 215 Nguyễn Văn Thủ, P. Tân Định, TP. Hồ Chí Minh','0932523679','ecom@dragonflyapac.vn',        1 ),
-	( 'Công Ty TNHH Dragonfly Select Brands VN','222 Điện Biên Phủ, P. Xuân Hòa, TP. Hồ Chí Minh','0932029606','danielwellingtonvn@dragonflyapac.com',1 ),
-	( 'SKMEI Official',                   '41 Dawang Road, Zhaoqing, Guangdong, China',           '07583988367','alex@skmei.com',                  1 ),
-	( 'Timex Vietnam Distributor',        'Sarimi, Sala, P. An Lợi Đông, TP. Thủ Đức',            '0839555959', 'kdonline@nvl.com.vn',             1 );
-
+INSERT INTO `NHACUNGCAP` (`TEN`, `DIACHI`, `SDT`, `EMAIL`, `TT`)
+VALUES (
+        'Công Ty CP Anh Khuê Watch',
+        'Số 20 Đường 3 Tháng 2, P. Hòa Hưng, TP. Hồ Chí Minh',
+        '1900866858',
+        'online@anhkhuewatch.com.vn',
+        1
+    ),
+    (
+        'Công Ty TNHH Citizen Việt Nam',
+        '160 đường số 30, P. An Lạc, TP. Hồ Chí Minh',
+        '0903996733',
+        'contact@citizen.com.vn',
+        1
+    ),
+    (
+        'Công Ty CP Orient Việt Nam',
+        '157 Cách Mạng Tháng Tám, P. Bàn Cờ, TP. Hồ Chí Minh',
+        '02822539787',
+        'info@lpd.com.vn',
+        1
+    ),
+    (
+        'Công Ty TNHH Seiko Việt Nam',
+        'KCN Đại An, P. Việt Hòa, Hải Dương',
+        '02438621520',
+        'support@seiko.com.vn',
+        1
+    ),
+    (
+        'Công Ty TNHH Rolex Việt Nam',
+        'Tầng Trệt, 88 Đồng Khởi, P. Sài Gòn, TP. Hồ Chí Minh',
+        '02462821922',
+        'service@rolex.com',
+        1
+    ),
+    (
+        'Công Ty TNHH Frederique Constant VN',
+        '393 Điện Biên Phủ, P. Bàn Cờ, TP. Hồ Chí Minh',
+        '18006785',
+        'info@frederiqueconstant.com.vn',
+        1
+    ),
+    (
+        'Công Ty TNHH Fossil Việt Nam',
+        'Tầng 7, 215 Nguyễn Văn Thủ, P. Tân Định, TP. Hồ Chí Minh',
+        '0932523679',
+        'ecom@dragonflyapac.vn',
+        1
+    ),
+    (
+        'Công Ty TNHH Dragonfly Select Brands VN',
+        '222 Điện Biên Phủ, P. Xuân Hòa, TP. Hồ Chí Minh',
+        '0932029606',
+        'danielwellingtonvn@dragonflyapac.com',
+        1
+    ),
+    (
+        'SKMEI Official',
+        '41 Dawang Road, Zhaoqing, Guangdong, China',
+        '07583988367',
+        'alex@skmei.com',
+        1
+    ),
+    (
+        'Timex Vietnam Distributor',
+        'Sarimi, Sala, P. An Lợi Đông, TP. Thủ Đức',
+        '0839555959',
+        'kdonline@nvl.com.vn',
+        1
+    );
 -- ------------------------------------------------------------
 --  3.15 Vị trí trưng bày 
 -- ------------------------------------------------------------
-INSERT INTO `VITRITRUNGBAY` (`TEN`, `GHICHU`) VALUES
-	( 'Khu A1 - Đồng hồ cơ',       'Automatic, Hand-wound' ),
-	( 'Khu A2 - Đồng hồ Quartz',   'Nhiều mẫu phổ thông' ),
-	( 'Khu A3 - Đồng hồ điện tử',  'Casio G-Shock, Baby-G' ),
-	( 'Khu A4 - Smartwatch',       'Đồng hồ thông minh' ),
-	( 'Khu B1 - Casio Corner',     'Kệ riêng thương hiệu Casio' ),
-	( 'Khu B2 - Seiko Corner',     'Vị trí thương hiệu Seiko' ),
-	( 'Khu B3 - Orient Corner',    'Kệ dành cho Orient' );
-
+INSERT INTO `VITRITRUNGBAY` (`TEN`, `GHICHU`)
+VALUES (
+        'Khu A1 - Đồng hồ cơ',
+        'Automatic, Hand-wound'
+    ),
+    (
+        'Khu A2 - Đồng hồ Quartz',
+        'Nhiều mẫu phổ thông'
+    ),
+    (
+        'Khu A3 - Đồng hồ điện tử',
+        'Casio G-Shock, Baby-G'
+    ),
+    (
+        'Khu A4 - Smartwatch',
+        'Đồng hồ thông minh'
+    ),
+    (
+        'Khu B1 - Casio Corner',
+        'Kệ riêng thương hiệu Casio'
+    ),
+    (
+        'Khu B2 - Seiko Corner',
+        'Vị trí thương hiệu Seiko'
+    ),
+    (
+        'Khu B3 - Orient Corner',
+        'Kệ dành cho Orient'
+    );
 -- ------------------------------------------------------------
 --  3.16 Sản phẩm 
 -- ------------------------------------------------------------
-INSERT INTO `SANPHAM` (`MSP`, `TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NAMSANXUAT`, `GIANHAP`, `GIABAN`, `SOLUONG`, `THOIGIANBAOHANH`, `TT`) VALUES
-(1, 'Citizen Eco-Drive BM7108', 'c1.jpg', 2, 2, 'Citizen', 2024, 3500000, 4500000, 0, 24, 1),
-(2, 'Citizen Promaster NY0040', 'c2.jpg', 2, 1, 'Citizen', 2024, 8500000, 11500000, 0, 24, 1),
-(3, 'Citizen NH8390-20E', 'c3.jpg', 2, 1, 'Citizen', 2024, 4200000, 5800000, 0, 24, 1),
-(4, 'Orient Bambino RA-AC0E', 'o4.jpg', 3, 7, 'Orient', 2024, 3800000, 5200000, 0, 12, 1),
-(5, 'Orient Mako III RA-AA00', 'o5.jpg', 3, 7, 'Orient', 2024, 5500000, 7500000, 0, 12, 1),
-(6, 'Orient Sun and Moon', 'o6.jpg', 3, 7, 'Orient', 2024, 7200000, 9800000, 0, 12, 1),
-(7, 'Seiko 5 Sports SRPD55', 's7.jpg', 4, 6, 'Seiko', 2024, 4800000, 6500000, 0, 12, 1),
-(8, 'Seiko Presage SPB041', 's8.jpg', 4, 6, 'Seiko', 2024, 12000000, 16500000, 0, 24, 1), -- Tồn thấp (1)
-(9, 'Seiko Prospex SRPE99', 's9.jpg', 4, 6, 'Seiko', 2024, 8500000, 11200000, 0, 12, 1),
-(10, 'Seiko 5 SNK809', 's10.jpg', 4, 6, 'Seiko', 2024, 2200000, 3200000, 0, 12, 1),
-(11, 'Rolex Submariner Date', 'r11.jpg', 5, 1, 'Rolex', 2024, 185000000, 245000000, 0, 48, 1), -- Tồn thấp (2)
-(12, 'Rolex Datejust 41', 'r12.jpg', 5, 1, 'Rolex', 2024, 165000000, 215000000, 0, 48, 1), -- Tồn thấp (3)
-(13, 'Rolex Air-King', 'r13.jpg', 5, 1, 'Rolex', 2024, 145000000, 195000000, 0, 48, 1), -- Tồn thấp (4)
-(14, 'Frederique Constant FC-303', 'f14.jpg', 6, 1, 'Frederique Constant', 2024, 8500000, 12500000, 0, 24, 1),
-(15, 'Frederique Constant FC-200', 'f15.jpg', 6, 2, 'Frederique Constant', 2024, 9200000, 13800000, 0, 24, 1), -- Tồn thấp (5)
-(16, 'Fossil Grant FS4736', 'f16.jpg', 7, 2, 'Fossil', 2024, 2500000, 3800000, 0, 12, 1),
-(17, 'Fossil Neutra FS5380', 'f17.jpg', 7, 2, 'Fossil', 2024, 2200000, 3200000, 0, 12, 1),
-(18, 'Fossil Hybrid Smartwatch', 'f18.jpg', 7, 4, 'Fossil', 2024, 3800000, 5500000, 0, 12, 1),
-(19, 'Daniel Wellington Sheffield', 'd19.jpg', 8, 2, 'Daniel Wellington', 2024, 2800000, 4200000, 0, 24, 1),
-(20, 'Daniel Wellington Petite', 'd20.jpg', 8, 2, 'Daniel Wellington', 2024, 3200000, 4800000, 0, 24, 1),
-(21, 'Daniel Wellington Black', 'd21.jpg', 8, 2, 'Daniel Wellington', 2024, 2500000, 3800000, 0, 24, 1),
-(22, 'Casio G-Shock GA-2100', 'c22.jpg', 1, 5, 'Casio', 2024, 2800000, 3900000, 0, 12, 1),
-(23, 'Casio Edifice EFR-556', 'c23.jpg', 1, 5, 'Casio', 2024, 3200000, 4500000, 0, 12, 1),
-(24, 'Tissot PRX T137', 't24.jpg', 1, 2, 'Tissot', 2024, 9500000, 13500000, 0, 24, 1),
-(25, 'Hamilton Khaki Field', 'h25.jpg', 1, 1, 'Hamilton', 2024, 11500000, 16500000, 0, 24, 1), -- Tồn thấp (6)
-(26, 'Casio G-Shock DW-5600', 'c26.jpg', 1, 3, 'Casio', 2024, 1800000, 2600000, 0, 12, 1),
-(27, 'Casio AE-1200WH', 'c27.jpg', 1, 3, 'Casio', 2024, 550000, 890000, 0, 12, 1),
-(28, 'Casio F-91W', 'c28.jpg', 1, 3, 'Casio', 2024, 200000, 350000, 0, 12, 1),
-(29, 'Casio A168WG', 'c29.jpg', 1, 3, 'Casio', 2024, 650000, 950000, 0, 12, 1),
-(30, 'Casio Baby-G BGD-565', 'c30.jpg', 1, 3, 'Casio', 2024, 1600000, 2100000, 0, 12, 1),
-(31, 'Casio Baby-G BA-110', 'babyg_ba110.png', 1, 3, 'Casio', 2024, 2150000, 2900000, 0, 12, 1),
-(32, 'Casio ProTrek PRG-270', 'protrek_prg270.png', 1, 3, 'Casio', 2024, 3800000, 5200000, 0, 12, 1),
-(33, 'SKMEI 1251 Digital', 'skmei_1251.jpg', 9, 3, 'SKMEI', 2024, 150000, 250000, 0, 6, 1),
-(34, 'SKMEI 1456 Digital', 'skmei_1456.jpg', 9, 3, 'SKMEI', 2024, 180000, 300000, 0, 6, 1),
-(35, 'Timex Ironman Classic', 'timex_ironman30.jpg', 10, 3, 'Timex', 2024, 850000, 1350000, 0, 12, 1);
-
+INSERT INTO `SANPHAM` (
+        `MSP`,
+        `TEN`,
+        `HINHANH`,
+        `MNCC`,
+        `MVT`,
+        `THUONGHIEU`,
+        `NAMSANXUAT`,
+        `GIANHAP`,
+        `GIABAN`,
+        `SOLUONG`,
+        `THOIGIANBAOHANH`,
+        `TT`
+    )
+VALUES (
+        1,
+        'Citizen Eco-Drive BM7108',
+        'c1.jpg',
+        2,
+        2,
+        'Citizen',
+        2024,
+        3500000,
+        4500000,
+        0,
+        24,
+        1
+    ),
+    (
+        2,
+        'Citizen Promaster NY0040',
+        'c2.jpg',
+        2,
+        1,
+        'Citizen',
+        2024,
+        8500000,
+        11500000,
+        0,
+        24,
+        1
+    ),
+    (
+        3,
+        'Citizen NH8390-20E',
+        'c3.jpg',
+        2,
+        1,
+        'Citizen',
+        2024,
+        4200000,
+        5800000,
+        0,
+        24,
+        1
+    ),
+    (
+        4,
+        'Orient Bambino RA-AC0E',
+        'o4.jpg',
+        3,
+        7,
+        'Orient',
+        2024,
+        3800000,
+        5200000,
+        0,
+        12,
+        1
+    ),
+    (
+        5,
+        'Orient Mako III RA-AA00',
+        'o5.jpg',
+        3,
+        7,
+        'Orient',
+        2024,
+        5500000,
+        7500000,
+        0,
+        12,
+        1
+    ),
+    (
+        6,
+        'Orient Sun and Moon',
+        'o6.jpg',
+        3,
+        7,
+        'Orient',
+        2024,
+        7200000,
+        9800000,
+        0,
+        12,
+        1
+    ),
+    (
+        7,
+        'Seiko 5 Sports SRPD55',
+        's7.jpg',
+        4,
+        6,
+        'Seiko',
+        2024,
+        4800000,
+        6500000,
+        0,
+        12,
+        1
+    ),
+    (
+        8,
+        'Seiko Presage SPB041',
+        's8.jpg',
+        4,
+        6,
+        'Seiko',
+        2024,
+        12000000,
+        16500000,
+        0,
+        24,
+        1
+    ),
+    -- Tồn thấp (1)
+    (
+        9,
+        'Seiko Prospex SRPE99',
+        's9.jpg',
+        4,
+        6,
+        'Seiko',
+        2024,
+        8500000,
+        11200000,
+        0,
+        12,
+        1
+    ),
+    (
+        10,
+        'Seiko 5 SNK809',
+        's10.jpg',
+        4,
+        6,
+        'Seiko',
+        2024,
+        2200000,
+        3200000,
+        0,
+        12,
+        1
+    ),
+    (
+        11,
+        'Rolex Submariner Date',
+        'r11.jpg',
+        5,
+        1,
+        'Rolex',
+        2024,
+        185000000,
+        245000000,
+        0,
+        48,
+        1
+    ),
+    -- Tồn thấp (2)
+    (
+        12,
+        'Rolex Datejust 41',
+        'r12.jpg',
+        5,
+        1,
+        'Rolex',
+        2024,
+        165000000,
+        215000000,
+        0,
+        48,
+        1
+    ),
+    -- Tồn thấp (3)
+    (
+        13,
+        'Rolex Air-King',
+        'r13.jpg',
+        5,
+        1,
+        'Rolex',
+        2024,
+        145000000,
+        195000000,
+        0,
+        48,
+        1
+    ),
+    -- Tồn thấp (4)
+    (
+        14,
+        'Frederique Constant FC-303',
+        'f14.jpg',
+        6,
+        1,
+        'Frederique Constant',
+        2024,
+        8500000,
+        12500000,
+        0,
+        24,
+        1
+    ),
+    (
+        15,
+        'Frederique Constant FC-200',
+        'f15.jpg',
+        6,
+        2,
+        'Frederique Constant',
+        2024,
+        9200000,
+        13800000,
+        0,
+        24,
+        1
+    ),
+    -- Tồn thấp (5)
+    (
+        16,
+        'Fossil Grant FS4736',
+        'f16.jpg',
+        7,
+        2,
+        'Fossil',
+        2024,
+        2500000,
+        3800000,
+        0,
+        12,
+        1
+    ),
+    (
+        17,
+        'Fossil Neutra FS5380',
+        'f17.jpg',
+        7,
+        2,
+        'Fossil',
+        2024,
+        2200000,
+        3200000,
+        0,
+        12,
+        1
+    ),
+    (
+        18,
+        'Fossil Hybrid Smartwatch',
+        'f18.jpg',
+        7,
+        4,
+        'Fossil',
+        2024,
+        3800000,
+        5500000,
+        0,
+        12,
+        1
+    ),
+    (
+        19,
+        'Daniel Wellington Sheffield',
+        'd19.jpg',
+        8,
+        2,
+        'Daniel Wellington',
+        2024,
+        2800000,
+        4200000,
+        0,
+        24,
+        1
+    ),
+    (
+        20,
+        'Daniel Wellington Petite',
+        'd20.jpg',
+        8,
+        2,
+        'Daniel Wellington',
+        2024,
+        3200000,
+        4800000,
+        0,
+        24,
+        1
+    ),
+    (
+        21,
+        'Daniel Wellington Black',
+        'd21.jpg',
+        8,
+        2,
+        'Daniel Wellington',
+        2024,
+        2500000,
+        3800000,
+        0,
+        24,
+        1
+    ),
+    (
+        22,
+        'Casio G-Shock GA-2100',
+        'c22.jpg',
+        1,
+        5,
+        'Casio',
+        2024,
+        2800000,
+        3900000,
+        0,
+        12,
+        1
+    ),
+    (
+        23,
+        'Casio Edifice EFR-556',
+        'c23.jpg',
+        1,
+        5,
+        'Casio',
+        2024,
+        3200000,
+        4500000,
+        0,
+        12,
+        1
+    ),
+    (
+        24,
+        'Tissot PRX T137',
+        't24.jpg',
+        1,
+        2,
+        'Tissot',
+        2024,
+        9500000,
+        13500000,
+        0,
+        24,
+        1
+    ),
+    (
+        25,
+        'Hamilton Khaki Field',
+        'h25.jpg',
+        1,
+        1,
+        'Hamilton',
+        2024,
+        11500000,
+        16500000,
+        0,
+        24,
+        1
+    ),
+    -- Tồn thấp (6)
+    (
+        26,
+        'Casio G-Shock DW-5600',
+        'c26.jpg',
+        1,
+        3,
+        'Casio',
+        2024,
+        1800000,
+        2600000,
+        0,
+        12,
+        1
+    ),
+    (
+        27,
+        'Casio AE-1200WH',
+        'c27.jpg',
+        1,
+        3,
+        'Casio',
+        2024,
+        550000,
+        890000,
+        0,
+        12,
+        1
+    ),
+    (
+        28,
+        'Casio F-91W',
+        'c28.jpg',
+        1,
+        3,
+        'Casio',
+        2024,
+        200000,
+        350000,
+        0,
+        12,
+        1
+    ),
+    (
+        29,
+        'Casio A168WG',
+        'c29.jpg',
+        1,
+        3,
+        'Casio',
+        2024,
+        650000,
+        950000,
+        0,
+        12,
+        1
+    ),
+    (
+        30,
+        'Casio Baby-G BGD-565',
+        'c30.jpg',
+        1,
+        3,
+        'Casio',
+        2024,
+        1600000,
+        2100000,
+        0,
+        12,
+        1
+    ),
+    (
+        31,
+        'Casio Baby-G BA-110',
+        'babyg_ba110.png',
+        1,
+        3,
+        'Casio',
+        2024,
+        2150000,
+        2900000,
+        0,
+        12,
+        1
+    ),
+    (
+        32,
+        'Casio ProTrek PRG-270',
+        'protrek_prg270.png',
+        1,
+        3,
+        'Casio',
+        2024,
+        3800000,
+        5200000,
+        0,
+        12,
+        1
+    ),
+    (
+        33,
+        'SKMEI 1251 Digital',
+        'skmei_1251.jpg',
+        9,
+        3,
+        'SKMEI',
+        2024,
+        150000,
+        250000,
+        0,
+        6,
+        1
+    ),
+    (
+        34,
+        'SKMEI 1456 Digital',
+        'skmei_1456.jpg',
+        9,
+        3,
+        'SKMEI',
+        2024,
+        180000,
+        300000,
+        0,
+        6,
+        1
+    ),
+    (
+        35,
+        'Timex Ironman Classic',
+        'timex_ironman30.jpg',
+        10,
+        3,
+        'Timex',
+        2024,
+        850000,
+        1350000,
+        0,
+        12,
+        1
+    );
 -- ------------------------------------------------------------
 --  3.17 Phiếu nhập 
 -- ------------------------------------------------------------
@@ -4523,8 +34777,6 @@ INSERT INTO `SANPHAM` (`MSP`, `TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NA
 -- DỮ LIỆU PHIẾU NHẬP & PHIẾU XUẤT (2024-01 -> 2026-04-13)
 -- Xóa data cũ trước khi chạy lại
 -- ============================================================
-
-
 -- ============================================================
 -- PHIẾU NHẬP
 -- ============================================================
@@ -4585,7 +34837,6 @@ INSERT INTO `SANPHAM` (`MSP`, `TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NA
 -- (54, 3, 1, 37200000, '2026-03-20 10:00:00', 1),
 -- (55, 3, 9, 2940000, '2026-04-10 08:00:00', 1),
 -- (56, 3, 7, 21300000, '2026-04-13 10:00:00', 1);
-
 -- -- ============================================================
 -- -- CHI TIẾT PHIẾU NHẬP
 -- -- ============================================================
@@ -4734,227 +34985,222 @@ INSERT INTO `SANPHAM` (`MSP`, `TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NA
 -- (55, 34, 8, 180000, 0),
 -- (56, 16, 5, 2500000, 1),
 -- (56, 17, 4, 2200000, 1);
-
-
 -- ============================================================
 -- PHIẾU NHẬP
 -- ============================================================
-INSERT INTO `PHIEUNHAP` (`MPN`, `MNV`, `MNCC`, `TIEN`, `TG`, `TT`) VALUES
-(1, 3, 2, 37800000, '2024-01-05 08:30:00', 1),
-(2, 3, 1, 35200000, '2024-01-18 14:00:00', 1),
-(3, 3, 3, 74000000, '2024-02-06 09:00:00', 1),
-(4, 3, 4, 60400000, '2024-02-18 15:00:00', 1),
-(5, 3, 7, 52800000, '2024-03-08 08:30:00', 1),
-(6, 3, 8, 45300000, '2024-03-20 14:00:00', 1),
-(7, 3, 5, 990000000, '2024-04-10 09:00:00', 1),
-(8, 3, 6, 61600000, '2024-04-22 15:30:00', 1),
-(9, 3, 9, 3960000, '2024-05-08 09:00:00', 1),
-(10, 3, 10, 8500000, '2024-05-20 14:00:00', 1),
-(11, 3, 2, 59800000, '2024-06-10 09:00:00', 1),
-(12, 3, 4, 41000000, '2024-06-22 15:00:00', 1),
-(13, 3, 1, 52300000, '2024-07-12 09:00:00', 1),
-(14, 3, 7, 26000000, '2024-07-24 15:30:00', 1),
-(15, 3, 3, 44800000, '2024-08-08 08:30:00', 1),
-(16, 3, 8, 34000000, '2024-08-20 14:00:00', 1),
-(17, 3, 1, 28000000, '2024-09-10 09:00:00', 1),
-(18, 3, 6, 43900000, '2024-09-22 15:00:00', 1),
-(19, 3, 4, 46400000, '2024-10-08 09:00:00', 1),
-(20, 3, 10, 6800000, '2024-10-20 14:00:00', 1),
-(21, 3, 2, 67500000, '2024-11-10 09:00:00', 1),
-(22, 3, 1, 30700000, '2024-12-08 09:00:00', 1),
-(23, 3, 9, 3300000, '2024-12-20 15:00:00', 1),
-(24, 3, 3, 53700000, '2025-01-05 09:00:00', 1),
-(25, 3, 7, 35200000, '2025-01-18 15:00:00', 1),
-(26, 3, 4, 63400000, '2025-02-05 08:30:00', 1),
-(27, 3, 6, 43900000, '2025-02-16 15:30:00', 1),
-(28, 3, 8, 45300000, '2025-03-08 09:00:00', 1),
-(29, 3, 5, 990000000, '2025-03-20 14:00:00', 1),
-(30, 3, 2, 42000000, '2025-04-10 08:30:00', 1),
-(31, 3, 1, 38600000, '2025-04-22 14:00:00', 1),
-(32, 3, 1, 50500000, '2025-05-08 09:00:00', 1),
-(33, 3, 10, 6800000, '2025-05-20 15:00:00', 1),
-(34, 3, 7, 37100000, '2025-06-10 09:00:00', 1),
-(35, 3, 9, 3300000, '2025-06-22 15:00:00', 1),
-(36, 3, 3, 49900000, '2025-07-12 08:30:00', 1),
-(37, 3, 4, 42000000, '2025-07-24 14:00:00', 1),
-(38, 3, 2, 51300000, '2025-08-08 09:00:00', 1),
-(39, 3, 8, 36800000, '2025-08-20 15:30:00', 1),
-(40, 3, 6, 43900000, '2025-09-10 09:00:00', 1),
-(41, 3, 1, 34800000, '2025-09-22 15:00:00', 1),
-(42, 3, 4, 71000000, '2025-10-10 09:00:00', 1),
-(43, 3, 2, 54800000, '2025-11-10 09:00:00', 1),
-(44, 3, 7, 37400000, '2025-11-22 15:00:00', 1),
-(45, 3, 1, 43100000, '2025-12-08 09:00:00', 1),
-(46, 3, 3, 35500000, '2025-12-20 15:00:00', 1),
-(47, 3, 5, 495000000, '2026-01-10 09:00:00', 1),
-(48, 3, 8, 36800000, '2026-01-22 15:00:00', 1),
-(49, 3, 4, 59000000, '2026-02-08 09:00:00', 1),
-(50, 3, 6, 43900000, '2026-02-20 15:00:00', 1),
-(51, 3, 2, 34300000, '2026-03-08 09:00:00', 1),
-(52, 3, 1, 37200000, '2026-03-20 15:00:00', 1),
-(53, 3, 9, 2940000, '2026-04-05 09:00:00', 1),
-(54, 3, 7, 21300000, '2026-04-10 15:00:00', 1);
-
+INSERT INTO `PHIEUNHAP` (`MPN`, `MNV`, `MNCC`, `TIEN`, `TG`, `TT`)
+VALUES (1, 3, 2, 37800000, '2024-01-05 08:30:00', 1),
+    (2, 3, 1, 35200000, '2024-01-18 14:00:00', 1),
+    (3, 3, 3, 74000000, '2024-02-06 09:00:00', 1),
+    (4, 3, 4, 60400000, '2024-02-18 15:00:00', 1),
+    (5, 3, 7, 52800000, '2024-03-08 08:30:00', 1),
+    (6, 3, 8, 45300000, '2024-03-20 14:00:00', 1),
+    (7, 3, 5, 990000000, '2024-04-10 09:00:00', 1),
+    (8, 3, 6, 61600000, '2024-04-22 15:30:00', 1),
+    (9, 3, 9, 3960000, '2024-05-08 09:00:00', 1),
+    (10, 3, 10, 8500000, '2024-05-20 14:00:00', 1),
+    (11, 3, 2, 59800000, '2024-06-10 09:00:00', 1),
+    (12, 3, 4, 41000000, '2024-06-22 15:00:00', 1),
+    (13, 3, 1, 52300000, '2024-07-12 09:00:00', 1),
+    (14, 3, 7, 26000000, '2024-07-24 15:30:00', 1),
+    (15, 3, 3, 44800000, '2024-08-08 08:30:00', 1),
+    (16, 3, 8, 34000000, '2024-08-20 14:00:00', 1),
+    (17, 3, 1, 28000000, '2024-09-10 09:00:00', 1),
+    (18, 3, 6, 43900000, '2024-09-22 15:00:00', 1),
+    (19, 3, 4, 46400000, '2024-10-08 09:00:00', 1),
+    (20, 3, 10, 6800000, '2024-10-20 14:00:00', 1),
+    (21, 3, 2, 67500000, '2024-11-10 09:00:00', 1),
+    (22, 3, 1, 30700000, '2024-12-08 09:00:00', 1),
+    (23, 3, 9, 3300000, '2024-12-20 15:00:00', 1),
+    (24, 3, 3, 53700000, '2025-01-05 09:00:00', 1),
+    (25, 3, 7, 35200000, '2025-01-18 15:00:00', 1),
+    (26, 3, 4, 63400000, '2025-02-05 08:30:00', 1),
+    (27, 3, 6, 43900000, '2025-02-16 15:30:00', 1),
+    (28, 3, 8, 45300000, '2025-03-08 09:00:00', 1),
+    (29, 3, 5, 990000000, '2025-03-20 14:00:00', 1),
+    (30, 3, 2, 42000000, '2025-04-10 08:30:00', 1),
+    (31, 3, 1, 38600000, '2025-04-22 14:00:00', 1),
+    (32, 3, 1, 50500000, '2025-05-08 09:00:00', 1),
+    (33, 3, 10, 6800000, '2025-05-20 15:00:00', 1),
+    (34, 3, 7, 37100000, '2025-06-10 09:00:00', 1),
+    (35, 3, 9, 3300000, '2025-06-22 15:00:00', 1),
+    (36, 3, 3, 49900000, '2025-07-12 08:30:00', 1),
+    (37, 3, 4, 42000000, '2025-07-24 14:00:00', 1),
+    (38, 3, 2, 51300000, '2025-08-08 09:00:00', 1),
+    (39, 3, 8, 36800000, '2025-08-20 15:30:00', 1),
+    (40, 3, 6, 43900000, '2025-09-10 09:00:00', 1),
+    (41, 3, 1, 34800000, '2025-09-22 15:00:00', 1),
+    (42, 3, 4, 71000000, '2025-10-10 09:00:00', 1),
+    (43, 3, 2, 54800000, '2025-11-10 09:00:00', 1),
+    (44, 3, 7, 37400000, '2025-11-22 15:00:00', 1),
+    (45, 3, 1, 43100000, '2025-12-08 09:00:00', 1),
+    (46, 3, 3, 35500000, '2025-12-20 15:00:00', 1),
+    (47, 3, 5, 495000000, '2026-01-10 09:00:00', 1),
+    (48, 3, 8, 36800000, '2026-01-22 15:00:00', 1),
+    (49, 3, 4, 59000000, '2026-02-08 09:00:00', 1),
+    (50, 3, 6, 43900000, '2026-02-20 15:00:00', 1),
+    (51, 3, 2, 34300000, '2026-03-08 09:00:00', 1),
+    (52, 3, 1, 37200000, '2026-03-20 15:00:00', 1),
+    (53, 3, 9, 2940000, '2026-04-05 09:00:00', 1),
+    (54, 3, 7, 21300000, '2026-04-10 15:00:00', 1);
 -- ============================================================
 -- CHI TIẾT PHIẾU NHẬP
 -- ============================================================
-INSERT INTO `CTPHIEUNHAP` (`MPN`, `MSP`, `SL`, `TIENNHAP`, `HINHTHUC`) VALUES
-(1, 1, 6, 3500000, 1),
-(1, 3, 4, 4200000, 1),
-(2, 22, 8, 2800000, 1),
-(2, 26, 6, 1800000, 1),
-(2, 28, 10, 200000, 0),
-(3, 4, 8, 3800000, 1),
-(3, 5, 4, 5500000, 1),
-(3, 6, 3, 7200000, 1),
-(4, 7, 8, 4800000, 1),
-(4, 10, 10, 2200000, 1),
-(5, 16, 8, 2500000, 1),
-(5, 17, 8, 2200000, 1),
-(5, 18, 4, 3800000, 1),
-(6, 19, 6, 2800000, 1),
-(6, 20, 5, 3200000, 1),
-(6, 21, 5, 2500000, 1),
-(7, 11, 2, 185000000, 1),
-(7, 12, 2, 165000000, 1),
-(7, 13, 2, 145000000, 1),
-(8, 14, 4, 8500000, 1),
-(8, 15, 3, 9200000, 1),
-(9, 33, 12, 150000, 0),
-(9, 34, 12, 180000, 0),
-(10, 35, 10, 850000, 1),
-(11, 2, 3, 8500000, 1),
-(11, 1, 5, 3500000, 1),
-(11, 3, 4, 4200000, 1),
-(12, 8, 2, 12000000, 1),
-(12, 9, 2, 8500000, 1),
-(13, 23, 6, 3200000, 1),
-(13, 24, 2, 9500000, 1),
-(13, 25, 1, 11500000, 1),
-(13, 29, 4, 650000, 1),
-(14, 16, 6, 2500000, 1),
-(14, 17, 5, 2200000, 1),
-(15, 4, 6, 3800000, 1),
-(15, 5, 4, 5500000, 1),
-(16, 19, 4, 2800000, 1),
-(16, 20, 4, 3200000, 1),
-(16, 21, 4, 2500000, 1),
-(17, 30, 5, 1600000, 1),
-(17, 31, 4, 2150000, 1),
-(17, 32, 3, 3800000, 1),
-(18, 14, 3, 8500000, 1),
-(18, 15, 2, 9200000, 1),
-(19, 7, 6, 4800000, 1),
-(19, 10, 8, 2200000, 1),
-(20, 35, 8, 850000, 1),
-(21, 1, 6, 3500000, 1),
-(21, 2, 3, 8500000, 1),
-(21, 3, 5, 4200000, 1),
-(22, 22, 6, 2800000, 1),
-(22, 26, 5, 1800000, 1),
-(22, 27, 6, 550000, 1),
-(22, 28, 8, 200000, 0),
-(23, 33, 10, 150000, 0),
-(23, 34, 10, 180000, 0),
-(24, 4, 6, 3800000, 1),
-(24, 5, 3, 5500000, 1),
-(24, 6, 2, 7200000, 1),
-(25, 16, 8, 2500000, 1),
-(25, 18, 4, 3800000, 1),
-(26, 7, 6, 4800000, 1),
-(26, 9, 2, 8500000, 1),
-(26, 10, 8, 2200000, 1),
-(27, 14, 3, 8500000, 1),
-(27, 15, 2, 9200000, 1),
-(28, 19, 6, 2800000, 1),
-(28, 20, 5, 3200000, 1),
-(28, 21, 5, 2500000, 1),
-(29, 11, 2, 185000000, 1),
-(29, 12, 2, 165000000, 1),
-(29, 13, 2, 145000000, 1),
-(30, 1, 6, 3500000, 1),
-(30, 3, 5, 4200000, 1),
-(31, 22, 6, 2800000, 1),
-(31, 23, 4, 3200000, 1),
-(31, 26, 5, 1800000, 1),
-(32, 24, 2, 9500000, 1),
-(32, 25, 1, 11500000, 1),
-(32, 31, 4, 2150000, 1),
-(32, 32, 3, 3800000, 1),
-(33, 35, 8, 850000, 1),
-(34, 16, 5, 2500000, 1),
-(34, 17, 6, 2200000, 1),
-(34, 18, 3, 3800000, 1),
-(35, 33, 10, 150000, 0),
-(35, 34, 10, 180000, 0),
-(36, 4, 5, 3800000, 1),
-(36, 5, 3, 5500000, 1),
-(36, 6, 2, 7200000, 1),
-(37, 7, 6, 4800000, 1),
-(37, 10, 6, 2200000, 1),
-(38, 1, 5, 3500000, 1),
-(38, 2, 2, 8500000, 1),
-(38, 3, 4, 4200000, 1),
-(39, 19, 5, 2800000, 1),
-(39, 20, 4, 3200000, 1),
-(39, 21, 4, 2500000, 1),
-(40, 14, 3, 8500000, 1),
-(40, 15, 2, 9200000, 1),
-(41, 22, 6, 2800000, 1),
-(41, 26, 5, 1800000, 1),
-(41, 29, 4, 650000, 1),
-(41, 30, 4, 1600000, 1),
-(42, 7, 6, 4800000, 1),
-(42, 8, 1, 12000000, 1),
-(42, 9, 2, 8500000, 1),
-(42, 10, 6, 2200000, 1),
-(43, 1, 6, 3500000, 1),
-(43, 2, 2, 8500000, 1),
-(43, 3, 4, 4200000, 1),
-(44, 16, 6, 2500000, 1),
-(44, 17, 5, 2200000, 1),
-(44, 18, 3, 3800000, 1),
-(45, 22, 6, 2800000, 1),
-(45, 23, 4, 3200000, 1),
-(45, 27, 6, 550000, 1),
-(45, 28, 8, 200000, 0),
-(45, 31, 4, 2150000, 1),
-(46, 4, 5, 3800000, 1),
-(46, 5, 3, 5500000, 1),
-(47, 11, 1, 185000000, 1),
-(47, 12, 1, 165000000, 1),
-(47, 13, 1, 145000000, 1),
-(48, 19, 5, 2800000, 1),
-(48, 20, 4, 3200000, 1),
-(48, 21, 4, 2500000, 1),
-(49, 7, 6, 4800000, 1),
-(49, 9, 2, 8500000, 1),
-(49, 10, 6, 2200000, 1),
-(50, 14, 3, 8500000, 1),
-(50, 15, 2, 9200000, 1),
-(51, 1, 5, 3500000, 1),
-(51, 3, 4, 4200000, 1),
-(52, 22, 6, 2800000, 1),
-(52, 26, 5, 1800000, 1),
-(52, 32, 3, 3800000, 1),
-(53, 33, 10, 150000, 0),
-(53, 34, 8, 180000, 0),
-(54, 16, 5, 2500000, 1),
-(54, 17, 4, 2200000, 1);
-
+INSERT INTO `CTPHIEUNHAP` (`MPN`, `MSP`, `SL`, `TIENNHAP`, `HINHTHUC`)
+VALUES (1, 1, 6, 3500000, 1),
+    (1, 3, 4, 4200000, 1),
+    (2, 22, 8, 2800000, 1),
+    (2, 26, 6, 1800000, 1),
+    (2, 28, 10, 200000, 0),
+    (3, 4, 8, 3800000, 1),
+    (3, 5, 4, 5500000, 1),
+    (3, 6, 3, 7200000, 1),
+    (4, 7, 8, 4800000, 1),
+    (4, 10, 10, 2200000, 1),
+    (5, 16, 8, 2500000, 1),
+    (5, 17, 8, 2200000, 1),
+    (5, 18, 4, 3800000, 1),
+    (6, 19, 6, 2800000, 1),
+    (6, 20, 5, 3200000, 1),
+    (6, 21, 5, 2500000, 1),
+    (7, 11, 2, 185000000, 1),
+    (7, 12, 2, 165000000, 1),
+    (7, 13, 2, 145000000, 1),
+    (8, 14, 4, 8500000, 1),
+    (8, 15, 3, 9200000, 1),
+    (9, 33, 12, 150000, 0),
+    (9, 34, 12, 180000, 0),
+    (10, 35, 10, 850000, 1),
+    (11, 2, 3, 8500000, 1),
+    (11, 1, 5, 3500000, 1),
+    (11, 3, 4, 4200000, 1),
+    (12, 8, 2, 12000000, 1),
+    (12, 9, 2, 8500000, 1),
+    (13, 23, 6, 3200000, 1),
+    (13, 24, 2, 9500000, 1),
+    (13, 25, 1, 11500000, 1),
+    (13, 29, 4, 650000, 1),
+    (14, 16, 6, 2500000, 1),
+    (14, 17, 5, 2200000, 1),
+    (15, 4, 6, 3800000, 1),
+    (15, 5, 4, 5500000, 1),
+    (16, 19, 4, 2800000, 1),
+    (16, 20, 4, 3200000, 1),
+    (16, 21, 4, 2500000, 1),
+    (17, 30, 5, 1600000, 1),
+    (17, 31, 4, 2150000, 1),
+    (17, 32, 3, 3800000, 1),
+    (18, 14, 3, 8500000, 1),
+    (18, 15, 2, 9200000, 1),
+    (19, 7, 6, 4800000, 1),
+    (19, 10, 8, 2200000, 1),
+    (20, 35, 8, 850000, 1),
+    (21, 1, 6, 3500000, 1),
+    (21, 2, 3, 8500000, 1),
+    (21, 3, 5, 4200000, 1),
+    (22, 22, 6, 2800000, 1),
+    (22, 26, 5, 1800000, 1),
+    (22, 27, 6, 550000, 1),
+    (22, 28, 8, 200000, 0),
+    (23, 33, 10, 150000, 0),
+    (23, 34, 10, 180000, 0),
+    (24, 4, 6, 3800000, 1),
+    (24, 5, 3, 5500000, 1),
+    (24, 6, 2, 7200000, 1),
+    (25, 16, 8, 2500000, 1),
+    (25, 18, 4, 3800000, 1),
+    (26, 7, 6, 4800000, 1),
+    (26, 9, 2, 8500000, 1),
+    (26, 10, 8, 2200000, 1),
+    (27, 14, 3, 8500000, 1),
+    (27, 15, 2, 9200000, 1),
+    (28, 19, 6, 2800000, 1),
+    (28, 20, 5, 3200000, 1),
+    (28, 21, 5, 2500000, 1),
+    (29, 11, 2, 185000000, 1),
+    (29, 12, 2, 165000000, 1),
+    (29, 13, 2, 145000000, 1),
+    (30, 1, 6, 3500000, 1),
+    (30, 3, 5, 4200000, 1),
+    (31, 22, 6, 2800000, 1),
+    (31, 23, 4, 3200000, 1),
+    (31, 26, 5, 1800000, 1),
+    (32, 24, 2, 9500000, 1),
+    (32, 25, 1, 11500000, 1),
+    (32, 31, 4, 2150000, 1),
+    (32, 32, 3, 3800000, 1),
+    (33, 35, 8, 850000, 1),
+    (34, 16, 5, 2500000, 1),
+    (34, 17, 6, 2200000, 1),
+    (34, 18, 3, 3800000, 1),
+    (35, 33, 10, 150000, 0),
+    (35, 34, 10, 180000, 0),
+    (36, 4, 5, 3800000, 1),
+    (36, 5, 3, 5500000, 1),
+    (36, 6, 2, 7200000, 1),
+    (37, 7, 6, 4800000, 1),
+    (37, 10, 6, 2200000, 1),
+    (38, 1, 5, 3500000, 1),
+    (38, 2, 2, 8500000, 1),
+    (38, 3, 4, 4200000, 1),
+    (39, 19, 5, 2800000, 1),
+    (39, 20, 4, 3200000, 1),
+    (39, 21, 4, 2500000, 1),
+    (40, 14, 3, 8500000, 1),
+    (40, 15, 2, 9200000, 1),
+    (41, 22, 6, 2800000, 1),
+    (41, 26, 5, 1800000, 1),
+    (41, 29, 4, 650000, 1),
+    (41, 30, 4, 1600000, 1),
+    (42, 7, 6, 4800000, 1),
+    (42, 8, 1, 12000000, 1),
+    (42, 9, 2, 8500000, 1),
+    (42, 10, 6, 2200000, 1),
+    (43, 1, 6, 3500000, 1),
+    (43, 2, 2, 8500000, 1),
+    (43, 3, 4, 4200000, 1),
+    (44, 16, 6, 2500000, 1),
+    (44, 17, 5, 2200000, 1),
+    (44, 18, 3, 3800000, 1),
+    (45, 22, 6, 2800000, 1),
+    (45, 23, 4, 3200000, 1),
+    (45, 27, 6, 550000, 1),
+    (45, 28, 8, 200000, 0),
+    (45, 31, 4, 2150000, 1),
+    (46, 4, 5, 3800000, 1),
+    (46, 5, 3, 5500000, 1),
+    (47, 11, 1, 185000000, 1),
+    (47, 12, 1, 165000000, 1),
+    (47, 13, 1, 145000000, 1),
+    (48, 19, 5, 2800000, 1),
+    (48, 20, 4, 3200000, 1),
+    (48, 21, 4, 2500000, 1),
+    (49, 7, 6, 4800000, 1),
+    (49, 9, 2, 8500000, 1),
+    (49, 10, 6, 2200000, 1),
+    (50, 14, 3, 8500000, 1),
+    (50, 15, 2, 9200000, 1),
+    (51, 1, 5, 3500000, 1),
+    (51, 3, 4, 4200000, 1),
+    (52, 22, 6, 2800000, 1),
+    (52, 26, 5, 1800000, 1),
+    (52, 32, 3, 3800000, 1),
+    (53, 33, 10, 150000, 0),
+    (53, 34, 8, 180000, 0),
+    (54, 16, 5, 2500000, 1),
+    (54, 17, 4, 2200000, 1);
 -- ------------------------------------------------------------
 --  3.19 Mã khuyến mãi mẫu
 -- ------------------------------------------------------------
-INSERT INTO `MAKHUYENMAI` (`MKM`, `TGBD`, `TGKT`, `TT`) VALUES 
-	('SUMMER2025', '2025-06-01', '2025-06-30', 1),
+INSERT INTO `MAKHUYENMAI` (`MKM`, `TGBD`, `TGKT`, `TT`)
+VALUES ('SUMMER2025', '2025-06-01', '2025-06-30', 1),
     ('CASIO10', '2025-05-01', '2025-05-31', 0),
     ('SALE8_3', '2025-03-08', '2025-03-08', 0);
-
 -- ------------------------------------------------------------
 --  3.20 Mã khuyến mãi mẫu
 -- ------------------------------------------------------------
-INSERT INTO `CTMAKHUYENMAI` (`MKM`, `MSP`, `PTG`) VALUES 
-	('SUMMER2025', 7, 10),
+INSERT INTO `CTMAKHUYENMAI` (`MKM`, `MSP`, `PTG`)
+VALUES ('SUMMER2025', 7, 10),
     ('SUMMER2025', 10, 10),
     ('SUMMER2025', 22, 15),
     ('CASIO10', 26, 10),
@@ -4963,29 +35209,51 @@ INSERT INTO `CTMAKHUYENMAI` (`MKM`, `MSP`, `PTG`) VALUES
     ('SALE8_3', 19, 8),
     ('SALE8_3', 20, 8),
     ('SALE8_3', 21, 8);
-    
 -- ------------------------------------------------------------
 --  3.21 Ngày lễ
 -- ------------------------------------------------------------
-INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`, `GHICHU`) VALUES
-    ('Tết Dương Lịch 2024', '2024-01-01', 3.0, 'Nghỉ bù thứ 2'),
-    ('Giỗ Tổ Hùng Vương 2024', '2024-04-18', 2.0, '10/3 Âm lịch'),
-    ('Giải Phóng Miền Nam 2024', '2024-04-30', 3.0, NULL),
+INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`, `GHICHU`)
+VALUES (
+        'Tết Dương Lịch 2024',
+        '2024-01-01',
+        3.0,
+        'Nghỉ bù thứ 2'
+    ),
+    (
+        'Giỗ Tổ Hùng Vương 2024',
+        '2024-04-18',
+        2.0,
+        '10/3 Âm lịch'
+    ),
+    (
+        'Giải Phóng Miền Nam 2024',
+        '2024-04-30',
+        3.0,
+        NULL
+    ),
     ('Quốc Tế Lao Động 2024', '2024-05-01', 3.0, NULL),
     ('Quốc Khánh 2024', '2024-09-02', 3.0, NULL),
     ('Tết Dương Lịch 2025', '2025-01-01', 3.0, NULL),
-    ('Giỗ Tổ Hùng Vương 2025', '2025-04-07', 2.0, '10/3 Âm lịch'),
-    ('Giải Phóng Miền Nam 2025', '2025-04-30', 3.0, NULL),
+    (
+        'Giỗ Tổ Hùng Vương 2025',
+        '2025-04-07',
+        2.0,
+        '10/3 Âm lịch'
+    ),
+    (
+        'Giải Phóng Miền Nam 2025',
+        '2025-04-30',
+        3.0,
+        NULL
+    ),
     ('Quốc Tế Lao Động 2025', '2025-05-01', 3.0, NULL),
     ('Quốc Khánh 2025', '2025-09-02', 3.0, NULL),
-  	('Tết Dương Lịch', '2026-01-01', 3.0, NULL),
+    ('Tết Dương Lịch', '2026-01-01', 3.0, NULL),
     ('Giỗ tổ Hùng Vương', '2026-04-25', 2.0, NULL),
     ('Giải phóng miền Nam', '2026-04-30', 3.0, NULL),
     ('Quốc tế lao động', '2026-05-01', 3.0, NULL);
 -- ------------------------------------------------------------
 --  3.22 PHIEUXUAT (1 - 85)
-
-
 -- ============================================================
 -- PHIẾU XUẤT
 -- ============================================================
@@ -5076,7 +35344,6 @@ INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`, `GHICHU`) VALUES
 -- (84, 6, 8, 9700000, '2026-03-20 13:00:00', 1),
 -- (85, 2, 9, 2450000, '2026-04-08 09:00:00', 1),
 -- (86, 5, 10, 14000000, '2026-04-12 11:00:00', 1);
-
 -- -- ============================================================
 -- -- CHI TIẾT PHIẾU XUẤT
 -- -- ============================================================
@@ -5246,7 +35513,6 @@ INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`, `GHICHU`) VALUES
 -- (85, 34, NULL, 4, 300000),
 -- (86, 16, NULL, 2, 3800000),
 -- (86, 17, NULL, 2, 3200000);
-
 -- -- ============================================================
 -- -- TỒN KHO SAU KHI CHẠY DỮ LIỆU (tính từ trigger tự động)
 -- -- ============================================================
@@ -5289,417 +35555,548 @@ INSERT INTO `NGAYLE` (`TENLE`, `NGAY`, `HESO_LUONG`, `GHICHU`) VALUES
 -- Giờ hoạt động: 08:00 – 22:00
 -- Doanh thu cân bằng; tháng có Rolex ~220-270tr, còn lại 25-90tr
 -- ============================================================
-
-
 -- ============================================================
 -- PHIẾU XUẤT
 -- ============================================================
-INSERT INTO `PHIEUXUAT` (`MPX`, `MNV`, `MKH`, `TIEN`, `TG`, `TT`) VALUES
-(1, 2, 1, 13350000, '2024-01-08 09:30:00', 1),
-(2, 5, 2, 15500000, '2024-01-15 14:15:00', 1),
-(3, 6, 3, 14900000, '2024-01-22 17:30:00', 1),
-(4, 7, 4, 9100000, '2024-01-28 20:00:00', 1),
-(5, 2, 5, 29800000, '2024-02-07 10:30:00', 1),
-(6, 5, 6, 17300000, '2024-02-14 14:15:00', 1),
-(7, 6, 7, 21300000, '2024-02-21 17:00:00', 1),
-(8, 7, 8, 12700000, '2024-02-25 20:30:00', 1),
-(9, 2, 9, 25600000, '2024-03-05 10:30:00', 1),
-(10, 5, 10, 19500000, '2024-03-12 14:15:00', 1),
-(11, 6, 11, 16000000, '2024-03-20 17:00:00', 1),
-(12, 7, 12, 11800000, '2024-03-28 20:00:00', 1),
-(13, 2, 13, 245000000, '2024-04-08 11:00:00', 1),
-(14, 5, 14, 38800000, '2024-04-15 14:15:00', 1),
-(15, 6, 15, 26300000, '2024-04-22 17:30:00', 1),
-(16, 7, 16, 13800000, '2024-04-29 20:00:00', 1),
-(17, 2, 17, 5150000, '2024-05-06 10:30:00', 1),
-(18, 5, 18, 4900000, '2024-05-14 14:15:00', 1),
-(19, 6, 19, 4350000, '2024-05-22 17:30:00', 1),
-(20, 2, 1, 215000000, '2024-06-05 10:30:00', 1),
-(21, 5, 2, 32200000, '2024-06-12 14:15:00', 1),
-(22, 6, 3, 23100000, '2024-06-20 17:00:00', 1),
-(23, 7, 4, 20200000, '2024-06-27 20:30:00', 1),
-(24, 2, 5, 30000000, '2024-07-07 10:30:00', 1),
-(25, 5, 6, 16600000, '2024-07-15 14:15:00', 1),
-(26, 6, 7, 8300000, '2024-07-22 17:00:00', 1),
-(27, 7, 8, 18000000, '2024-07-29 20:00:00', 1),
-(28, 2, 9, 195000000, '2024-08-05 11:00:00', 1),
-(29, 5, 10, 25500000, '2024-08-14 14:15:00', 1),
-(30, 6, 11, 18000000, '2024-08-22 17:00:00', 1),
-(31, 7, 12, 14200000, '2024-08-28 20:30:00', 1),
-(32, 2, 13, 30200000, '2024-09-06 10:30:00', 1),
-(33, 5, 14, 19600000, '2024-09-15 14:15:00', 1),
-(34, 6, 15, 16700000, '2024-09-22 17:30:00', 1),
-(35, 7, 16, 10200000, '2024-09-29 20:00:00', 1),
-(36, 2, 17, 15700000, '2024-10-08 10:30:00', 1),
-(37, 5, 18, 17450000, '2024-10-16 14:15:00', 1),
-(38, 6, 19, 22100000, '2024-10-24 17:00:00', 1),
-(39, 7, 1, 7750000, '2024-10-30 20:30:00', 1),
-(40, 2, 2, 20500000, '2024-11-06 10:30:00', 1),
-(41, 5, 3, 16100000, '2024-11-14 14:15:00', 1),
-(42, 6, 4, 23100000, '2024-11-22 17:00:00', 1),
-(43, 7, 5, 14800000, '2024-11-28 20:00:00', 1),
-(44, 2, 6, 18680000, '2024-12-05 10:30:00', 1),
-(45, 5, 7, 9950000, '2024-12-12 14:15:00', 1),
-(46, 6, 8, 8180000, '2024-12-20 17:30:00', 1),
-(47, 7, 9, 9400000, '2024-12-26 20:30:00', 1),
-(48, 2, 10, 23500000, '2025-01-08 10:30:00', 1),
-(49, 5, 11, 17300000, '2025-01-15 14:15:00', 1),
-(50, 6, 12, 12800000, '2025-01-22 17:00:00', 1),
-(51, 7, 13, 18200000, '2025-01-28 20:00:00', 1),
-(52, 2, 14, 25500000, '2025-02-07 10:30:00', 1),
-(53, 5, 15, 34600000, '2025-02-14 14:15:00', 1),
-(54, 6, 16, 19000000, '2025-02-21 17:00:00', 1),
-(55, 7, 17, 20200000, '2025-02-25 20:30:00', 1),
-(56, 2, 18, 245000000, '2025-03-05 11:00:00', 1),
-(57, 5, 19, 25600000, '2025-03-12 14:15:00', 1),
-(58, 6, 1, 13200000, '2025-03-20 17:30:00', 1),
-(59, 7, 2, 8000000, '2025-03-28 20:30:00', 1),
-(60, 2, 3, 16800000, '2025-04-08 10:30:00', 1),
-(61, 5, 4, 20600000, '2025-04-15 14:15:00', 1),
-(62, 6, 5, 15500000, '2025-04-22 17:00:00', 1),
-(63, 7, 6, 11000000, '2025-04-29 20:00:00', 1),
-(64, 2, 7, 215000000, '2025-05-06 11:00:00', 1),
-(65, 5, 8, 30000000, '2025-05-14 14:15:00', 1),
-(66, 6, 9, 13700000, '2025-05-22 17:30:00', 1),
-(67, 7, 10, 16200000, '2025-05-30 20:00:00', 1),
-(68, 2, 11, 14000000, '2025-06-05 09:15:00', 1),
-(69, 5, 12, 7400000, '2025-06-12 13:30:00', 1),
-(70, 6, 13, 15200000, '2025-06-20 17:00:00', 1),
-(71, 7, 14, 7400000, '2025-06-27 20:30:00', 1),
-(72, 2, 15, 195000000, '2025-07-07 11:00:00', 1),
-(73, 5, 16, 23400000, '2025-07-15 14:15:00', 1),
-(74, 6, 17, 23700000, '2025-07-22 17:00:00', 1),
-(75, 7, 18, 18100000, '2025-07-29 20:00:00', 1),
-(76, 2, 19, 17400000, '2025-08-05 09:15:00', 1),
-(77, 5, 1, 21100000, '2025-08-14 14:15:00', 1),
-(78, 6, 2, 19200000, '2025-08-22 17:00:00', 1),
-(79, 7, 3, 13500000, '2025-08-28 20:30:00', 1),
-(80, 2, 4, 32800000, '2025-09-06 10:30:00', 1),
-(81, 5, 5, 19000000, '2025-09-15 14:15:00', 1),
-(82, 6, 6, 10000000, '2025-09-22 17:00:00', 1),
-(83, 7, 7, 20300000, '2025-09-29 20:30:00', 1),
-(84, 2, 8, 27700000, '2025-10-08 10:30:00', 1),
-(85, 5, 9, 22600000, '2025-10-16 14:15:00', 1),
-(86, 6, 10, 17700000, '2025-10-24 17:00:00', 1),
-(87, 7, 11, 12900000, '2025-10-30 20:30:00', 1),
-(88, 2, 12, 245000000, '2025-11-06 11:00:00', 1),
-(89, 5, 13, 16600000, '2025-11-14 14:15:00', 1),
-(90, 6, 14, 17900000, '2025-11-22 17:00:00', 1),
-(91, 7, 15, 20900000, '2025-11-28 20:00:00', 1),
-(92, 2, 16, 25900000, '2025-12-05 10:30:00', 1),
-(93, 5, 17, 19070000, '2025-12-12 14:15:00', 1),
-(94, 6, 18, 18800000, '2025-12-20 17:30:00', 1),
-(95, 7, 19, 7330000, '2025-12-26 21:00:00', 1),
-(96, 2, 1, 215000000, '2026-01-08 11:00:00', 1),
-(97, 5, 2, 25600000, '2026-01-15 14:15:00', 1),
-(98, 6, 3, 17000000, '2026-01-22 17:00:00', 1),
-(99, 7, 4, 8600000, '2026-01-28 20:30:00', 1),
-(100, 2, 5, 195000000, '2026-02-07 11:00:00', 1),
-(101, 5, 6, 25500000, '2026-02-14 14:15:00', 1),
-(102, 6, 7, 31400000, '2026-02-21 17:00:00', 1),
-(103, 7, 8, 19000000, '2026-02-25 20:30:00', 1),
-(104, 2, 9, 16800000, '2026-03-05 10:30:00', 1),
-(105, 5, 10, 16800000, '2026-03-12 14:15:00', 1),
-(106, 6, 11, 17500000, '2026-03-20 17:00:00', 1),
-(107, 7, 12, 14900000, '2026-03-28 20:30:00', 1),
-(108, 2, 13, 14750000, '2026-04-06 10:30:00', 1),
-(109, 5, 14, 4850000, '2026-04-11 14:15:00', 1);
-
+INSERT INTO `PHIEUXUAT` (`MPX`, `MNV`, `MKH`, `TIEN`, `TG`, `TT`)
+VALUES (1, 2, 1, 13350000, '2024-01-08 09:30:00', 1),
+    (2, 5, 2, 15500000, '2024-01-15 14:15:00', 1),
+    (3, 6, 3, 14900000, '2024-01-22 17:30:00', 1),
+    (4, 7, 4, 9100000, '2024-01-28 20:00:00', 1),
+    (5, 2, 5, 29800000, '2024-02-07 10:30:00', 1),
+    (6, 5, 6, 17300000, '2024-02-14 14:15:00', 1),
+    (7, 6, 7, 21300000, '2024-02-21 17:00:00', 1),
+    (8, 7, 8, 12700000, '2024-02-25 20:30:00', 1),
+    (9, 2, 9, 25600000, '2024-03-05 10:30:00', 1),
+    (10, 5, 10, 19500000, '2024-03-12 14:15:00', 1),
+    (11, 6, 11, 16000000, '2024-03-20 17:00:00', 1),
+    (12, 7, 12, 11800000, '2024-03-28 20:00:00', 1),
+    (13, 2, 13, 245000000, '2024-04-08 11:00:00', 1),
+    (14, 5, 14, 38800000, '2024-04-15 14:15:00', 1),
+    (15, 6, 15, 26300000, '2024-04-22 17:30:00', 1),
+    (16, 7, 16, 13800000, '2024-04-29 20:00:00', 1),
+    (17, 2, 17, 5150000, '2024-05-06 10:30:00', 1),
+    (18, 5, 18, 4900000, '2024-05-14 14:15:00', 1),
+    (19, 6, 19, 4350000, '2024-05-22 17:30:00', 1),
+    (20, 2, 1, 215000000, '2024-06-05 10:30:00', 1),
+    (21, 5, 2, 32200000, '2024-06-12 14:15:00', 1),
+    (22, 6, 3, 23100000, '2024-06-20 17:00:00', 1),
+    (23, 7, 4, 20200000, '2024-06-27 20:30:00', 1),
+    (24, 2, 5, 30000000, '2024-07-07 10:30:00', 1),
+    (25, 5, 6, 16600000, '2024-07-15 14:15:00', 1),
+    (26, 6, 7, 8300000, '2024-07-22 17:00:00', 1),
+    (27, 7, 8, 18000000, '2024-07-29 20:00:00', 1),
+    (28, 2, 9, 195000000, '2024-08-05 11:00:00', 1),
+    (29, 5, 10, 25500000, '2024-08-14 14:15:00', 1),
+    (30, 6, 11, 18000000, '2024-08-22 17:00:00', 1),
+    (31, 7, 12, 14200000, '2024-08-28 20:30:00', 1),
+    (32, 2, 13, 30200000, '2024-09-06 10:30:00', 1),
+    (33, 5, 14, 19600000, '2024-09-15 14:15:00', 1),
+    (34, 6, 15, 16700000, '2024-09-22 17:30:00', 1),
+    (35, 7, 16, 10200000, '2024-09-29 20:00:00', 1),
+    (36, 2, 17, 15700000, '2024-10-08 10:30:00', 1),
+    (37, 5, 18, 17450000, '2024-10-16 14:15:00', 1),
+    (38, 6, 19, 22100000, '2024-10-24 17:00:00', 1),
+    (39, 7, 1, 7750000, '2024-10-30 20:30:00', 1),
+    (40, 2, 2, 20500000, '2024-11-06 10:30:00', 1),
+    (41, 5, 3, 16100000, '2024-11-14 14:15:00', 1),
+    (42, 6, 4, 23100000, '2024-11-22 17:00:00', 1),
+    (43, 7, 5, 14800000, '2024-11-28 20:00:00', 1),
+    (44, 2, 6, 18680000, '2024-12-05 10:30:00', 1),
+    (45, 5, 7, 9950000, '2024-12-12 14:15:00', 1),
+    (46, 6, 8, 8180000, '2024-12-20 17:30:00', 1),
+    (47, 7, 9, 9400000, '2024-12-26 20:30:00', 1),
+    (48, 2, 10, 23500000, '2025-01-08 10:30:00', 1),
+    (49, 5, 11, 17300000, '2025-01-15 14:15:00', 1),
+    (50, 6, 12, 12800000, '2025-01-22 17:00:00', 1),
+    (51, 7, 13, 18200000, '2025-01-28 20:00:00', 1),
+    (52, 2, 14, 25500000, '2025-02-07 10:30:00', 1),
+    (53, 5, 15, 34600000, '2025-02-14 14:15:00', 1),
+    (54, 6, 16, 19000000, '2025-02-21 17:00:00', 1),
+    (55, 7, 17, 20200000, '2025-02-25 20:30:00', 1),
+    (56, 2, 18, 245000000, '2025-03-05 11:00:00', 1),
+    (57, 5, 19, 25600000, '2025-03-12 14:15:00', 1),
+    (58, 6, 1, 13200000, '2025-03-20 17:30:00', 1),
+    (59, 7, 2, 8000000, '2025-03-28 20:30:00', 1),
+    (60, 2, 3, 16800000, '2025-04-08 10:30:00', 1),
+    (61, 5, 4, 20600000, '2025-04-15 14:15:00', 1),
+    (62, 6, 5, 15500000, '2025-04-22 17:00:00', 1),
+    (63, 7, 6, 11000000, '2025-04-29 20:00:00', 1),
+    (64, 2, 7, 215000000, '2025-05-06 11:00:00', 1),
+    (65, 5, 8, 30000000, '2025-05-14 14:15:00', 1),
+    (66, 6, 9, 13700000, '2025-05-22 17:30:00', 1),
+    (67, 7, 10, 16200000, '2025-05-30 20:00:00', 1),
+    (68, 2, 11, 14000000, '2025-06-05 09:15:00', 1),
+    (69, 5, 12, 7400000, '2025-06-12 13:30:00', 1),
+    (70, 6, 13, 15200000, '2025-06-20 17:00:00', 1),
+    (71, 7, 14, 7400000, '2025-06-27 20:30:00', 1),
+    (72, 2, 15, 195000000, '2025-07-07 11:00:00', 1),
+    (73, 5, 16, 23400000, '2025-07-15 14:15:00', 1),
+    (74, 6, 17, 23700000, '2025-07-22 17:00:00', 1),
+    (75, 7, 18, 18100000, '2025-07-29 20:00:00', 1),
+    (76, 2, 19, 17400000, '2025-08-05 09:15:00', 1),
+    (77, 5, 1, 21100000, '2025-08-14 14:15:00', 1),
+    (78, 6, 2, 19200000, '2025-08-22 17:00:00', 1),
+    (79, 7, 3, 13500000, '2025-08-28 20:30:00', 1),
+    (80, 2, 4, 32800000, '2025-09-06 10:30:00', 1),
+    (81, 5, 5, 19000000, '2025-09-15 14:15:00', 1),
+    (82, 6, 6, 10000000, '2025-09-22 17:00:00', 1),
+    (83, 7, 7, 20300000, '2025-09-29 20:30:00', 1),
+    (84, 2, 8, 27700000, '2025-10-08 10:30:00', 1),
+    (85, 5, 9, 22600000, '2025-10-16 14:15:00', 1),
+    (86, 6, 10, 17700000, '2025-10-24 17:00:00', 1),
+    (87, 7, 11, 12900000, '2025-10-30 20:30:00', 1),
+    (88, 2, 12, 245000000, '2025-11-06 11:00:00', 1),
+    (89, 5, 13, 16600000, '2025-11-14 14:15:00', 1),
+    (90, 6, 14, 17900000, '2025-11-22 17:00:00', 1),
+    (91, 7, 15, 20900000, '2025-11-28 20:00:00', 1),
+    (92, 2, 16, 25900000, '2025-12-05 10:30:00', 1),
+    (93, 5, 17, 19070000, '2025-12-12 14:15:00', 1),
+    (94, 6, 18, 18800000, '2025-12-20 17:30:00', 1),
+    (95, 7, 19, 7330000, '2025-12-26 21:00:00', 1),
+    (96, 2, 1, 215000000, '2026-01-08 11:00:00', 1),
+    (97, 5, 2, 25600000, '2026-01-15 14:15:00', 1),
+    (98, 6, 3, 17000000, '2026-01-22 17:00:00', 1),
+    (99, 7, 4, 8600000, '2026-01-28 20:30:00', 1),
+    (100, 2, 5, 195000000, '2026-02-07 11:00:00', 1),
+    (101, 5, 6, 25500000, '2026-02-14 14:15:00', 1),
+    (102, 6, 7, 31400000, '2026-02-21 17:00:00', 1),
+    (103, 7, 8, 19000000, '2026-02-25 20:30:00', 1),
+    (104, 2, 9, 16800000, '2026-03-05 10:30:00', 1),
+    (105, 5, 10, 16800000, '2026-03-12 14:15:00', 1),
+    (106, 6, 11, 17500000, '2026-03-20 17:00:00', 1),
+    (107, 7, 12, 14900000, '2026-03-28 20:30:00', 1),
+    (108, 2, 13, 14750000, '2026-04-06 10:30:00', 1),
+    (109, 5, 14, 4850000, '2026-04-11 14:15:00', 1);
 -- ============================================================
 -- CHI TIẾT PHIẾU XUẤT
 -- ============================================================
-INSERT INTO `CTPHIEUXUAT` (`MPX`, `MSP`, `MKM`, `SL`, `TIENXUAT`) VALUES
-(1, 22, NULL, 2, 3900000),
-(1, 1, NULL, 1, 4500000),
-(1, 28, NULL, 3, 350000),
-(2, 1, NULL, 1, 4500000),
-(2, 3, NULL, 1, 5800000),
-(2, 26, NULL, 2, 2600000),
-(3, 22, NULL, 1, 3900000),
-(3, 26, NULL, 2, 2600000),
-(3, 3, NULL, 1, 5800000),
-(4, 28, NULL, 2, 350000),
-(4, 1, NULL, 1, 4500000),
-(4, 22, NULL, 1, 3900000),
-(5, 4, NULL, 2, 5200000),
-(5, 7, NULL, 2, 6500000),
-(5, 10, NULL, 2, 3200000),
-(6, 5, NULL, 1, 7500000),
-(6, 6, NULL, 1, 9800000),
-(7, 4, NULL, 1, 5200000),
-(7, 7, NULL, 1, 6500000),
-(7, 10, NULL, 3, 3200000),
-(8, 5, NULL, 1, 7500000),
-(8, 4, NULL, 1, 5200000),
-(9, 19, NULL, 2, 4200000),
-(9, 20, NULL, 2, 4800000),
-(9, 16, NULL, 2, 3800000),
-(10, 17, NULL, 2, 3200000),
-(10, 21, NULL, 2, 3800000),
-(10, 18, NULL, 1, 5500000),
-(11, 19, NULL, 2, 4200000),
-(11, 16, NULL, 2, 3800000),
-(12, 20, NULL, 1, 4800000),
-(12, 21, NULL, 1, 3800000),
-(12, 17, NULL, 1, 3200000),
-(13, 11, NULL, 1, 245000000),
-(14, 14, NULL, 2, 12500000),
-(14, 15, NULL, 1, 13800000),
-(15, 14, NULL, 1, 12500000),
-(15, 15, NULL, 1, 13800000),
-(16, 15, NULL, 1, 13800000),
-(17, 33, NULL, 5, 250000),
-(17, 34, NULL, 4, 300000),
-(17, 35, NULL, 2, 1350000),
-(18, 33, NULL, 4, 250000),
-(18, 34, NULL, 4, 300000),
-(18, 35, NULL, 2, 1350000),
-(19, 33, NULL, 3, 250000),
-(19, 34, NULL, 3, 300000),
-(19, 35, NULL, 2, 1350000),
-(20, 12, NULL, 1, 215000000),
-(21, 8, NULL, 1, 16500000),
-(21, 9, NULL, 1, 11200000),
-(21, 1, NULL, 1, 4500000),
-(22, 2, NULL, 1, 11500000),
-(22, 3, NULL, 2, 5800000),
-(23, 1, NULL, 2, 4500000),
-(23, 9, NULL, 1, 11200000),
-(24, 24, NULL, 1, 13500000),
-(24, 25, NULL, 1, 16500000),
-(25, 23, NULL, 2, 4500000),
-(25, 16, NULL, 2, 3800000),
-(26, 17, NULL, 2, 3200000),
-(26, 29, NULL, 2, 950000),
-(27, 23, NULL, 1, 4500000),
-(27, 24, NULL, 1, 13500000),
-(28, 13, NULL, 1, 195000000),
-(29, 5, NULL, 1, 7500000),
-(29, 19, NULL, 2, 4200000),
-(29, 20, NULL, 2, 4800000),
-(30, 4, NULL, 2, 5200000),
-(30, 21, NULL, 2, 3800000),
-(31, 19, NULL, 1, 4200000),
-(31, 20, NULL, 1, 4800000),
-(31, 4, NULL, 1, 5200000),
-(32, 14, NULL, 2, 12500000),
-(32, 32, NULL, 1, 5200000),
-(33, 15, NULL, 1, 13800000),
-(33, 31, NULL, 2, 2900000),
-(34, 30, NULL, 2, 2100000),
-(34, 14, NULL, 1, 12500000),
-(35, 31, NULL, 1, 2900000),
-(35, 30, NULL, 1, 2100000),
-(35, 32, NULL, 1, 5200000),
-(36, 7, NULL, 2, 6500000),
-(36, 35, NULL, 2, 1350000),
-(37, 10, NULL, 3, 3200000),
-(37, 7, NULL, 1, 6500000),
-(37, 35, NULL, 1, 1350000),
-(38, 7, NULL, 2, 6500000),
-(38, 10, NULL, 2, 3200000),
-(38, 35, NULL, 2, 1350000),
-(39, 10, NULL, 2, 3200000),
-(39, 35, NULL, 1, 1350000),
-(40, 2, NULL, 1, 11500000),
-(40, 1, NULL, 2, 4500000),
-(41, 3, NULL, 2, 5800000),
-(41, 1, NULL, 1, 4500000),
-(42, 2, NULL, 1, 11500000),
-(42, 3, NULL, 2, 5800000),
-(43, 1, NULL, 2, 4500000),
-(43, 3, NULL, 1, 5800000),
-(44, 22, NULL, 3, 3900000),
-(44, 26, NULL, 2, 2600000),
-(44, 27, NULL, 2, 890000),
-(45, 22, NULL, 2, 3900000),
-(45, 28, NULL, 4, 350000),
-(45, 33, NULL, 3, 250000),
-(46, 34, NULL, 4, 300000),
-(46, 26, NULL, 2, 2600000),
-(46, 27, NULL, 2, 890000),
-(47, 22, NULL, 2, 3900000),
-(47, 34, NULL, 3, 300000),
-(47, 28, NULL, 2, 350000),
-(48, 4, NULL, 2, 5200000),
-(48, 16, NULL, 2, 3800000),
-(48, 18, NULL, 1, 5500000),
-(49, 5, NULL, 1, 7500000),
-(49, 6, NULL, 1, 9800000),
-(50, 4, NULL, 1, 5200000),
-(50, 16, NULL, 2, 3800000),
-(51, 18, NULL, 1, 5500000),
-(51, 5, NULL, 1, 7500000),
-(51, 4, NULL, 1, 5200000),
-(52, 7, NULL, 2, 6500000),
-(52, 14, NULL, 1, 12500000),
-(53, 9, NULL, 1, 11200000),
-(53, 10, NULL, 3, 3200000),
-(53, 15, NULL, 1, 13800000),
-(54, 7, NULL, 1, 6500000),
-(54, 14, NULL, 1, 12500000),
-(55, 10, NULL, 2, 3200000),
-(55, 15, NULL, 1, 13800000),
-(56, 11, NULL, 1, 245000000),
-(57, 19, NULL, 2, 4200000),
-(57, 20, NULL, 2, 4800000),
-(57, 21, NULL, 2, 3800000),
-(58, 19, NULL, 2, 4200000),
-(58, 20, NULL, 1, 4800000),
-(59, 21, NULL, 1, 3800000),
-(59, 19, NULL, 1, 4200000),
-(60, 1, NULL, 2, 4500000),
-(60, 22, NULL, 2, 3900000),
-(61, 3, NULL, 2, 5800000),
-(61, 23, NULL, 2, 4500000),
-(62, 26, NULL, 2, 2600000),
-(62, 1, NULL, 1, 4500000),
-(62, 3, NULL, 1, 5800000),
-(63, 22, NULL, 1, 3900000),
-(63, 23, NULL, 1, 4500000),
-(63, 26, NULL, 1, 2600000),
-(64, 12, NULL, 1, 215000000),
-(65, 24, NULL, 1, 13500000),
-(65, 25, NULL, 1, 16500000),
-(66, 31, NULL, 2, 2900000),
-(66, 32, NULL, 1, 5200000),
-(66, 35, NULL, 2, 1350000),
-(67, 24, NULL, 1, 13500000),
-(67, 35, NULL, 2, 1350000),
-(68, 16, NULL, 2, 3800000),
-(68, 17, NULL, 2, 3200000),
-(69, 18, NULL, 1, 5500000),
-(69, 33, NULL, 4, 250000),
-(69, 34, NULL, 3, 300000),
-(70, 16, NULL, 2, 3800000),
-(70, 17, NULL, 2, 3200000),
-(70, 34, NULL, 4, 300000),
-(71, 18, NULL, 1, 5500000),
-(71, 33, NULL, 4, 250000),
-(71, 34, NULL, 3, 300000),
-(72, 13, NULL, 1, 195000000),
-(73, 4, NULL, 2, 5200000),
-(73, 7, NULL, 2, 6500000),
-(74, 5, NULL, 1, 7500000),
-(74, 6, NULL, 1, 9800000),
-(74, 10, NULL, 2, 3200000),
-(75, 7, NULL, 1, 6500000),
-(75, 10, NULL, 2, 3200000),
-(75, 4, NULL, 1, 5200000),
-(76, 1, NULL, 2, 4500000),
-(76, 19, NULL, 2, 4200000),
-(77, 2, NULL, 1, 11500000),
-(77, 20, NULL, 2, 4800000),
-(78, 3, NULL, 2, 5800000),
-(78, 21, NULL, 2, 3800000),
-(79, 1, NULL, 1, 4500000),
-(79, 19, NULL, 1, 4200000),
-(79, 20, NULL, 1, 4800000),
-(80, 14, NULL, 2, 12500000),
-(80, 22, NULL, 2, 3900000),
-(81, 15, NULL, 1, 13800000),
-(81, 26, NULL, 2, 2600000),
-(82, 30, NULL, 2, 2100000),
-(82, 29, NULL, 2, 950000),
-(82, 22, NULL, 1, 3900000),
-(83, 14, NULL, 1, 12500000),
-(83, 22, NULL, 2, 3900000),
-(84, 8, NULL, 1, 16500000),
-(84, 9, NULL, 1, 11200000),
-(85, 7, NULL, 2, 6500000),
-(85, 10, NULL, 3, 3200000),
-(86, 9, NULL, 1, 11200000),
-(86, 7, NULL, 1, 6500000),
-(87, 10, NULL, 2, 3200000),
-(87, 7, NULL, 1, 6500000),
-(88, 11, NULL, 1, 245000000),
-(89, 1, NULL, 2, 4500000),
-(89, 16, NULL, 2, 3800000),
-(90, 2, NULL, 1, 11500000),
-(90, 17, NULL, 2, 3200000),
-(91, 3, NULL, 2, 5800000),
-(91, 18, NULL, 1, 5500000),
-(91, 16, NULL, 1, 3800000),
-(92, 22, NULL, 3, 3900000),
-(92, 23, NULL, 2, 4500000),
-(92, 4, NULL, 1, 5200000),
-(93, 5, NULL, 2, 7500000),
-(93, 27, NULL, 3, 890000),
-(93, 28, NULL, 4, 350000),
-(94, 4, NULL, 1, 5200000),
-(94, 22, NULL, 2, 3900000),
-(94, 31, NULL, 2, 2900000),
-(95, 23, NULL, 1, 4500000),
-(95, 28, NULL, 3, 350000),
-(95, 27, NULL, 2, 890000),
-(96, 12, NULL, 1, 215000000),
-(97, 19, NULL, 2, 4200000),
-(97, 20, NULL, 2, 4800000),
-(97, 21, NULL, 2, 3800000),
-(98, 19, NULL, 2, 4200000),
-(98, 20, NULL, 1, 4800000),
-(98, 21, NULL, 1, 3800000),
-(99, 20, NULL, 1, 4800000),
-(99, 21, NULL, 1, 3800000),
-(100, 13, NULL, 1, 195000000),
-(101, 7, NULL, 2, 6500000),
-(101, 14, NULL, 1, 12500000),
-(102, 9, NULL, 1, 11200000),
-(102, 15, NULL, 1, 13800000),
-(102, 10, NULL, 2, 3200000),
-(103, 7, NULL, 1, 6500000),
-(103, 14, NULL, 1, 12500000),
-(104, 1, NULL, 2, 4500000),
-(104, 22, NULL, 2, 3900000),
-(105, 3, NULL, 2, 5800000),
-(105, 26, NULL, 2, 2600000),
-(106, 32, NULL, 1, 5200000),
-(106, 1, NULL, 1, 4500000),
-(106, 22, NULL, 2, 3900000),
-(107, 3, NULL, 1, 5800000),
-(107, 26, NULL, 2, 2600000),
-(107, 22, NULL, 1, 3900000),
-(108, 16, NULL, 2, 3800000),
-(108, 17, NULL, 2, 3200000),
-(108, 33, NULL, 3, 250000),
-(109, 34, NULL, 3, 300000),
-(109, 33, NULL, 3, 250000),
-(109, 17, NULL, 1, 3200000);
-
+INSERT INTO `CTPHIEUXUAT` (`MPX`, `MSP`, `MKM`, `SL`, `TIENXUAT`)
+VALUES (1, 22, NULL, 2, 3900000),
+    (1, 1, NULL, 1, 4500000),
+    (1, 28, NULL, 3, 350000),
+    (2, 1, NULL, 1, 4500000),
+    (2, 3, NULL, 1, 5800000),
+    (2, 26, NULL, 2, 2600000),
+    (3, 22, NULL, 1, 3900000),
+    (3, 26, NULL, 2, 2600000),
+    (3, 3, NULL, 1, 5800000),
+    (4, 28, NULL, 2, 350000),
+    (4, 1, NULL, 1, 4500000),
+    (4, 22, NULL, 1, 3900000),
+    (5, 4, NULL, 2, 5200000),
+    (5, 7, NULL, 2, 6500000),
+    (5, 10, NULL, 2, 3200000),
+    (6, 5, NULL, 1, 7500000),
+    (6, 6, NULL, 1, 9800000),
+    (7, 4, NULL, 1, 5200000),
+    (7, 7, NULL, 1, 6500000),
+    (7, 10, NULL, 3, 3200000),
+    (8, 5, NULL, 1, 7500000),
+    (8, 4, NULL, 1, 5200000),
+    (9, 19, NULL, 2, 4200000),
+    (9, 20, NULL, 2, 4800000),
+    (9, 16, NULL, 2, 3800000),
+    (10, 17, NULL, 2, 3200000),
+    (10, 21, NULL, 2, 3800000),
+    (10, 18, NULL, 1, 5500000),
+    (11, 19, NULL, 2, 4200000),
+    (11, 16, NULL, 2, 3800000),
+    (12, 20, NULL, 1, 4800000),
+    (12, 21, NULL, 1, 3800000),
+    (12, 17, NULL, 1, 3200000),
+    (13, 11, NULL, 1, 245000000),
+    (14, 14, NULL, 2, 12500000),
+    (14, 15, NULL, 1, 13800000),
+    (15, 14, NULL, 1, 12500000),
+    (15, 15, NULL, 1, 13800000),
+    (16, 15, NULL, 1, 13800000),
+    (17, 33, NULL, 5, 250000),
+    (17, 34, NULL, 4, 300000),
+    (17, 35, NULL, 2, 1350000),
+    (18, 33, NULL, 4, 250000),
+    (18, 34, NULL, 4, 300000),
+    (18, 35, NULL, 2, 1350000),
+    (19, 33, NULL, 3, 250000),
+    (19, 34, NULL, 3, 300000),
+    (19, 35, NULL, 2, 1350000),
+    (20, 12, NULL, 1, 215000000),
+    (21, 8, NULL, 1, 16500000),
+    (21, 9, NULL, 1, 11200000),
+    (21, 1, NULL, 1, 4500000),
+    (22, 2, NULL, 1, 11500000),
+    (22, 3, NULL, 2, 5800000),
+    (23, 1, NULL, 2, 4500000),
+    (23, 9, NULL, 1, 11200000),
+    (24, 24, NULL, 1, 13500000),
+    (24, 25, NULL, 1, 16500000),
+    (25, 23, NULL, 2, 4500000),
+    (25, 16, NULL, 2, 3800000),
+    (26, 17, NULL, 2, 3200000),
+    (26, 29, NULL, 2, 950000),
+    (27, 23, NULL, 1, 4500000),
+    (27, 24, NULL, 1, 13500000),
+    (28, 13, NULL, 1, 195000000),
+    (29, 5, NULL, 1, 7500000),
+    (29, 19, NULL, 2, 4200000),
+    (29, 20, NULL, 2, 4800000),
+    (30, 4, NULL, 2, 5200000),
+    (30, 21, NULL, 2, 3800000),
+    (31, 19, NULL, 1, 4200000),
+    (31, 20, NULL, 1, 4800000),
+    (31, 4, NULL, 1, 5200000),
+    (32, 14, NULL, 2, 12500000),
+    (32, 32, NULL, 1, 5200000),
+    (33, 15, NULL, 1, 13800000),
+    (33, 31, NULL, 2, 2900000),
+    (34, 30, NULL, 2, 2100000),
+    (34, 14, NULL, 1, 12500000),
+    (35, 31, NULL, 1, 2900000),
+    (35, 30, NULL, 1, 2100000),
+    (35, 32, NULL, 1, 5200000),
+    (36, 7, NULL, 2, 6500000),
+    (36, 35, NULL, 2, 1350000),
+    (37, 10, NULL, 3, 3200000),
+    (37, 7, NULL, 1, 6500000),
+    (37, 35, NULL, 1, 1350000),
+    (38, 7, NULL, 2, 6500000),
+    (38, 10, NULL, 2, 3200000),
+    (38, 35, NULL, 2, 1350000),
+    (39, 10, NULL, 2, 3200000),
+    (39, 35, NULL, 1, 1350000),
+    (40, 2, NULL, 1, 11500000),
+    (40, 1, NULL, 2, 4500000),
+    (41, 3, NULL, 2, 5800000),
+    (41, 1, NULL, 1, 4500000),
+    (42, 2, NULL, 1, 11500000),
+    (42, 3, NULL, 2, 5800000),
+    (43, 1, NULL, 2, 4500000),
+    (43, 3, NULL, 1, 5800000),
+    (44, 22, NULL, 3, 3900000),
+    (44, 26, NULL, 2, 2600000),
+    (44, 27, NULL, 2, 890000),
+    (45, 22, NULL, 2, 3900000),
+    (45, 28, NULL, 4, 350000),
+    (45, 33, NULL, 3, 250000),
+    (46, 34, NULL, 4, 300000),
+    (46, 26, NULL, 2, 2600000),
+    (46, 27, NULL, 2, 890000),
+    (47, 22, NULL, 2, 3900000),
+    (47, 34, NULL, 3, 300000),
+    (47, 28, NULL, 2, 350000),
+    (48, 4, NULL, 2, 5200000),
+    (48, 16, NULL, 2, 3800000),
+    (48, 18, NULL, 1, 5500000),
+    (49, 5, NULL, 1, 7500000),
+    (49, 6, NULL, 1, 9800000),
+    (50, 4, NULL, 1, 5200000),
+    (50, 16, NULL, 2, 3800000),
+    (51, 18, NULL, 1, 5500000),
+    (51, 5, NULL, 1, 7500000),
+    (51, 4, NULL, 1, 5200000),
+    (52, 7, NULL, 2, 6500000),
+    (52, 14, NULL, 1, 12500000),
+    (53, 9, NULL, 1, 11200000),
+    (53, 10, NULL, 3, 3200000),
+    (53, 15, NULL, 1, 13800000),
+    (54, 7, NULL, 1, 6500000),
+    (54, 14, NULL, 1, 12500000),
+    (55, 10, NULL, 2, 3200000),
+    (55, 15, NULL, 1, 13800000),
+    (56, 11, NULL, 1, 245000000),
+    (57, 19, NULL, 2, 4200000),
+    (57, 20, NULL, 2, 4800000),
+    (57, 21, NULL, 2, 3800000),
+    (58, 19, NULL, 2, 4200000),
+    (58, 20, NULL, 1, 4800000),
+    (59, 21, NULL, 1, 3800000),
+    (59, 19, NULL, 1, 4200000),
+    (60, 1, NULL, 2, 4500000),
+    (60, 22, NULL, 2, 3900000),
+    (61, 3, NULL, 2, 5800000),
+    (61, 23, NULL, 2, 4500000),
+    (62, 26, NULL, 2, 2600000),
+    (62, 1, NULL, 1, 4500000),
+    (62, 3, NULL, 1, 5800000),
+    (63, 22, NULL, 1, 3900000),
+    (63, 23, NULL, 1, 4500000),
+    (63, 26, NULL, 1, 2600000),
+    (64, 12, NULL, 1, 215000000),
+    (65, 24, NULL, 1, 13500000),
+    (65, 25, NULL, 1, 16500000),
+    (66, 31, NULL, 2, 2900000),
+    (66, 32, NULL, 1, 5200000),
+    (66, 35, NULL, 2, 1350000),
+    (67, 24, NULL, 1, 13500000),
+    (67, 35, NULL, 2, 1350000),
+    (68, 16, NULL, 2, 3800000),
+    (68, 17, NULL, 2, 3200000),
+    (69, 18, NULL, 1, 5500000),
+    (69, 33, NULL, 4, 250000),
+    (69, 34, NULL, 3, 300000),
+    (70, 16, NULL, 2, 3800000),
+    (70, 17, NULL, 2, 3200000),
+    (70, 34, NULL, 4, 300000),
+    (71, 18, NULL, 1, 5500000),
+    (71, 33, NULL, 4, 250000),
+    (71, 34, NULL, 3, 300000),
+    (72, 13, NULL, 1, 195000000),
+    (73, 4, NULL, 2, 5200000),
+    (73, 7, NULL, 2, 6500000),
+    (74, 5, NULL, 1, 7500000),
+    (74, 6, NULL, 1, 9800000),
+    (74, 10, NULL, 2, 3200000),
+    (75, 7, NULL, 1, 6500000),
+    (75, 10, NULL, 2, 3200000),
+    (75, 4, NULL, 1, 5200000),
+    (76, 1, NULL, 2, 4500000),
+    (76, 19, NULL, 2, 4200000),
+    (77, 2, NULL, 1, 11500000),
+    (77, 20, NULL, 2, 4800000),
+    (78, 3, NULL, 2, 5800000),
+    (78, 21, NULL, 2, 3800000),
+    (79, 1, NULL, 1, 4500000),
+    (79, 19, NULL, 1, 4200000),
+    (79, 20, NULL, 1, 4800000),
+    (80, 14, NULL, 2, 12500000),
+    (80, 22, NULL, 2, 3900000),
+    (81, 15, NULL, 1, 13800000),
+    (81, 26, NULL, 2, 2600000),
+    (82, 30, NULL, 2, 2100000),
+    (82, 29, NULL, 2, 950000),
+    (82, 22, NULL, 1, 3900000),
+    (83, 14, NULL, 1, 12500000),
+    (83, 22, NULL, 2, 3900000),
+    (84, 8, NULL, 1, 16500000),
+    (84, 9, NULL, 1, 11200000),
+    (85, 7, NULL, 2, 6500000),
+    (85, 10, NULL, 3, 3200000),
+    (86, 9, NULL, 1, 11200000),
+    (86, 7, NULL, 1, 6500000),
+    (87, 10, NULL, 2, 3200000),
+    (87, 7, NULL, 1, 6500000),
+    (88, 11, NULL, 1, 245000000),
+    (89, 1, NULL, 2, 4500000),
+    (89, 16, NULL, 2, 3800000),
+    (90, 2, NULL, 1, 11500000),
+    (90, 17, NULL, 2, 3200000),
+    (91, 3, NULL, 2, 5800000),
+    (91, 18, NULL, 1, 5500000),
+    (91, 16, NULL, 1, 3800000),
+    (92, 22, NULL, 3, 3900000),
+    (92, 23, NULL, 2, 4500000),
+    (92, 4, NULL, 1, 5200000),
+    (93, 5, NULL, 2, 7500000),
+    (93, 27, NULL, 3, 890000),
+    (93, 28, NULL, 4, 350000),
+    (94, 4, NULL, 1, 5200000),
+    (94, 22, NULL, 2, 3900000),
+    (94, 31, NULL, 2, 2900000),
+    (95, 23, NULL, 1, 4500000),
+    (95, 28, NULL, 3, 350000),
+    (95, 27, NULL, 2, 890000),
+    (96, 12, NULL, 1, 215000000),
+    (97, 19, NULL, 2, 4200000),
+    (97, 20, NULL, 2, 4800000),
+    (97, 21, NULL, 2, 3800000),
+    (98, 19, NULL, 2, 4200000),
+    (98, 20, NULL, 1, 4800000),
+    (98, 21, NULL, 1, 3800000),
+    (99, 20, NULL, 1, 4800000),
+    (99, 21, NULL, 1, 3800000),
+    (100, 13, NULL, 1, 195000000),
+    (101, 7, NULL, 2, 6500000),
+    (101, 14, NULL, 1, 12500000),
+    (102, 9, NULL, 1, 11200000),
+    (102, 15, NULL, 1, 13800000),
+    (102, 10, NULL, 2, 3200000),
+    (103, 7, NULL, 1, 6500000),
+    (103, 14, NULL, 1, 12500000),
+    (104, 1, NULL, 2, 4500000),
+    (104, 22, NULL, 2, 3900000),
+    (105, 3, NULL, 2, 5800000),
+    (105, 26, NULL, 2, 2600000),
+    (106, 32, NULL, 1, 5200000),
+    (106, 1, NULL, 1, 4500000),
+    (106, 22, NULL, 2, 3900000),
+    (107, 3, NULL, 1, 5800000),
+    (107, 26, NULL, 2, 2600000),
+    (107, 22, NULL, 1, 3900000),
+    (108, 16, NULL, 2, 3800000),
+    (108, 17, NULL, 2, 3200000),
+    (108, 33, NULL, 3, 250000),
+    (109, 34, NULL, 3, 300000),
+    (109, 33, NULL, 3, 250000),
+    (109, 17, NULL, 1, 3200000);
+-- BẢNG VI PHẠM (PHẠT CỐ ĐỊNH)
+-- Mức phạt mỗi lần vi phạm theo chức vụ:
+--   MCV=1 Quản lý CH (15tr)  : 50.000đ / lần
+--   MCV=2 NV Bán hàng (7tr)  : 25.000đ / lần
+--   MCV=3 NV Kho (8tr)       : 30.000đ / lần
+--   MCV=4 Quản lý NS (10tr)  : 40.000đ / lần
+-- Ngưỡng tha thứ: ≤ 10 phút không bị phạt
 -- ============================================================
--- TỒN KHO CUỐI KỲ
--- ============================================================
--- MSP  1: 17 cái |     4,500,000 đ/cái
--- MSP  2:  5 cái |    11,500,000 đ/cái
--- MSP  3: 11 cái |     5,800,000 đ/cái
--- MSP  4: 14 cái |     5,200,000 đ/cái
--- MSP  5:  9 cái |     7,500,000 đ/cái
--- MSP  6:  4 cái |     9,800,000 đ/cái
--- MSP  7: 17 cái |     6,500,000 đ/cái
--- MSP  8:  1 cái |    16,500,000 đ/cái
--- MSP  9:  2 cái |    11,200,000 đ/cái
--- MSP 10: 16 cái |     3,200,000 đ/cái
--- MSP 11:  2 cái |   245,000,000 đ/cái
--- MSP 12:  2 cái |   215,000,000 đ/cái
--- MSP 13:  2 cái |   195,000,000 đ/cái
--- MSP 14:  3 cái |    12,500,000 đ/cái
--- MSP 15:  3 cái |    13,800,000 đ/cái
--- MSP 16: 19 cái |     3,800,000 đ/cái
--- MSP 17: 14 cái |     3,200,000 đ/cái
--- MSP 18:  8 cái |     5,500,000 đ/cái
--- MSP 19:  7 cái |     4,200,000 đ/cái
--- MSP 20:  6 cái |     4,800,000 đ/cái
--- MSP 21:  8 cái |     3,800,000 đ/cái
--- MSP 22:  9 cái |     3,900,000 đ/cái
--- MSP 23:  5 cái |     4,500,000 đ/cái
--- MSP 26:  9 cái |     2,600,000 đ/cái
--- MSP 27:  3 cái |       890,000 đ/cái
--- MSP 28:  8 cái |       350,000 đ/cái
--- MSP 29:  4 cái |       950,000 đ/cái
--- MSP 30:  4 cái |     2,100,000 đ/cái
--- MSP 31:  5 cái |     2,900,000 đ/cái
--- MSP 32:  5 cái |     5,200,000 đ/cái
--- MSP 33: 13 cái |       250,000 đ/cái
--- MSP 34:  9 cái |       300,000 đ/cái
--- MSP 35: 10 cái |     1,350,000 đ/cái
+-- ------------------------------------------------------------
+-- 2. CẬP NHẬT GIO_CHECKIN / GIO_CHECKOUT CHO CÁC CA VI PHẠM
+-- ------------------------------------------------------------
+-- NV1 (MNV=1), 2026-03-04, Ca1 (08:00-16:00): check-in 08:20 → trễ 20 phút
+UPDATE PHANCALAM
+SET GIO_CHECKIN = '2026-03-04 08:20:00'
+WHERE MNV = 1
+    AND NGAY = '2026-03-04'
+    AND MCA = 1;
+-- NV1 (MNV=1), 2026-03-18, Ca1: check-in 08:15 → trễ 15 phút
+UPDATE PHANCALAM
+SET GIO_CHECKIN = '2026-03-18 08:15:00'
+WHERE MNV = 1
+    AND NGAY = '2026-03-18'
+    AND MCA = 1;
+-- NV3 (MNV=3), 2026-02-10, Ca1: check-in 08:12 → trễ 12 phút
+UPDATE PHANCALAM
+SET GIO_CHECKIN = '2026-02-10 08:12:00'
+WHERE MNV = 3
+    AND NGAY = '2026-02-10'
+    AND MCA = 1;
+-- NV8 (MNV=8), 2026-03-09, Ca1: check-in 08:18 → trễ 18 phút
+UPDATE PHANCALAM
+SET GIO_CHECKIN = '2026-03-09 08:18:00'
+WHERE MNV = 8
+    AND NGAY = '2026-03-09'
+    AND MCA = 1;
+-- NV8 (MNV=8), 2026-03-16, Ca1: check-out 15:45 → về sớm 15 phút
+UPDATE PHANCALAM
+SET GIO_CHECKOUT = '2026-03-16 15:45:00'
+WHERE MNV = 8
+    AND NGAY = '2026-03-16'
+    AND MCA = 1;
+-- ------------------------------------------------------------
+-- 3. INSERT DỮ LIỆU VIPHAM
+-- ------------------------------------------------------------
+INSERT INTO `VIPHAM` (
+        `MVP`,
+        `MNV`,
+        `MPCL`,
+        `LOAI`,
+        `PHUT_VIPHAM`,
+        `TIEN_PHAT`,
+        `THANG`,
+        `NAM`,
+        `GHICHU`
+    )
+VALUES (
+        1,
+        1,
+        1,
+        1,
+        20,
+        50000.00,
+        3,
+        2026,
+        'Vào ca trễ 20 phút'
+    ),
+    (
+        2,
+        1,
+        2,
+        1,
+        15,
+        50000.00,
+        3,
+        2026,
+        'Vào ca trễ 15 phút'
+    ),
+    (
+        3,
+        3,
+        3,
+        1,
+        12,
+        30000.00,
+        2,
+        2026,
+        'Vào ca trễ 12 phút'
+    ),
+    (
+        4,
+        8,
+        4,
+        1,
+        18,
+        25000.00,
+        3,
+        2026,
+        'Vào ca trễ 18 phút'
+    ),
+    (
+        5,
+        8,
+        5,
+        2,
+        15,
+        25000.00,
+        3,
+        2026,
+        'Về sớm 15 phút'
+    );
+-- ------------------------------------------------------------
+-- 4. CẬP NHẬT BANGLUONG: KHAUTRU_KHAC và LUONGTHUCLANH
+--
+-- Công thức: LUONGTHUCLANH = (LUONGCOBAN/26 × NGAYCONG) + HOA_HONG
+--                            - (BHXH + BHYT + BHTN + KHAUTRU_KHAC)
+--
+-- NV1 T3/2026 (MBL=27):
+--   Phạt = 50.000 × 2 = 100.000 → LUONGTHUCLANH = 15.575.000 - 100.000 = 15.475.000
+--
+-- NV3 T2/2026 (MBL=80):
+--   Phạt = 30.000 × 1 = 30.000 → LUONGTHUCLANH ≈ 6.544.615,38 - 30.000 = 6.514.615,38
+--
+-- NV8 T3/2026 (MBL=156):
+--   Phạt = 25.000 × 2 = 50.000 → LUONGTHUCLANH = 6.265.000 - 50.000 = 6.215.000
+-- ------------------------------------------------------------
+UPDATE BANGLUONG
+SET KHAUTRU_KHAC = 100000.00,
+    LUONGTHUCLANH = 15475000.00
+WHERE MBL = 27;
+UPDATE BANGLUONG
+SET KHAUTRU_KHAC = 30000.00,
+    LUONGTHUCLANH = 6514615.38
+WHERE MBL = 80;
+UPDATE BANGLUONG
+SET KHAUTRU_KHAC = 50000.00,
+    LUONGTHUCLANH = 6215000.00
+WHERE MBL = 156;
+-- ------------------------------------------------------------
+-- 5. VIEW TỔNG HỢP PHẠT THEO THÁNG
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW View_TongHopVipham AS
+SELECT vp.THANG,
+    vp.NAM,
+    nv.MNV,
+    nv.HOTEN,
+    cv.TEN AS CHUCVU,
+    COUNT(vp.MVP) AS SO_LAN_VIPHAM,
+    SUM(
+        CASE
+            WHEN vp.LOAI = 1 THEN 1
+            ELSE 0
+        END
+    ) AS LAN_DI_TRE,
+    SUM(
+        CASE
+            WHEN vp.LOAI = 2 THEN 1
+            ELSE 0
+        END
+    ) AS LAN_VE_SOM,
+    SUM(vp.TIEN_PHAT) AS TONG_TIEN_PHAT
+FROM VIPHAM vp
+    JOIN NHANVIEN nv ON vp.MNV = nv.MNV
+    JOIN CHUCVU cv ON nv.MCV = cv.MCV
+GROUP BY vp.THANG,
+    vp.NAM,
+    nv.MNV,
+    nv.HOTEN,
+    cv.TEN
+ORDER BY vp.NAM,
+    vp.THANG,
+    nv.MNV;
 COMMIT;

@@ -4,6 +4,7 @@ export type AuthSession = {
   fullName: string
   avatar?: string
   role: string
+  department?: string
   mnv: number
   permissions?: Array<{
     mcn: string

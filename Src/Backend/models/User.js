@@ -11,6 +11,7 @@ async function findByUsername(username) {
         tk.TRANGTHAI,
         nv.HOTEN,
         nv.HINHANH,
+        nv.BOPHAN,
         nq.TEN AS TENNHOMQUYEN
       FROM TAIKHOAN tk
       INNER JOIN NHANVIEN nv ON nv.MNV = tk.MNV
