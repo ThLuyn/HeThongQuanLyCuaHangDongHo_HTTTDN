@@ -57,8 +57,10 @@ export function App() {
     const [currentRole, setCurrentRole] = useState(initialSession?.role || '');
     const [currentDepartment, setCurrentDepartment] = useState(initialSession?.department || '');
     const [currentPermissions, setCurrentPermissions] = useState(initialSession?.permissions || []);
+    const [currentMnv, setCurrentMnv] = useState(initialSession?.mnv || 0);
     const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
     const [targetLowStockProductId, setTargetLowStockProductId] = useState(null);
+    const [targetLeaveId, setTargetLeaveId] = useState(null);
 
     const hasPermission = (mcn, action = 'view') => currentPermissions.some((item) => String(item?.mcn || '').toLowerCase() === String(mcn).toLowerCase() && String(item?.hanhDong || '').toLowerCase() === String(action).toLowerCase());
     const isAdminOrHr = ['admin', 'hr'].includes(String(currentRole || '').toLowerCase());
@@ -180,6 +182,7 @@ export function App() {
             setCurrentRole(loginData.user.role || '');
             setCurrentDepartment(loginData.user.department || '');
             setCurrentPermissions(loginData.user.permissions || []);
+            setCurrentMnv(loginData.user.mnv || 0);
             return { ok: true };
         }
         catch (error) {
@@ -308,36 +311,29 @@ export function App() {
         setActivePage('my-attendance');
     };
     const handleOpenNotification = (notification) => {
-        const notificationId = String(notification?.id || '').toUpperCase();
-        if (notificationId.startsWith('LOWSTOCK-')) {
-            if (!canAccessPage('watch-categories'))
-                return;
-            const parsedProductId = Number(notificationId.replace('LOWSTOCK-', ''));
-            setTargetLowStockProductId(Number.isInteger(parsedProductId) && parsedProductId > 0 ? parsedProductId : null);
+        const type = String(notification?.type || '');
+        const sourceId = Number(notification?.sourceId || 0);
+
+        if (type === 'low_stock') {
+            if (!canAccessPage('watch-categories')) return;
+            setTargetLowStockProductId(sourceId > 0 ? sourceId : null);
             setWatchCategoryLowStockOnly(true);
+            setTargetLeaveId(null);
             setActivePage('watch-categories');
             return;
         }
-        if (notificationId.startsWith('LEAVE-')) {
+
+        if (type === 'leave') {
             const targetPage = canAccessPage('leave-operations')
                 ? 'leave-operations'
                 : canAccessPage('my-leave-requests')
                     ? 'my-leave-requests'
-                : canAccessPage('salary-leave')
-                    ? 'salary-leave'
-                    : 'my-salary';
-            if (!canAccessPage(targetPage))
-                return;
-            setTargetLowStockProductId(null);
-            setActivePage(targetPage);
-            return;
-        }
-        if (notificationId.startsWith('ATTENDANCE-')) {
-            if (!canAccessPage('my-attendance'))
-                return;
+                    : null;
+            if (!targetPage) return;
+            setTargetLeaveId(sourceId > 0 ? sourceId : null);
             setTargetLowStockProductId(null);
             setWatchCategoryLowStockOnly(false);
-            setActivePage('my-attendance');
+            setActivePage(targetPage);
             return;
         }
     };
@@ -350,7 +346,12 @@ export function App() {
             case 'salary-leave':
                 return <SalaryLeave />;
             case 'leave-operations':
-                return <LeaveOperations />;
+                return (
+                    <LeaveOperations
+                        targetLeaveId={targetLeaveId}
+                        onConsumeTargetLeave={() => setTargetLeaveId(null)}
+                    />
+                );
             case 'daily-attendance':
                 return <DailyAttendance viewMode="manage"/>;
             case 'my-attendance':
@@ -402,7 +403,7 @@ export function App() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')} onOpenNotification={handleOpenNotification} onOpenAttendancePage={handleOpenAttendanceShortcut} showAttendanceShortcut={canAccessPage('my-attendance')}/>
+                <Header title={pageTitles[activePage] || 'Tổng quan'} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} currentUser={currentUser} currentUsername={currentUsername || currentUser} currentAvatar={currentAvatar} onOpenProfilePage={() => setActivePage('profile')} onOpenChangePasswordPage={() => setActivePage('change-password')} onOpenNotification={handleOpenNotification} onOpenAttendancePage={handleOpenAttendanceShortcut} showAttendanceShortcut={canAccessPage('my-attendance')} currentMnv={currentMnv}/>
         <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
           {renderPage()}
         </main>

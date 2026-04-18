@@ -1156,3 +1156,25 @@ export async function getViolationPenaltiesApi(mnv: number, month: number, year:
   const response = await apiRequest<ApiEnvelope<ViolationPenaltyItem[]>>(`/api/hr/violations?mnv=${mnv}&month=${month}&year=${year}`)
   return Array.isArray(response.data) ? response.data : []
 }
+
+export async function updateEmployeeApi(
+  id: number,
+  payload: {
+    fullName: string
+    gender: number
+    birthDate: string
+    phone: string
+    email: string
+    positionName: string
+    status: number
+    hometown: string
+    startDate: string
+    citizenId: string
+    department: string
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/employees/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}

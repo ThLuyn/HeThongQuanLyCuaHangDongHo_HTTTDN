@@ -99,8 +99,11 @@ async function login(req, res, next) {
     }
 
     const user = await User.findByUsername(username);
-    if (!user || Number(user.TRANGTHAI) !== 1) {
+    if (!user) {
       return fail(res, "Invalid credentials", 401);
+    }
+    if (Number(user.TRANGTHAI) !== 1) {
+      return fail(res, "ACCOUNT_LOCKED", 401);
     }
 
     const isPasswordValid = await verifyPasswordAndMigrateIfNeeded(

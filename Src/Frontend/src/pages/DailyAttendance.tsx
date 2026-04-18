@@ -137,7 +137,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
 
   // Load dữ liệu cho STAFF (chấm công cá nhân)
   const loadMyAttendance = async (dateOverride?: string, opts?: { silent?: boolean }) => {
-    const date = dateOverride || getVietnamTodayString() 
+    const date = dateOverride || getVietnamTodayString()
     if (!opts?.silent) { setLoading(true); setError('') }
     try {
       const data = await getMyAttendanceStatusApi(date)
@@ -274,7 +274,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
         }
       }, 5000)
     }, 1500)
-    
+
     return () => {
       if (interval) window.clearInterval(interval)
       window.clearTimeout(startPolling)
@@ -312,7 +312,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   useEffect(() => { setCurrentShiftPage(0) }, [searchShift])
 
   // ── Computed ───────────────────────────────────────────────────────────────
-  
+
   // Pagination computed & sorting
   const sortedAttendanceRows = useMemo(
     () => [...attendanceRows].sort((a, b) => a.mnv - b.mnv),
@@ -385,8 +385,8 @@ export function DailyAttendance({ viewMode = 'auto' }) {
       if (!isNear) {
         const msg =
           gpsStatus === 'denied' ? 'Bạn chưa cấp quyền vị trí. Vui lòng cho phép truy cập GPS trong trình duyệt và thử lại.'
-          : gpsStatus === 'error' ? 'Không thể lấy vị trí GPS. Vui lòng kiểm tra kết nối và thử lại.'
-          : `Bạn đang cách cửa hàng gần nhất (${nearestStore ?? ''}) ${gpsDistance ?? '?'} mét. Vui lòng đến đúng địa điểm cửa hàng để chấm công (trong vòng ${STORE_RADIUS_METERS}m).`
+            : gpsStatus === 'error' ? 'Không thể lấy vị trí GPS. Vui lòng kiểm tra kết nối và thử lại.'
+              : `Bạn đang cách cửa hàng gần nhất (${nearestStore ?? ''}) ${gpsDistance ?? '?'} mét. Vui lòng đến đúng địa điểm cửa hàng để chấm công (trong vòng ${STORE_RADIUS_METERS}m).`
         showModal('error', msg)
         return
       }
@@ -428,7 +428,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     setSelectedDate(today)
     selectedDateRef.current = today
     if (isStaffMode) loadMyAttendance(today)
-    else { 
+    else {
       setHasLocalShiftChanges(false)
       setShiftDate(today)
       shiftDateRef.current = today
@@ -438,7 +438,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   // Calculate violation status for a shift
   const calculateViolationStatus = (shift) => {
     const THRESHOLD_MINUTES = 10
-    
+
     // Helper: Extract HH:MM từ time string và convert UTC→UTC+7 nếu cần
     const extractTimeOnly = (timeStr) => {
       if (!timeStr) return null
@@ -452,19 +452,19 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           const m = String(utcPlus7.getUTCMinutes()).padStart(2, '0')
           return `${h}:${m}`
         }
-        
+
         // Nếu là local time format như "08:00:00" hoặc "2026-04-15 08:00:00"
         const match = timeStr.match(/(\d{2}):(\d{2})/)
         if (match) {
           return `${match[1]}:${match[2]}`
         }
-        
+
         return timeStr
       } catch (e) {
         return timeStr
       }
     }
-    
+
     if (!shift.checkIn || !shift.startTime) {
       return { hasViolation: false, type: null, message: null }
     }
@@ -476,13 +476,13 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     try {
       const checkInTimeStr = extractTimeOnly(shift.checkIn)
       const startTimeStr = extractTimeOnly(shift.startTime)
-      
+
       const [ciH, ciM] = checkInTimeStr.split(':').map(Number)
       const [stH, stM] = startTimeStr.split(':').map(Number)
-      
+
       const checkInMin = ciH * 60 + ciM
       const startMin = stH * 60 + stM
-      
+
       if (checkInMin > startMin) {
         const diffMinutes = checkInMin - startMin
         if (diffMinutes > THRESHOLD_MINUTES) {
@@ -498,13 +498,13 @@ export function DailyAttendance({ viewMode = 'auto' }) {
       try {
         const checkOutTimeStr = extractTimeOnly(shift.checkOut)
         const endTimeStr = extractTimeOnly(shift.endTime)
-        
+
         const [coH, coM] = checkOutTimeStr.split(':').map(Number)
         const [ehH, ehM] = endTimeStr.split(':').map(Number)
-        
+
         const checkOutMin = coH * 60 + coM
         const endMin = ehH * 60 + ehM
-        
+
         if (checkOutMin < endMin) {
           const diffMinutes = endMin - checkOutMin
           if (diffMinutes > THRESHOLD_MINUTES) {
@@ -527,6 +527,11 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     return { hasViolation: false, type: null, message: null }
   }
   const handleShiftDateChange = (value: string) => {
+    const d = new Date(value)
+    if (d.getDay() === 0) {
+      showModal('error', 'Cửa hàng nghỉ Chủ Nhật, không thể phân ca ngày này.')
+      return
+    }
     setHasLocalShiftChanges(false)
     setShiftDate(value)
     shiftDateRef.current = value
@@ -543,6 +548,11 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   }
 
   const handleShiftSave = async () => {
+    const d = new Date(shiftDate)
+    if (d.getDay() === 0) {
+      showModal('error', 'Cửa hàng nghỉ Chủ Nhật, không thể lưu phân ca ngày này.')
+      return
+    }
     setShiftSaving(true)
     try {
       const payload = shiftEmployees.map(e => ({
@@ -578,12 +588,12 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   if (isStaffMode) {
     const currentDateDisplay = attendanceDate ? new Date(attendanceDate).toLocaleDateString('vi-VN') : 'Hôm nay'
     const gpsStatusConfig = {
-      idle:     { color: 'bg-gray-100 text-gray-500',   text: 'Chưa kiểm tra vị trí' },
-      checking: { color: 'bg-blue-100 text-blue-600',   text: 'Đang xác định vị trí...' },
-      ok:       { color: 'bg-green-100 text-green-600', text: `Đang ở cửa hàng ${nearestStore ?? ''} (cách ${gpsDistance ?? 0}m)` },
-      far:      { color: 'bg-red-100 text-red-600',     text: `Ngoài phạm vi — cửa hàng gần nhất: ${nearestStore ?? ''} (cách ${gpsDistance ?? '?'}m, tối đa ${STORE_RADIUS_METERS}m)` },
-      denied:   { color: 'bg-red-100 text-red-600',     text: 'Chưa cấp quyền GPS' },
-      error:    { color: 'bg-amber-100 text-amber-600', text: 'Lỗi xác định vị trí' },
+      idle: { color: 'bg-gray-100 text-gray-500', text: 'Chưa kiểm tra vị trí' },
+      checking: { color: 'bg-blue-100 text-blue-600', text: 'Đang xác định vị trí...' },
+      ok: { color: 'bg-green-100 text-green-600', text: `Đang ở cửa hàng ${nearestStore ?? ''} (cách ${gpsDistance ?? 0}m)` },
+      far: { color: 'bg-red-100 text-red-600', text: `Ngoài phạm vi — cửa hàng gần nhất: ${nearestStore ?? ''} (cách ${gpsDistance ?? '?'}m, tối đa ${STORE_RADIUS_METERS}m)` },
+      denied: { color: 'bg-red-100 text-red-600', text: 'Chưa cấp quyền GPS' },
+      error: { color: 'bg-amber-100 text-amber-600', text: 'Lỗi xác định vị trí' },
     }
     const gpsCfg = gpsStatusConfig[gpsStatus]
 
@@ -603,16 +613,28 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                 </p>
                 <p className="mt-2 text-sm text-slate-500">Ngày chấm công: {currentDateDisplay}</p>
               </div>
+
               <div className="flex flex-wrap items-center gap-2">
-                <input type="date" value={selectedDate} onChange={e => handleDateChange(e.target.value)}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/40" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={getVietnamTodayString()}
+                  onChange={e => handleDateChange(e.target.value)}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+                />
                 <button type="button" onClick={handleReloadToday}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <RefreshCcwIcon className="h-4 w-4" />Làm mới
                 </button>
               </div>
+              {selectedDate !== getVietnamTodayString() && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Đang xem lịch sử ngày {formatDateVN(selectedDate)}
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button type="button" onClick={handleCheckIn} disabled={saving || loading}
+                <button type="button" onClick={handleCheckIn}
+                  disabled={saving || loading || selectedDate !== getVietnamTodayString() || !myAttendance.hasShift || gpsStatus !== 'ok'}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2ECC71] px-4 py-3 text-sm font-semibold text-white hover:bg-[#29b765] disabled:opacity-60">
                   <LogInIcon className="h-4 w-4" />{saving ? 'Đang xử lý...' : 'Vào ca'}
                 </button>
@@ -705,7 +727,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                     const violation = calculateViolationStatus(shift)
                     const violationBg = !violation.hasViolation ? 'bg-slate-50 text-slate-500'
                       : violation.type === 'both' ? 'bg-red-100 text-red-700 font-semibold'
-                      : 'bg-amber-100 text-amber-700'
+                        : 'bg-amber-100 text-amber-700'
                     return (
                       <tr key={shift.mpcl}>
                         <td className="px-6 py-3 font-medium text-slate-800">{shift.shiftName || `Ca #${shift.shiftId}`}</td>
@@ -935,15 +957,15 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                                   startTime: shift.startTime,
                                   endTime: shift.endTime,
                                 })
-                                
+
                                 if (!violation.hasViolation) {
                                   return <span key={shift.mca} className="text-xs text-gray-300">—</span>
                                 }
-                                
-                                const badgeColor = violation.type === 'both' 
-                                  ? 'bg-red-100 text-red-700' 
+
+                                const badgeColor = violation.type === 'both'
+                                  ? 'bg-red-100 text-red-700'
                                   : 'bg-amber-100 text-amber-700'
-                                
+
                                 return (
                                   <span key={shift.mca} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${badgeColor}`}>
                                     {violation.message}

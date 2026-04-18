@@ -245,95 +245,81 @@ export function Header({ title, onToggleSidebar, sidebarOpen, currentUser, curre
   // Đóng click ngoài dropdown
   // Thay thế toàn bộ khối EventSource trong useEffect SSE
   useEffect(() => {
-    if (esRef.current) { esRef.current.close(); esRef.current = null; }
+    const closed = { value: false };
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let currentController: AbortController | null = null;
 
-    const token = localStorage.getItem('token'); // hoặc key bạn lưu JWT
-    if (!token) return;
+    function getToken(): string | null {
+      try {
+        const session = JSON.parse(localStorage.getItem('watch_store_auth_session') || '{}');
+        if (session.accessToken) return session.accessToken;
+      } catch { }
+      return localStorage.getItem('token');
+    }
 
-    let isClosed = false;
-    const controller = new AbortController();
+    async function connect() {
+      if (closed.value) return;
+      const token = getToken();
+      if (!token) return;
 
-    fetch('/api/notifications/stream', {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    }).then(async (res) => {
-      if (!res.ok || !res.body) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      currentController = new AbortController();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done || isClosed) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          const eventMatch = part.match(/^event: (\w+)/m);
-          const dataMatch = part.match(/^data: (.+)/m);
-          if (!dataMatch) continue;
-          const eventName = eventMatch?.[1] ?? 'message';
-          try {
-            const parsed = JSON.parse(dataMatch[1]);
-            if (eventName === 'snapshot') {
-              setNotifications(applyReadState(Array.isArray(parsed) ? parsed : [], loadReadSet(mnvKey)));
-            } else {
-              const currentReadSet = loadReadSet(mnvKey);
-              setNotifications((prev) => {
-                if (prev.some((n) => n.id === parsed.id)) return prev;
-                return applyReadState([{ ...parsed, unread: true }, ...prev], currentReadSet);
-              });
-            }
-          } catch { }
+      try {
+        const res = await fetch('/api/notifications/stream', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: currentController.signal,
+        });
+        if (!res.ok || !res.body) throw new Error('bad response');
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done || closed.value) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+          for (const part of parts) {
+            if (!part.trim() || part.startsWith(':')) continue;
+            const eventMatch = part.match(/^event:\s*(\w+)/m);
+            const dataMatch = part.match(/^data:\s*(.+)/m);
+            if (!dataMatch) continue;
+            const eventName = eventMatch?.[1] ?? 'message';
+            try {
+              const parsed = JSON.parse(dataMatch[1]);
+              if (eventName === 'snapshot') {
+                setNotifications(applyReadState(Array.isArray(parsed) ? parsed : [], loadReadSet(mnvKey)));
+              } else {
+                setNotifications((prev) => {
+                  if (prev.some((n) => n.id === parsed.id)) return prev;
+                  return applyReadState([{ ...parsed, unread: true }, ...prev], loadReadSet(mnvKey));
+                });
+              }
+            } catch { }
+          }
         }
+      } catch { }
+
+      // Tự reconnect sau 3 giây nếu chưa bị close
+      if (!closed.value) {
+        retryTimeout = setTimeout(connect, 3000);
       }
-    }).catch(() => { });
+    }
 
-    // Lưu controller để cleanup
-    esRef.current = { close: () => { isClosed = true; controller.abort(); } };
+    connect();
 
-    return () => { isClosed = true; controller.abort(); esRef.current = null; };
+    return () => {
+      closed.value = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (currentController) currentController.abort();
+    };
   }, [mnvKey]);
 
   useEffect(() => { setProfileForm(profileTemplate); }, [currentUser]);
 
-  // SSE — kết nối real-time, tự reconnect nếu mất mạng
-  useEffect(() => {
-    // Đóng connection cũ nếu đổi user
-    if (esRef.current) { esRef.current.close(); esRef.current = null; }
 
-    const readSet = loadReadSet(mnvKey);
-
-    const es = new EventSource('/api/notifications/stream', { withCredentials: true });
-    esRef.current = es;
-
-    // Snapshot ban đầu — server gửi toàn bộ danh sách khi vừa connect
-    es.addEventListener('snapshot', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setNotifications(applyReadState(Array.isArray(data) ? data : [], loadReadSet(mnvKey)));
-      } catch { }
-    });
-
-    // Thông báo mới đơn lẻ — server push khi có sự kiện (tạo đơn nghỉ, tồn kho thấp)
-    es.addEventListener('message', (e) => {
-      try {
-        const newNotif = JSON.parse(e.data);
-        const currentReadSet = loadReadSet(mnvKey);
-        setNotifications((prev) => {
-          // Nếu đã có id này rồi thì không thêm trùng
-          if (prev.some((n) => n.id === newNotif.id)) return prev;
-          return applyReadState([{ ...newNotif, unread: true }, ...prev], currentReadSet);
-        });
-      } catch { }
-    });
-
-    es.onerror = () => {
-      // Browser tự reconnect — không cần xử lý thêm
-    };
-
-    return () => { es.close(); esRef.current = null; };
-  }, [mnvKey]);
 
   const formatNotificationTime = (value) => {
     if (!value) return 'Hiện tại';

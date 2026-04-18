@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { RefreshCcwIcon } from 'lucide-react';
+import { CalendarDaysIcon, ClockIcon, RefreshCcwIcon, TrophyIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
@@ -44,7 +44,7 @@ function countWorkingDays(startStr, endStr) {
   return count;
 }
 
-export function LeaveOperations() {
+export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = null }) {
   const now = new Date();
   const currentYear = now.getFullYear();
   const [loading, setLoading] = useState(false);
@@ -59,6 +59,7 @@ export function LeaveOperations() {
   const [decisionNote, setDecisionNote] = useState('');
   const [savingDecision, setSavingDecision] = useState(false);
   const [tableResetSignal, setTableResetSignal] = useState(0);
+  const [pinnedLeaveId, setPinnedLeaveId] = useState(null);
 
   const getLeaveEndDate = (item) => {
     if (Number(item?.LOAI) === 3) {
@@ -94,9 +95,31 @@ export function LeaveOperations() {
     loadRequests();
   }, []);
 
+  // Khi nhận targetLeaveId từ thông báo: xóa filter, pin đơn lên đầu, mở modal
+  useEffect(() => {
+    if (!targetLeaveId) return;
+    // Xóa filter để đảm bảo đơn hiển thị
+    setSelectedYear('all');
+    setSelectedMonth('all');
+    setSelectedStatus('all');
+    setPinnedLeaveId(targetLeaveId);
+    setTableResetSignal((prev) => prev + 1);
+  }, [targetLeaveId]);
+
   useEffect(() => {
     setTableResetSignal((prev) => prev + 1);
   }, []);
+
+  // Khi data đã load xong và có pinnedLeaveId, tự mở modal đơn đó
+  useEffect(() => {
+    if (!pinnedLeaveId || requests.length === 0) return;
+    const targetRow = tableRows.find((r) => r.id === pinnedLeaveId);
+    if (targetRow) {
+      openDetail(targetRow, 'view');
+      setPinnedLeaveId(null);
+      if (typeof onConsumeTargetLeave === 'function') onConsumeTargetLeave();
+    }
+  }, [pinnedLeaveId, requests]);
 
   const resetViewState = () => {
     setSelectedYear(String(currentYear));
@@ -125,7 +148,7 @@ export function LeaveOperations() {
     const shouldFilterByYear = selectedYear !== 'all';
     const yearValue = Number(selectedYear);
 
-    return requests.filter((item) => {
+    const filtered = requests.filter((item) => {
       const startDate = new Date(item.NGAYNGHI || item.NGAYTAO || '');
       if (Number.isNaN(startDate.getTime())) return false;
 
@@ -145,7 +168,17 @@ export function LeaveOperations() {
 
       return true;
     });
-  }, [requests, selectedYear, selectedMonth, selectedStatus]);
+
+    // Đơn được highlight từ thông báo luôn lên đầu
+    if (pinnedLeaveId) {
+      return [
+        ...filtered.filter((item) => Number(item.MDN) === pinnedLeaveId),
+        ...filtered.filter((item) => Number(item.MDN) !== pinnedLeaveId),
+      ];
+    }
+
+    return filtered;
+  }, [requests, selectedYear, selectedMonth, selectedStatus, pinnedLeaveId]);
 
   const summary = useMemo(() => {
     const totalRequests = filteredRequests.length;
@@ -307,27 +340,29 @@ export function LeaveOperations() {
       ) : null}
 
       <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Điều hành Nghỉ phép</h2>
           </div>
           <button
             type="button"
             onClick={handleRefresh}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <RefreshCcwIcon className="h-4 w-4" />
             Làm mới
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500">Năm</label>
+        {/* Filter row */}
+        <div className="flex flex-wrap gap-3 mb-5">
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 min-w-[180px]">
+            <CalendarDaysIcon className="h-4 w-4 text-gray-400 shrink-0" />
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+              className="bg-transparent text-sm text-gray-700 focus:outline-none cursor-pointer w-full"
             >
               <option value="all">Tất cả các năm</option>
               {yearOptions.map((year) => (
@@ -337,12 +372,13 @@ export function LeaveOperations() {
               ))}
             </select>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500">Tháng</label>
+
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 min-w-[180px]">
+            <ClockIcon className="h-4 w-4 text-gray-400 shrink-0" />
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+              className="bg-transparent text-sm text-gray-700 focus:outline-none cursor-pointer w-full"
             >
               <option value="all">Tất cả các tháng</option>
               {Array.from({ length: 12 }, (_, i) => (
@@ -352,38 +388,40 @@ export function LeaveOperations() {
               ))}
             </select>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500">Trạng thái đơn</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="0">Chờ duyệt</option>
-              <option value="1">Đã duyệt</option>
-              <option value="2">Từ chối</option>
-            </select>
-          </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
-            <p className="text-xs text-gray-500">Tổng số đơn nghỉ</p>
-            <p className="mt-1 text-xl font-semibold text-gray-900">{summary.totalRequests} đơn</p>
+        {/* Summary cards */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* Tổng đơn */}
+          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
+            <p className="text-xs font-medium text-gray-500">Tổng số đơn nghỉ</p>
+            <p className="mt-1.5 text-2xl font-bold text-gray-900">
+              {summary.totalRequests}
+              <span className="ml-1 text-sm font-normal text-gray-500">đơn</span>
+            </p>
           </div>
+
+          {/* Chờ duyệt */}
           <button
             type="button"
             onClick={() => setSelectedStatus('0')}
-            className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-left transition hover:bg-emerald-100/80"
+            className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3.5 text-left transition-all hover:border-emerald-200 hover:shadow-sm"
           >
-            <p className="text-xs text-emerald-700">Số đơn chờ duyệt</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-800">{summary.pendingRequests} đơn</p>
+            <p className="text-xs font-medium text-emerald-600">Số đơn chờ duyệt</p>
+            <p className="mt-1.5 text-2xl font-bold text-emerald-700">
+              {summary.pendingRequests}
+              <span className="ml-1 text-sm font-normal text-emerald-600">đơn</span>
+            </p>
           </button>
-          <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3">
-            <p className="text-xs text-amber-700">Nhân viên nghỉ nhiều nhất</p>
-            <p className="mt-1 text-base font-semibold text-amber-800">{summary.topEmployeeName}</p>
-            <p className="text-xs text-amber-700">{summary.topEmployeeDays} ngày nghỉ</p>
+
+          {/* Top nhân viên */}
+          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <TrophyIcon className="h-3.5 w-3.5 text-amber-500" />
+              <p className="text-xs font-medium text-amber-600">Nhân viên nghỉ nhiều nhất</p>
+            </div>
+            <p className="text-base font-bold text-amber-800 truncate">{summary.topEmployeeName}</p>
+            <p className="text-xs text-amber-600 mt-0.5">{summary.topEmployeeDays} ngày nghỉ</p>
           </div>
         </div>
       </section>

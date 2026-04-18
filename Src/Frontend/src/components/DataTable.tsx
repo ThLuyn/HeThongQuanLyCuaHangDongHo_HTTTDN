@@ -256,7 +256,7 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'Tìm ki�
             <ArrowUpDownIcon className="w-4 h-4 text-gray-500"/>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50">
               {columns.map((col) => (<option key={col.key} value={col.key}>
-                  Sắp xếp theo {col.label}
+                  Sắp xếp theo {typeof col.label === 'string' ? col.label : col.key}
                 </option>))}
             </select>
             <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50">

@@ -1246,6 +1246,60 @@ async function getViolationPenalties(req, res, next) {
     return next(error);
   }
 }
+async function updateEmployee(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, "Invalid employee id", 400);
+    }
+
+    const fullName = String(req.body?.fullName || "").trim();
+    const gender = Number(req.body?.gender);
+    const birthDate = String(req.body?.birthDate || "").trim();
+    const phone = String(req.body?.phone || "").trim();
+    const email = String(req.body?.email || "").trim();
+    const positionName = String(req.body?.positionName || "").trim();
+    const status = Number(req.body?.status);
+    const hometown = String(req.body?.hometown || "").trim();
+    const startDate = String(req.body?.startDate || "").trim();
+    const citizenId = String(req.body?.citizenId || "").trim();
+    const department = String(req.body?.department || "").trim();
+
+    if (!fullName) return fail(res, "fullName is required", 400);
+    if (![0, 1].includes(gender)) return fail(res, "gender must be 0 or 1", 400);
+    if (!birthDate || isNaN(new Date(birthDate).getTime())) return fail(res, "birthDate is invalid", 400);
+    if (!/^\d{10,11}$/.test(phone)) return fail(res, "phone must be 10-11 digits", 400);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(res, "email is invalid", 400);
+    if (!positionName) return fail(res, "positionName is required", 400);
+    if (![0, 1].includes(status)) return fail(res, "status must be 0 or 1", 400);
+    if (!hometown) return fail(res, "hometown is required", 400);
+    if (!startDate || isNaN(new Date(startDate).getTime())) return fail(res, "startDate is invalid", 400);
+    if (!/^\d{9,12}$/.test(citizenId)) return fail(res, "citizenId must be 9-12 digits", 400);
+
+    const found = await Employee.findById(id);
+    if (!found) return fail(res, "Employee not found", 404);
+
+    const position = await Employee.findPositionByName(positionName);
+    if (!position) return fail(res, "positionName does not exist", 400);
+
+    await Employee.updateById(id, {
+      fullName, gender, birthDate, phone, email,
+      positionId: Number(position.MCV),
+      status, hometown, startDate, citizenId, department,
+    });
+
+    return success(res, null, "Employee updated");
+  } catch (error) {
+    if (error?.code === "ER_DUP_ENTRY") {
+      const msg = String(error?.sqlMessage || "").toLowerCase();
+      if (msg.includes("sdt")) return fail(res, "Phone number already exists", 400);
+      if (msg.includes("email")) return fail(res, "Email already exists", 400);
+      if (msg.includes("cccd")) return fail(res, "Citizen ID already exists", 400);
+      return fail(res, "Duplicate employee information", 400);
+    }
+    return next(error);
+  }
+}
 
 module.exports = {
   uploadLeaveEvidenceMiddleware,
@@ -1278,4 +1332,5 @@ module.exports = {
   checkInAttendance,
   checkOutAttendance,
   getViolationPenalties,
+  updateEmployee,
 };

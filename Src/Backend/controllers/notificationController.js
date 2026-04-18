@@ -10,10 +10,6 @@ const Notification = require("../models/Notification");
 const { addClient, removeClient } = require("../utils/sseManager");
 const { success, fail } = require("../utils/response");
 
-// MNQ → loại thông báo được xem (phải khớp với Notification.js)
-const ROLE_LEAVE     = new Set([1, 4]);
-const ROLE_LOW_STOCK = new Set([1, 3]);
-
 /**
  * GET /api/notifications/stream
  * SSE — server giữ connection mở, push notification ngay khi có sự kiện mới.

@@ -25,6 +25,13 @@ router.get(
   authorizeRoles("admin", "manager", "hr"),
   hrController.getEmployeeDetail,
 );
+
+router.put(
+  "/employees/:id",
+  authorizeRoles("admin", "manager", "hr"),
+  hrController.updateEmployee,
+);
+
 router.get(
   "/leave-requests",
   authorizeRoles("admin", "manager", "hr"),

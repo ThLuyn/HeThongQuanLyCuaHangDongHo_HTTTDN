@@ -633,23 +633,23 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 
 -- Nhân viên kho (MNQ = 3): hạn chế
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-	(3, 'sanpham', 'view'), (3, 'sanpham', 'create'), (3, 'sanpham', 'update'),
-	(3, 'nhacungcap', 'view'), (3, 'nhacungcap', 'create'), (3, 'nhacungcap', 'update'),
-	(3, 'phieunhap', 'create'), (3, 'phieunhap', 'view'),
-	(3, 'vitritrungbay', 'view'), (3, 'vitritrungbay', 'update'),
+	(3, 'sanpham', 'create'), (3, 'sanpham', 'view'), (3, 'sanpham', 'update'), (3, 'sanpham', 'delete'),
+	(3, 'nhacungcap', 'create'), (3, 'nhacungcap', 'view'), (3, 'nhacungcap', 'update'), (3, 'nhacungcap', 'delete'),
+	(3, 'phieunhap', 'create'), (3, 'phieunhap', 'view'), (3, 'phieunhap', 'cancel'), (3, 'phieunhap', 'export'),
+	(3, 'vitritrungbay', 'create'), (3, 'vitritrungbay', 'view'), (3, 'vitritrungbay', 'update'), (3, 'vitritrungbay', 'delete'),
 	(3, 'thongke', 'view'),
     (3, 'chamcong', 'view'),
-	(3, 'donxinngh', 'create'),
+	(3, 'donxinngh', 'create'), (3, 'donxinngh', 'view'),
 	(3, 'bangluong', 'view');
     
 -- Quản lý nhân sự (MNQ = 4): hạn chế
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
-	(4, 'nhanvien', 'create'), (4, 'nhanvien', 'view'), (4, 'nhanvien', 'update'),
-	(4, 'chucvu', 'view'),
-	(4, 'donxinngh', 'view'), (4, 'donxinngh', 'approve'),
-	(4, 'bangluong', 'view'),
+	(4, 'nhanvien', 'create'), (4, 'nhanvien', 'view'), (4, 'nhanvien', 'update'), (4, 'nhanvien', 'delete'),
+	(4, 'chucvu', 'create'), (4, 'chucvu', 'view'), (4, 'chucvu', 'update'), (4, 'chucvu', 'delete'),
+	(4, 'donxinngh', 'view'), (4, 'donxinngh', 'approve'), (4, 'donxinngh', 'create'),
+	(4, 'bangluong', 'create'), (4, 'bangluong', 'view'), (4, 'bangluong', 'update'), (4, 'bangluong', 'export'),
 	(4, 'chamcong', 'view'),
-	(4, 'phancalam', 'view');
+	(4, 'phancalam', 'create'), (4, 'phancalam', 'view'), (4, 'phancalam', 'update'), (4, 'phancalam', 'delete');
     
 -- ------------------------------------------------------------
 --  4.4 Chức vụ

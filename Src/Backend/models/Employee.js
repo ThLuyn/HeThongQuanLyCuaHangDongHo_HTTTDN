@@ -1835,6 +1835,25 @@ async function finalizeSalary(mbl) {
   return query(sql, [mblNum]);
 }
 
+async function updateById(id, payload) {
+  await withTransaction(async (connection) => {
+    await connection.execute(
+      `UPDATE NHANVIEN SET
+        HOTEN = ?, GIOITINH = ?, NGAYSINH = ?, SDT = ?, EMAIL = ?,
+        MCV = ?, TT = ?, QUEQUAN = ?, DIACHI = ?, NGAYVAOLAM = ?,
+        CCCD = ?, BOPHAN = ?
+       WHERE MNV = ?`,
+      [
+        payload.fullName, payload.gender, payload.birthDate,
+        payload.phone, payload.email, payload.positionId,
+        payload.status, payload.hometown, payload.address || null,
+        payload.startDate, payload.citizenId, payload.department,
+        id,
+      ],
+    );
+  });
+}
+
 module.exports = {
   listAll,
   findById,
@@ -1869,4 +1888,5 @@ module.exports = {
   updateSalaryByMbl,
   finalizeSalary,
   create,
+  updateById,
 };
