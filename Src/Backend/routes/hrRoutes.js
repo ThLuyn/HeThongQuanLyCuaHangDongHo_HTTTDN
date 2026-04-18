@@ -62,6 +62,15 @@ router.get(
 );
 
 router.get(
+  "/violations",
+  authorizeRolesOrPermissions(
+    ["admin", "manager", "hr", "staff"],
+    [{ mcn: "vipham", actions: ["view"] }],
+  ),
+  hrController.getViolationPenalties,
+);
+
+router.get(
   "/salary",
   authorizeRoles("admin", "hr"),
   hrController.calculateSalary,
@@ -138,6 +147,18 @@ router.put(
   "/positions/:id",
   authorizeRoles("admin", "manager", "hr"),
   hrController.updatePosition,
+);
+
+router.post(
+  "/salary/:mbl/finalize",
+  authorizeRoles("admin", "hr"),
+  hrController.finalizeSalary,
+);
+
+router.put(
+  "/salary/:mbl",
+  authorizeRoles("admin", "hr"),
+  hrController.updateSalary,
 );
 
 router.post(

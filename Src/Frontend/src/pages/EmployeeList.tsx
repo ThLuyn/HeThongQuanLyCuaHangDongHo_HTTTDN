@@ -241,6 +241,7 @@ export function EmployeeList() {
     const [editLoading, setEditLoading] = useState(false);
     const [viewError, setViewError] = useState('');
     const [viewDetail, setViewDetail] = useState(null);
+    
     const [notice, setNotice] = useState({
       type: 'success',
       message: '',
@@ -458,6 +459,7 @@ export function EmployeeList() {
         setEditLoading(false);
       }
     };
+    
     const handleSave = async () => {
         const nextFieldErrors = {};
         if (!form.name.trim())
@@ -775,7 +777,7 @@ export function EmployeeList() {
           title="Danh sách nhân viên"
           columns={columns}
           data={employees}
-          searchPlaceholder="Tìm nhân viên..."
+          searchPlaceholder="Tìm kiếm..."
           onAdd={openAdd}
           noHorizontalScroll
           pageSize={5}
@@ -794,6 +796,7 @@ export function EmployeeList() {
               onClick: handleView,
               className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
             },
+            
             {
               key: 'edit',
               label: 'Sửa',
@@ -953,5 +956,7 @@ export function EmployeeList() {
         })()}
           </div>) : (<p className="text-sm text-gray-500">Không có dữ liệu.</p>)}
       </Modal>
+
+      
     </>);
 }

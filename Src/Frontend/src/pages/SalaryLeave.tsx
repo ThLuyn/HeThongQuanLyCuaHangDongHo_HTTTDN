@@ -1,11 +1,12 @@
 // @ts-nocheck
-import { CalendarDaysIcon, PencilIcon, PlusIcon, PrinterIcon, Trash2Icon } from 'lucide-react';
+import { BarChart3Icon, CalendarDaysIcon, PencilIcon, PlusIcon, PrinterIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, UsersIcon, WalletIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import {
   createHolidayMultiplierApi,
   deleteHolidayMultiplierApi,
+  finalizeSalaryApi,
   getHolidayMultipliersApi,
   getSalaryApi,
   getViolationPenaltiesApi,
@@ -56,6 +57,17 @@ const columns = [
       </span>
     ),
   },
+  {
+    key: 'status',
+    label: 'Trạng thái',
+    render: (val) => (
+      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+        val === 'Đã thanh toán' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+      }`}>
+        {val === 'Đã thanh toán' ? '✓ Đã thanh toán' : 'Tạm tính'}
+      </span>
+    ),
+  },
 ];
 
 export function SalaryLeave() {
@@ -85,9 +97,17 @@ export function SalaryLeave() {
     multiplier: 2,
     note: '',
   });
+  const [showYearlyStats, setShowYearlyStats] = useState(false);
+  const [yearlyStats, setYearlyStats] = useState(null);
+  const [yearlyStatsLoading, setYearlyStatsLoading] = useState(false);
 
   const selectedMonth = Number(month);
   const selectedYear = Number(year);
+  const START_YEAR = 2024;
+  const yearOptions = Array.from(
+    { length: now.getFullYear() - START_YEAR + 1 },
+    (_, i) => START_YEAR + i,
+  );
 
   const isHolidayRouteMissingError = (message) => {
     const normalized = String(message || '').toLowerCase();
@@ -102,6 +122,44 @@ export function SalaryLeave() {
       type,
       message: String(message),
     });
+  };
+
+  const loadYearlyStats = async (forYear?: number) => {
+    const targetYear = forYear ?? selectedYear;
+    setYearlyStatsLoading(true);
+    setYearlyStats(null);
+    try {
+      const monthlyData = await Promise.all(
+        Array.from({ length: 12 }, (_, i) => getSalaryApi(i + 1, targetYear)),
+      );
+      const aggregated = monthlyData.map((rows, i) => {
+        const list = Array.isArray(rows) ? rows.map((r) => {
+          // API có thể trả raw SQL fields hoặc đã mapped — handle cả hai
+          const mapped = mapSalaryRow(r);
+          return {
+            takeHome: mapped.takeHome || Number(r.LUONGTHUCLANH || r.takeHome || 0),
+            baseSalary: mapped.baseSalary || Number(r.LUONGCOBAN || r.baseSalary || 0),
+            allowance: mapped.allowance || Number(r.HOA_HONG || r.PHUCAP || r.allowance || 0),
+            deduction: mapped.deduction || Number(r.KHAUTRU || r.deduction || 0),
+            workingDays: mapped.workingDays || Number(r.NGAYCONG || r.workingDays || 0),
+          };
+        }) : [];
+        return {
+          month: i + 1,
+          count: list.length,
+          totalTakeHome: list.reduce((s, r) => s + r.takeHome, 0),
+          totalBaseSalary: list.reduce((s, r) => s + r.baseSalary, 0),
+          totalCommission: list.reduce((s, r) => s + r.allowance, 0),
+          totalDeduction: list.reduce((s, r) => s + r.deduction, 0),
+          totalWorkingDays: list.reduce((s, r) => s + r.workingDays, 0),
+        };
+      });
+      setYearlyStats(aggregated);
+    } catch (e) {
+      showNotice('Không thể tải thống kê năm', 'error');
+    } finally {
+      setYearlyStatsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -143,7 +201,16 @@ export function SalaryLeave() {
     loadSalary();
   }, [selectedMonth, selectedYear]);
 
+  // Reset yearly stats cache khi đổi năm, tự reload nếu đang xem tab năm
+  useEffect(() => {
+    setYearlyStats(null);
+    if (showYearlyStats) {
+      loadYearlyStats(selectedYear);
+    }
+  }, [selectedYear]);
+
   const mapSalaryRow = (row) => ({
+    mbl: Number(row.MBL || 0),
     mnv: Number(row.MNV || 0),
     id: `NV${String(row.MNV).padStart(3, '0')}`,
     name: row.HOTEN,
@@ -203,6 +270,7 @@ export function SalaryLeave() {
     () => records.map((row) => mapSalaryRow(row)),
     [records],
   );
+
 
   const holidayRowsByPayrollPeriod = useMemo(
     () =>
@@ -422,6 +490,28 @@ export function SalaryLeave() {
     }
   };
 
+  const handleFinalizeSalary = async (row) => {
+    if (!row || !row.mbl) {
+      showNotice('Không có dữ liệu bảng lương', 'error');
+      return;
+    }
+
+    if (!confirm(`Chốt lương cho nhân viên ${row.name}?`)) {
+      return;
+    }
+
+    try {
+      await finalizeSalaryApi(row.mbl);
+      showNotice(`Chốt lương thành công cho ${row.name}`, 'success');
+      // Reload lại dữ liệu
+      const newRecords = await getSalaryApi(selectedMonth, selectedYear);
+      setRecords(newRecords || []);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Không thể chốt lương';
+      showNotice(message, 'error');
+    }
+  };
+
   const handlePrintAllEmployeesMonth = () => {
     if (!Array.isArray(tableData) || tableData.length === 0) {
       return;
@@ -448,6 +538,17 @@ export function SalaryLeave() {
 
     openPrintWindow(`Bang thanh toan luong thang ${selectedMonth}-${selectedYear}`, html);
   };
+
+  // Tính các biến cho modal chi tiết (dùng selectedEmployee + violations)
+  const violationTotal = violations.reduce(
+    (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 1),
+    0,
+  );
+  const effectiveKhauTruKhac =
+    violationTotal > 0 ? violationTotal : (selectedEmployee?.khauTruKhac ?? 0);
+  const effectiveTotalDeduction = selectedEmployee
+    ? selectedEmployee.bhxh + selectedEmployee.bhyt + selectedEmployee.bhtn + effectiveKhauTruKhac
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -489,14 +590,15 @@ export function SalaryLeave() {
               </option>
             ))}
           </select>
-          <input
-            type="number"
+          <select
             value={year}
-            min="2000"
-            max="2100"
             onChange={(e) => setYear(e.target.value)}
-            className="w-24 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-          />
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={String(y)}>Năm {y}</option>
+            ))}
+          </select>
         </div>
         <button
           type="button"
@@ -512,7 +614,7 @@ export function SalaryLeave() {
       <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-semibold text-gray-800">Thiết lập hệ số lương ngày lễ</p>
+            <p className="text-lg font-semibold text-gray-900">Thiết lập hệ số lương ngày lễ</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -617,17 +719,178 @@ export function SalaryLeave() {
         </div>
       ) : null}
 
+      {/* ===== THỐNG KÊ TỔNG HỢP ===== */}
+      {tableData.length > 0 && (() => {
+        const totalEmployees = tableData.length;
+        const paidCount = tableData.filter((r) => r.status === 'Đã thanh toán').length;
+        const pendingCount = totalEmployees - paidCount;
+        const totalTakeHome = tableData.reduce((s, r) => s + Number(r.takeHome || 0), 0);
+        const totalBaseSalary = tableData.reduce((s, r) => s + Number(r.baseSalary || 0), 0);
+        const totalCommission = tableData.reduce((s, r) => s + Number(r.allowance || 0), 0);
+        const totalDeduction = tableData.reduce((s, r) => s + Number(r.deduction || 0), 0);
+        const totalWorkingDays = tableData.reduce((s, r) => s + Number(r.workingDays || 0), 0);
+        const avgWorkingDays = totalEmployees > 0 ? (totalWorkingDays / totalEmployees).toFixed(1) : 0;
+        const avgTakeHome = totalEmployees > 0 ? Math.round(totalTakeHome / totalEmployees) : 0;
+        const maxSalary = Math.max(...tableData.map((r) => Number(r.takeHome || 0)));
+        const minSalary = Math.min(...tableData.map((r) => Number(r.takeHome || 0)));
+        const totalLeaveRemaining = tableData.reduce((s, r) => s + Number(r.leaveRemaining || 0), 0);
+
+        // Yearly aggregated
+        const yTotal = yearlyStats
+          ? {
+              takeHome: yearlyStats.reduce((s, m) => s + m.totalTakeHome, 0),
+              commission: yearlyStats.reduce((s, m) => s + m.totalCommission, 0),
+              baseSalary: yearlyStats.reduce((s, m) => s + m.totalBaseSalary, 0),
+              deduction: yearlyStats.reduce((s, m) => s + m.totalDeduction, 0),
+              activeMonths: yearlyStats.filter((m) => m.count > 0).length,
+              peakMonth: yearlyStats.reduce((best, m) => m.totalTakeHome > best.totalTakeHome ? m : best, yearlyStats[0]),
+            }
+          : null;
+
+        const monthStatCards = [
+          { label: 'Tổng nhân viên', value: `${totalEmployees} người`, sub: `${paidCount} đã chốt · ${pendingCount} tạm tính`, icon: UsersIcon, color: 'blue' },
+          { label: 'Tổng thực lĩnh', value: formatMoney(totalTakeHome), sub: `Bình quân ${formatMoney(avgTakeHome)}/người`, icon: WalletIcon, color: 'emerald' },
+          { label: 'Tổng hoa hồng', value: formatMoney(totalCommission), sub: `Lương cơ bản: ${formatMoney(totalBaseSalary)}`, icon: TrendingUpIcon, color: 'gold' },
+          { label: 'Tổng khấu trừ', value: formatMoney(totalDeduction), sub: `Tỷ lệ: ${totalTakeHome > 0 ? ((totalDeduction / (totalTakeHome + totalDeduction)) * 100).toFixed(1) : 0}% tổng thu`, icon: TrendingDownIcon, color: 'rose' },
+          { label: 'Ngày công TB', value: `${avgWorkingDays} ngày`, sub: `Phép còn lại TB: ${totalEmployees > 0 ? (totalLeaveRemaining / totalEmployees).toFixed(1) : 0} ngày`, icon: BarChart3Icon, color: 'violet' },
+          { label: 'Cao nhất / Thấp nhất', value: formatMoney(maxSalary), sub: `Thấp nhất: ${formatMoney(minSalary)}`, icon: BarChart3Icon, color: 'amber' },
+        ];
+
+        const yearStatCards = yTotal ? [
+          { label: 'Tổng thực lĩnh năm', value: formatMoney(yTotal.takeHome), sub: `${yTotal.activeMonths} tháng có dữ liệu`, icon: WalletIcon, color: 'emerald' },
+          { label: 'Tổng hoa hồng năm', value: formatMoney(yTotal.commission), sub: `Lương cơ bản: ${formatMoney(yTotal.baseSalary)}`, icon: TrendingUpIcon, color: 'gold' },
+          { label: 'Tổng khấu trừ năm', value: formatMoney(yTotal.deduction), sub: `Tỷ lệ: ${yTotal.takeHome > 0 ? ((yTotal.deduction / (yTotal.takeHome + yTotal.deduction)) * 100).toFixed(1) : 0}% tổng thu`, icon: TrendingDownIcon, color: 'rose' },
+          { label: 'Tháng lương cao nhất', value: `Tháng ${yTotal.peakMonth?.month}`, sub: `Thực lĩnh: ${formatMoney(yTotal.peakMonth?.totalTakeHome)}`, icon: BarChart3Icon, color: 'violet' },
+          { label: 'TB thực lĩnh/tháng', value: formatMoney(yTotal.activeMonths > 0 ? Math.round(yTotal.takeHome / yTotal.activeMonths) : 0), sub: `Trên ${yTotal.activeMonths} tháng có dữ liệu`, icon: BarChart3Icon, color: 'blue' },
+        ] : [];
+
+        const colorMap = {
+          blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   icon: 'text-blue-500',   label: 'text-blue-700',   val: 'text-blue-900' },
+          emerald:{ bg: 'bg-emerald-50', border: 'border-emerald-100', icon: 'text-emerald-500', label: 'text-emerald-700', val: 'text-emerald-900' },
+          gold:   { bg: 'bg-amber-50',  border: 'border-amber-100',  icon: 'text-amber-500',  label: 'text-amber-700',  val: 'text-amber-900' },
+          rose:   { bg: 'bg-rose-50',   border: 'border-rose-100',   icon: 'text-rose-500',   label: 'text-rose-700',   val: 'text-rose-900' },
+          violet: { bg: 'bg-violet-50', border: 'border-violet-100', icon: 'text-violet-500', label: 'text-violet-700', val: 'text-violet-900' },
+          amber:  { bg: 'bg-orange-50', border: 'border-orange-100', icon: 'text-orange-500', label: 'text-orange-700', val: 'text-orange-900' },
+        };
+
+        const activeCards = showYearlyStats ? yearStatCards : monthStatCards;
+
+        return (
+          <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BarChart3Icon className="h-4 w-4 text-gray-500" />
+                <p className="text-lg font-semibold text-gray-900">
+                  {showYearlyStats
+                    ? `Thống kê cả năm ${selectedYear}`
+                    : `Thống kê tháng ${selectedMonth}/${selectedYear}`}
+                </p>
+              </div>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowYearlyStats(false)}
+                  className={`px-3 py-1.5 font-medium transition-colors ${!showYearlyStats ? 'bg-gold-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  Theo tháng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowYearlyStats(true);
+                    if (!yearlyStats && !yearlyStatsLoading) loadYearlyStats(selectedYear);
+                  }}
+                  className={`px-3 py-1.5 font-medium transition-colors ${showYearlyStats ? 'bg-gold-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  Cả năm {selectedYear}
+                </button>
+              </div>
+            </div>
+
+            {showYearlyStats && yearlyStatsLoading && (
+              <p className="text-sm text-gray-500 py-2">Đang tải dữ liệu cả năm...</p>
+            )}
+
+            {(!showYearlyStats || (!yearlyStatsLoading && activeCards.length > 0)) && (
+              <div
+                className="grid gap-3 grid-cols-2 sm:grid-cols-3"
+                style={{ gridTemplateColumns: `repeat(${activeCards.length}, minmax(0, 1fr))` }}
+              >
+                {activeCards.map((card) => {
+                  const c = colorMap[card.color];
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.label} className={`rounded-xl border ${c.border} ${c.bg} p-3 flex flex-col gap-1.5`}>
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${c.icon}`} />
+                        <p className={`text-sm font-semibold ${c.label}`}>{card.label}</p>
+                      </div>
+                      <p className={`text-base font-bold leading-snug ${c.val}`}>{card.value}</p>
+                      <p className="text-sm text-gray-500 leading-snug">{card.sub}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {showYearlyStats && !yearlyStatsLoading && yearlyStats && (
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-gray-500">
+                      <th className="px-3 py-2 font-medium">Tháng</th>
+                      <th className="px-3 py-2 font-medium text-right">Thực lĩnh</th>
+                      <th className="px-3 py-2 font-medium text-right">Hoa hồng</th>
+                      <th className="px-3 py-2 font-medium text-right">Khấu trừ</th>
+                      <th className="px-3 py-2 font-medium text-right">NV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {yearlyStats.map((m) => (
+                      <tr key={m.month} className={`border-b border-gray-50 last:border-0 ${m.month === selectedMonth ? 'bg-gold-50' : ''}`}>
+                        <td className="px-3 py-2 font-medium text-gray-700">
+                          Tháng {m.month}
+                          {m.month === selectedMonth && <span className="ml-1.5 text-xs text-gold-600">(hiện tại)</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-emerald-700">{m.count > 0 ? formatMoney(m.totalTakeHome) : <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{m.count > 0 ? formatMoney(m.totalCommission) : <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2 text-right text-rose-600">{m.count > 0 ? formatMoney(m.totalDeduction) : <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">{m.count > 0 ? `${m.count}` : <span className="text-gray-300">—</span>}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50 font-semibold text-gray-800 border-t border-gray-200">
+                      <td className="px-3 py-2">Tổng năm {selectedYear}</td>
+                      <td className="px-3 py-2 text-right text-emerald-800">{formatMoney(yearlyStats.reduce((s, m) => s + m.totalTakeHome, 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatMoney(yearlyStats.reduce((s, m) => s + m.totalCommission, 0))}</td>
+                      <td className="px-3 py-2 text-right text-rose-700">{formatMoney(yearlyStats.reduce((s, m) => s + m.totalDeduction, 0))}</td>
+                      <td className="px-3 py-2 text-right"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <DataTable
         title={`Quản lý lương nhân viên - Tháng ${selectedMonth}/${selectedYear}`}
         columns={columns}
         data={tableData}
-        searchPlaceholder="Tìm nhân viên..."
+        searchPlaceholder="Tìm kiếm..."
         rowActions={[
           {
             key: 'view',
             label: 'Xem chi tiết',
             onClick: openDetail,
             className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
+          },
+          {
+            key: 'finalize',
+            label: '✓ Chốt',
+            onClick: (row) => handleFinalizeSalary(row),
+            className: 'px-2.5 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors',
+            title: 'Chốt lương',
           },
           {
             key: 'print-month',
@@ -731,63 +994,79 @@ export function SalaryLeave() {
                 </div>
               </div>
               <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Chi tiết khấu trừ</p>
-                <div className="grid grid-cols-1 gap-2 text-sm text-rose-900 sm:grid-cols-2">
-                  <p>BHXH (8%): {formatMoney(selectedEmployee.bhxh)}</p>
-                  <p>BHYT (1.5%): {formatMoney(selectedEmployee.bhyt)}</p>
-                  <p>BHTN (1%): {formatMoney(selectedEmployee.bhtn)}</p>
-                </div>
-                <p className="mt-2 text-sm font-semibold text-rose-800">
-                  Tổng khấu trừ: {formatMoney(selectedEmployee.deduction)}
-                </p>
-              </div>
-              {/* Bảng vi phạm đi trễ/về sớm */}
-              <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Bảng vi phạm (Khấu trừ khác)</p>
-                {violationsLoading ? (
-                  <p className="text-xs text-gray-500">Đang tải dữ liệu vi phạm...</p>
-                ) : violations.length === 0 ? (
-                  <p className="text-xs text-gray-500">Không có vi phạm trong kỳ này.</p>
-                ) : (
-                  <table className="min-w-full text-xs border border-rose-200 bg-white rounded-lg">
-                    <thead>
-                      <tr className="bg-rose-50">
-                        <th className="px-2 py-1 border-b border-rose-100 text-left">Loại vi phạm</th>
-                        <th className="px-2 py-1 border-b border-rose-100 text-right">Số lần</th>
-                        <th className="px-2 py-1 border-b border-rose-100 text-right">Mức phạt/lần</th>
-                        <th className="px-2 py-1 border-b border-rose-100 text-right">Tổng phạt</th>
-                        <th className="px-2 py-1 border-b border-rose-100 text-left">Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {violations.map((v, idx) => (
-                        <tr key={idx}>
-                          <td className="px-2 py-1">{v.violationType}</td>
-                          <td className="px-2 py-1 text-right">{v.violationCount}</td>
-                          <td className="px-2 py-1 text-right">{formatMoney(v.penaltyAmount)}</td>
-                          <td className="px-2 py-1 text-right">{formatMoney(Number(v.penaltyAmount) * Number(v.violationCount))}</td>
-                          <td className="px-2 py-1">{v.description || ''}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <div className="mt-2 text-right text-sm font-semibold text-rose-800">
-                  Tổng phạt: {formatMoney(violations.reduce((sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0), 0))}
-                </div>
-                <div className="mt-1 text-xs text-gray-500">Mức phạt: Quản lý 50.000đ/lần, Bán hàng 25.000đ/lần, Kho 30.000đ/lần, Quản lý NS 40.000đ/lần. Ngưỡng tha thứ: ≤ 10 phút không phạt.</div>
-              </div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Chi tiết khấu trừ</p>
+        <div className="grid grid-cols-1 gap-2 text-sm text-rose-900 sm:grid-cols-2">
+          <p>BHXH (8%): {formatMoney(selectedEmployee.bhxh)}</p>
+          <p>BHYT (1.5%): {formatMoney(selectedEmployee.bhyt)}</p>
+          <p>BHTN (1%): {formatMoney(selectedEmployee.bhtn)}</p>
+          {/* ✅ Dùng effectiveKhauTruKhac thay vì selectedEmployee.khauTruKhac */}
+          <p>Khấu trừ khác: {formatMoney(effectiveKhauTruKhac)}</p>
+        </div>
+        {/* ✅ Dùng effectiveTotalDeduction */}
+        <p className="mt-2 text-sm font-semibold text-rose-800">
+          Tổng khấu trừ: {formatMoney(effectiveTotalDeduction)}
+        </p>
+      </div>
+ 
+      {/* Bảng vi phạm giữ nguyên */}
+      <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Chi tiết phạt (Khấu trừ khác)</p>
+        {violationsLoading ? (
+          <p className="text-xs text-gray-500">Đang tải dữ liệu phạt...</p>
+        ) : violations.length === 0 ? (
+          <>
+            <p className="text-xs text-gray-500">Không có vi phạm trong kỳ này.</p>
+            <p className="mt-1 text-xs text-gray-400">
+              Mức phạt: Quản lý 50.000đ/lần, Bán hàng 25.000đ/lần, Kho 30.000đ/lần, Quản lý NS 40.000đ/lần.
+              Ngưỡng tha thứ: ≤ 10 phút không phạt.
+            </p>
+          </>
+        ) : (
+          <>
+            <table className="min-w-full text-xs border border-rose-200 bg-white rounded-lg">
+              <thead>
+                <tr className="bg-rose-50">
+                  <th className="px-2 py-1 border-b border-rose-100 text-left">Loại vi phạm</th>
+                  <th className="px-2 py-1 border-b border-rose-100 text-center">Ngày vi phạm</th>
+                  <th className="px-2 py-1 border-b border-rose-100 text-right">Số lần</th>
+                  <th className="px-2 py-1 border-b border-rose-100 text-right">Mức phạt/lần</th>
+                  <th className="px-2 py-1 border-b border-rose-100 text-right">Tổng phạt</th>
+                  <th className="px-2 py-1 border-b border-rose-100 text-left">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {violations.map((v, idx) => (
+                  <tr key={idx} className="hover:bg-rose-50">
+                    <td className="px-2 py-1">{v.violationType}</td>
+                    <td className="px-2 py-1 text-center">
+                      {v.violationDate || '-'}
+                    </td>
+                    <td className="px-2 py-1 text-right">{v.violationCount}</td>
+                    <td className="px-2 py-1 text-right">{formatMoney(v.penaltyAmount)}</td>
+                    <td className="px-2 py-1 text-right font-semibold text-rose-800">
+                      {formatMoney(Number(v.penaltyAmount) * Number(v.violationCount))}
+                    </td>
+                    <td className="px-2 py-1">{v.description || ''}</td>
+                  </tr>
+                ))}
+                <tr className="bg-rose-100 font-semibold">
+                  <td colSpan={4} className="px-2 py-1 text-right">Tổng phạt:</td>
+                  <td className="px-2 py-1 text-right text-rose-800">
+                    {/* ✅ Dùng violationTotal đã tính */}
+                    {formatMoney(violationTotal)}
+                  </td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="mt-2 text-xs text-gray-500">
+              Mức phạt: Quản lý 50.000đ/lần, Bán hàng 25.000đ/lần, Kho 30.000đ/lần, Quản lý NS 40.000đ/lần.
+              Ngưỡng tha thứ: ≤ 10 phút không phạt.
             </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDetailOpen(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50"
-              >
-                Đóng
-              </button>
-            </div>
+          </>
+        )}
+      </div>
+    </div>
           </div>
         ) : null}
       </Modal>
@@ -870,6 +1149,7 @@ export function SalaryLeave() {
           </div>
         </div>
       </Modal>
+
     </div>
   );
 }

@@ -200,73 +200,75 @@ async function me(req, res, next) {
   try {
     const profile = await User.findById(req.user?.mnv);
 
-      if (!profile) {
-        if (process.env.NODE_ENV !== "production") {
-          // Dev fallback: return a mock profile so frontend can render without DB data.
-          const mock = {
-            MNV: Number(req.user?.mnv || 1),
-            TDN: String(req.user?.username || "dev"),
-            HOTEN: "Dev User",
-            MNQ: Number(req.user?.mnq || 1),
-            TENNHOMQUYEN: "Admin",
-            BOPHAN: "Development",
-            HINHANH: null,
-            GIOITINH: 1,
-            NGAYSINH: null,
-            SDT: null,
-            EMAIL: null,
-            TT: 1,
-            CCCD: null,
-            NGAYVAOLAM: null,
-            TENCHUCVU: null,
-            LUONGCOBAN: 0,
-          };
+    if (!profile) {
+      if (process.env.NODE_ENV !== "production") {
+        // Dev fallback: return a mock profile so frontend can render without DB data.
+        const mock = {
+          MNV: Number(req.user?.mnv || 1),
+          TDN: String(req.user?.username || "dev"),
+          HOTEN: "Dev User",
+          MNQ: Number(req.user?.mnq || 1),
+          TENNHOMQUYEN: "Admin",
+          BOPHAN: "Development",
+          HINHANH: null,
+          GIOITINH: 1,
+          NGAYSINH: null,
+          SDT: null,
+          EMAIL: null,
+          TT: 1,
+          CCCD: null,
+          NGAYVAOLAM: null,
+          TENCHUCVU: null,
+          LUONGCOBAN: 0,
+        };
 
-          const permissions = await getUserPermissionsByGroup(mock.MNQ).catch(() => []);
+        const permissions = await getUserPermissionsByGroup(mock.MNQ).catch(
+          () => [],
+        );
 
-          return success(
-            res,
-            {
-              mnv: mock.MNV,
-              username: mock.TDN,
-              fullName: mock.HOTEN,
-              mnq: mock.MNQ,
-              role: normalizeRole(mock.TENNHOMQUYEN, mock.MNQ, mock.BOPHAN),
-              groupName: mock.TENNHOMQUYEN,
-              department: mock.BOPHAN,
-              permissions,
-              ngaySinh: mock.NGAYSINH,
-              gioiTinh: Number(mock.GIOITINH),
-              soDienThoai: mock.SDT,
-              email: mock.EMAIL,
-              trangThai: Number(mock.TT),
-              queQuan: null,
-              diaChi: null,
-              hinhAnh: mock.HINHANH,
-              chucVu: mock.TENCHUCVU,
-              ngayVaoLam: mock.NGAYVAOLAM,
-              cccd: mock.CCCD,
-              boPhan: mock.BOPHAN,
-              trangThaiLamViec: Number(mock.TT ?? 1),
-              luongCoBan: Number(mock.LUONGCOBAN || 0),
-              soTaiKhoanNganHang: null,
-              tenNganHang: null,
-              maSoThueCaNhan: null,
-              khauTruBaoHiem: {
-                bhxhRate: 0.08,
-                bhytRate: 0.015,
-                bhtnRate: 0.01,
-                bhxhAmount: 0,
-                bhytAmount: 0,
-                bhtnAmount: 0,
-              },
+        return success(
+          res,
+          {
+            mnv: mock.MNV,
+            username: mock.TDN,
+            fullName: mock.HOTEN,
+            mnq: mock.MNQ,
+            role: normalizeRole(mock.TENNHOMQUYEN, mock.MNQ, mock.BOPHAN),
+            groupName: mock.TENNHOMQUYEN,
+            department: mock.BOPHAN,
+            permissions,
+            ngaySinh: mock.NGAYSINH,
+            gioiTinh: Number(mock.GIOITINH),
+            soDienThoai: mock.SDT,
+            email: mock.EMAIL,
+            trangThai: Number(mock.TT),
+            queQuan: null,
+            diaChi: null,
+            hinhAnh: mock.HINHANH,
+            chucVu: mock.TENCHUCVU,
+            ngayVaoLam: mock.NGAYVAOLAM,
+            cccd: mock.CCCD,
+            boPhan: mock.BOPHAN,
+            trangThaiLamViec: Number(mock.TT ?? 1),
+            luongCoBan: Number(mock.LUONGCOBAN || 0),
+            soTaiKhoanNganHang: null,
+            tenNganHang: null,
+            maSoThueCaNhan: null,
+            khauTruBaoHiem: {
+              bhxhRate: 0.08,
+              bhytRate: 0.015,
+              bhtnRate: 0.01,
+              bhxhAmount: 0,
+              bhytAmount: 0,
+              bhtnAmount: 0,
             },
-            "Profile loaded (dev fallback)",
-          );
-        }
-
-        return fail(res, "User not found", 404);
+          },
+          "Profile loaded (dev fallback)",
+        );
       }
+
+      return fail(res, "User not found", 404);
+    }
 
     const permissions = await getUserPermissionsByGroup(profile.MNQ);
 

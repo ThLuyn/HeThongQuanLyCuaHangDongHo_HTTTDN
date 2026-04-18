@@ -273,7 +273,7 @@ export function PermissionManagement() {
           title="Phân quyền hệ thống"
           columns={columns}
           data={groups}
-          searchPlaceholder="Tìm mã nhóm quyền, tên nhóm quyền..."
+          searchPlaceholder="Tìm kiếm..."
           advancedFilterKeys={['mnq', 'roleName', 'status']}
           forceSelectFilterKeys={['roleName', 'status']}
           onAdd={openCreate}

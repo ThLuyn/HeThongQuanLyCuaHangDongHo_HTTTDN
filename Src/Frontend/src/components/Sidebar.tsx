@@ -101,10 +101,6 @@ const menuItems = [
                 id: 'user-management',
                 label: 'Quản lý tài khoản',
             },
-            {
-                id: 'backup-restore',
-                label: 'Sao lưu & Phục hồi',
-            },
         ],
     },
 ];

@@ -486,7 +486,7 @@ export function SalesReport() {
                         title={`Danh sách sản phẩm đã xuất - ${period.label}`}
                         columns={productColumns}
                         data={productTableData}
-                        searchPlaceholder="Tìm theo tên sản phẩm..."
+                        searchPlaceholder="Tìm kiếm..."
                         advancedFilterKeys={['productName', 'units', 'revenue', 'profit']}
                         rangeFilterKeys={[
                             {

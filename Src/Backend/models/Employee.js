@@ -156,7 +156,7 @@ async function listLeaveRequests(status) {
     params.push(Number(status));
   }
 
-  return query(
+  const rows = await query(
     `
       SELECT
         dxn.MDN,
@@ -166,16 +166,6 @@ async function listLeaveRequests(status) {
         dxn.NGAYNGHI,
         dxn.NGAYKETTHUC,
         dxn.NGAY_NGHIVIEC,
-        GREATEST(
-          DATEDIFF(
-            CASE
-              WHEN dxn.LOAI = 3 THEN COALESCE(dxn.NGAY_NGHIVIEC, dxn.NGAYNGHI)
-              ELSE COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI)
-            END,
-            dxn.NGAYNGHI
-          ) + 1,
-          1
-        ) AS SONGAY,
         dxn.LYDO,
         dxn.MINHCHUNG,
         dxn.TRANGTHAI,
@@ -189,10 +179,22 @@ async function listLeaveRequests(status) {
     `,
     params,
   );
+
+  return rows.map((row) => {
+    const endDate =
+      Number(row.LOAI) === 3
+        ? row.NGAY_NGHIVIEC || row.NGAYNGHI
+        : row.NGAYKETTHUC || row.NGAYNGHI;
+    const songay = Math.max(
+      countNonSundayDaysInRange(row.NGAYNGHI, endDate),
+      1,
+    );
+    return { ...row, SONGAY: songay };
+  });
 }
 
 async function listMyLeaveRequests(mnv) {
-  return query(
+  const rows = await query(
     `
       SELECT
         dxn.MDN,
@@ -202,16 +204,6 @@ async function listMyLeaveRequests(mnv) {
         dxn.NGAYNGHI,
         dxn.NGAYKETTHUC,
         dxn.NGAY_NGHIVIEC,
-        GREATEST(
-          DATEDIFF(
-            CASE
-              WHEN dxn.LOAI = 3 THEN COALESCE(dxn.NGAY_NGHIVIEC, dxn.NGAYNGHI)
-              ELSE COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI)
-            END,
-            dxn.NGAYNGHI
-          ) + 1,
-          1
-        ) AS SONGAY,
         dxn.LYDO,
         dxn.MINHCHUNG,
         dxn.TRANGTHAI,
@@ -225,6 +217,18 @@ async function listMyLeaveRequests(mnv) {
     `,
     [Number(mnv)],
   );
+
+  return rows.map((row) => {
+    const endDate =
+      Number(row.LOAI) === 3
+        ? row.NGAY_NGHIVIEC || row.NGAYNGHI
+        : row.NGAYKETTHUC || row.NGAYNGHI;
+    const songay = Math.max(
+      countNonSundayDaysInRange(row.NGAYNGHI, endDate),
+      1,
+    );
+    return { ...row, SONGAY: songay };
+  });
 }
 
 async function hasLeaveOverlap(mnv, startDate, endDate) {
@@ -274,17 +278,9 @@ async function getAnnualLeaveBalance(mnv, startDate) {
     } catch (err) {
       // Fallback when the view does not exist (e.g., DB schema not imported).
       // Compute used days from DONXINNGH for the current year as a best-effort.
-      const rows = await query(
+      const fallbackRows = await query(
         `
-          SELECT COALESCE(
-            SUM(
-              GREATEST(
-                DATEDIFF(COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI), dxn.NGAYNGHI) + 1,
-                1
-              )
-            ),
-            0
-          ) AS SO_NGAY_DA_NGHI
+          SELECT dxn.NGAYNGHI, COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) AS NGAYKETTHUC
           FROM DONXINNGH dxn
           WHERE dxn.MNV = ?
             AND dxn.LOAI = 0
@@ -294,7 +290,11 @@ async function getAnnualLeaveBalance(mnv, startDate) {
         [Number(mnv), Number(requestYear)],
       );
 
-      const used = Number(rows[0]?.SO_NGAY_DA_NGHI || 0);
+      const used = fallbackRows.reduce(
+        (sum, r) =>
+          sum + Math.max(countNonSundayDaysInRange(r.NGAYNGHI, r.NGAYKETTHUC), 1),
+        0,
+      );
       const quota = 12;
       return {
         quota,
@@ -304,17 +304,9 @@ async function getAnnualLeaveBalance(mnv, startDate) {
     }
   }
 
-  const rows = await query(
+  const leaveRows = await query(
     `
-      SELECT COALESCE(
-        SUM(
-          GREATEST(
-            DATEDIFF(COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI), dxn.NGAYNGHI) + 1,
-            1
-          )
-        ),
-        0
-      ) AS SO_NGAY_DA_NGHI
+      SELECT dxn.NGAYNGHI, COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) AS NGAYKETTHUC
       FROM DONXINNGH dxn
       WHERE dxn.MNV = ?
         AND dxn.LOAI = 0
@@ -324,7 +316,11 @@ async function getAnnualLeaveBalance(mnv, startDate) {
     [Number(mnv), Number(requestYear)],
   );
 
-  const used = Number(rows[0]?.SO_NGAY_DA_NGHI || 0);
+  const used = leaveRows.reduce(
+    (sum, r) =>
+      sum + Math.max(countNonSundayDaysInRange(r.NGAYNGHI, r.NGAYKETTHUC), 1),
+    0,
+  );
   const quota = 12;
 
   return {
@@ -465,21 +461,13 @@ async function getPayrollByMonth(month, year) {
       `
         SELECT
           dxn.MNV,
-          COALESCE(
-            SUM(
-              GREATEST(
-                DATEDIFF(COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI), dxn.NGAYNGHI) + 1,
-                1
-              )
-            ),
-            0
-          ) AS SO_NGAY_DA_NGHI
+          dxn.NGAYNGHI,
+          COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) AS NGAYKETTHUC
         FROM DONXINNGH dxn
         WHERE dxn.TRANGTHAI = 1
           AND dxn.LOAI = 0
           AND YEAR(dxn.NGAYNGHI) = ?
           AND MONTH(dxn.NGAYNGHI) <= ?
-        GROUP BY dxn.MNV
       `,
       [yearNum, monthNum],
     ),
@@ -506,12 +494,15 @@ async function getPayrollByMonth(month, year) {
       Number(row.DOANH_SO_CANHAN || 0),
     ]),
   );
-  const annualLeaveMap = new Map(
-    annualLeaveRows.map((row) => [
-      Number(row.MNV),
-      Number(row.SO_NGAY_DA_NGHI || 0),
-    ]),
-  );
+  const annualLeaveMap = annualLeaveRows.reduce((acc, row) => {
+    const mnv = Number(row.MNV);
+    const days = Math.max(
+      countNonSundayDaysInRange(row.NGAYNGHI, row.NGAYKETTHUC),
+      1,
+    );
+    acc.set(mnv, (acc.get(mnv) || 0) + days);
+    return acc;
+  }, new Map());
   const unpaidLeaveMap = unpaidLeaveRows.reduce((acc, row) => {
     const mnv = Number(row.MNV);
     const overlapDays = countNonSundayOverlapDays(
@@ -682,15 +673,7 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
     ),
     query(
       `
-        SELECT COALESCE(
-          SUM(
-            GREATEST(
-              DATEDIFF(COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI), dxn.NGAYNGHI) + 1,
-              1
-            )
-          ),
-          0
-        ) AS SO_NGAY_DA_NGHI
+        SELECT dxn.NGAYNGHI, COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) AS NGAYKETTHUC
         FROM DONXINNGH dxn
         WHERE dxn.MNV = ?
           AND dxn.TRANGTHAI = 1
@@ -748,7 +731,11 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
   );
   const holidayExtraDays = Number(row.NGAYCONG_LE_QUYDOI_THEM || 0);
   const workDaysConverted = toMoney(workDaysRaw + holidayExtraDays);
-  const leaveUsed = Number(annualLeaveRows[0]?.SO_NGAY_DA_NGHI || 0);
+  const leaveUsed = annualLeaveRows.reduce(
+    (sum, r) =>
+      sum + Math.max(countNonSundayDaysInRange(r.NGAYNGHI, r.NGAYKETTHUC), 1),
+    0,
+  );
   const leaveRemaining = Math.max(0, 12 - leaveUsed);
   const deduction =
     Number(row.BHXH || 0) +
@@ -1001,18 +988,6 @@ async function saveShiftAssignmentsByDate(assignments, attendanceDate) {
   }
 
   return withTransaction(async (connection) => {
-    const employeeIds = normalizedAssignments.map((item) => item.employeeId);
-    const employeePlaceholders = employeeIds.map(() => "?").join(", ");
-
-    await connection.execute(
-      `
-        DELETE FROM PHANCALAM
-        WHERE NGAY = ?
-          AND MNV IN (${employeePlaceholders})
-      `,
-      [attendanceDate, ...employeeIds],
-    );
-
     const insertRows = normalizedAssignments.flatMap((item) =>
       item.shiftIds.map((shiftId) => ({
         employeeId: item.employeeId,
@@ -1024,6 +999,28 @@ async function saveShiftAssignmentsByDate(assignments, attendanceDate) {
       return 0;
     }
 
+    // Xóa các ca dư (ca cũ không còn trong danh sách mới),
+    // nhưng chỉ xóa những bản ghi KHÔNG có VIPHAM tham chiếu tới
+    const employeeIds = normalizedAssignments.map((item) => item.employeeId);
+    const employeePlaceholders = employeeIds.map(() => "?").join(", ");
+
+    const newShiftPairs = insertRows.map(() => "(p.MNV = ? AND p.MCA = ?)").join(" OR ");
+    const newShiftParams = insertRows.flatMap((row) => [row.employeeId, row.shiftId]);
+
+    await connection.execute(
+      `
+        DELETE p FROM PHANCALAM p
+        LEFT JOIN VIPHAM v ON v.MPCL = p.MPCL
+        WHERE p.NGAY = ?
+          AND p.MNV IN (${employeePlaceholders})
+          AND v.MPCL IS NULL
+          AND NOT (${newShiftPairs})
+      `,
+      [attendanceDate, ...employeeIds, ...newShiftParams],
+    );
+
+    // Upsert: thêm mới nếu chưa có, cập nhật TT=0 nếu đã tồn tại
+    // → KHÔNG xóa bản ghi cũ → VIPHAM không bị ảnh hưởng
     const valuePlaceholders = insertRows.map(() => "(?, ?, ?, 0)").join(", ");
     const valueParams = insertRows.flatMap((row) => [
       row.employeeId,
@@ -1035,6 +1032,7 @@ async function saveShiftAssignmentsByDate(assignments, attendanceDate) {
       `
         INSERT INTO PHANCALAM (MNV, MCA, NGAY, TT)
         VALUES ${valuePlaceholders}
+        ON DUPLICATE KEY UPDATE TT = 0
       `,
       valueParams,
     );
@@ -1158,6 +1156,16 @@ async function checkInMyAttendance(mnv, attendanceDate) {
     );
 
     if (Number(updateResult?.affectedRows || 0) > 0) {
+      // Check-in thành công, tính violation "đi trễ" và lưu vào VIPHAM
+      try {
+        await recordLateCheckInViolation(mnv, attendanceDate);
+      } catch (err) {
+        // Log nhưng không throw, vì violation recording là optional
+        console.error(
+          "[checkInMyAttendance] Late check-in recording error:",
+          err,
+        );
+      }
       return true;
     }
 
@@ -1195,70 +1203,472 @@ async function checkInMyAttendance(mnv, attendanceDate) {
 }
 
 async function checkOutMyAttendance(mnv, attendanceDate) {
-  return withTransaction(async (connection) => {
+  // Lấy MPCL của ca sắp checkout TRƯỚC khi UPDATE
+  const mpcl = await withTransaction(async (connection) => {
+    const [pickRows] = await connection.execute(
+      `SELECT p2.MPCL FROM PHANCALAM p2
+        WHERE p2.MNV = ? AND p2.NGAY = ?
+          AND p2.GIO_CHECKIN IS NOT NULL AND p2.GIO_CHECKOUT IS NULL
+        ORDER BY p2.GIO_CHECKIN DESC, p2.MPCL DESC LIMIT 1`,
+      [Number(mnv), attendanceDate],
+    );
+
+    const mpcl = pickRows?.[0]?.MPCL ?? null;
+
+    if (!mpcl) {
+      // Không tìm được ca cần checkout → trả lỗi thân thiện
+      const [rows] = await connection.execute(
+        `SELECT
+           COUNT(*) AS TOTAL_SHIFT,
+           SUM(CASE WHEN GIO_CHECKIN IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_IN,
+           SUM(CASE WHEN GIO_CHECKIN IS NOT NULL AND GIO_CHECKOUT IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_OUT
+         FROM PHANCALAM
+         WHERE MNV = ? AND NGAY = ?`,
+        [Number(mnv), attendanceDate],
+      );
+
+      const totalShift = Number(rows?.[0]?.TOTAL_SHIFT || 0);
+      const checkedIn = Number(rows?.[0]?.CHECKED_IN || 0);
+      const checkedOut = Number(rows?.[0]?.CHECKED_OUT || 0);
+
+      const mkErr = (msg) => Object.assign(new Error(msg), { statusCode: 400 });
+      if (totalShift <= 0) throw mkErr("Bạn không có ca làm trong ngày này");
+      if (checkedIn <= 0)
+        throw mkErr("Bạn chưa check-in nên không thể check-out");
+      if (checkedOut >= checkedIn)
+        throw mkErr("Bạn đã check-out đầy đủ cho các ca đã check-in");
+      throw mkErr("Không thể check-out, vui lòng thử lại");
+    }
+
+    // Ghi GIO_CHECKOUT cho đúng ca
     const [updateResult] = await connection.execute(
-      `
-        UPDATE PHANCALAM p
-        INNER JOIN (
-          SELECT p2.MPCL
-          FROM PHANCALAM p2
-          WHERE p2.MNV = ?
-            AND p2.NGAY = ?
-            AND p2.GIO_CHECKIN IS NOT NULL
-            AND p2.GIO_CHECKOUT IS NULL
-          ORDER BY p2.GIO_CHECKIN DESC, p2.MPCL DESC
-          LIMIT 1
-        ) pick ON pick.MPCL = p.MPCL
-        SET
-          p.GIO_CHECKOUT = NOW(),
-          p.TT = 2
-      `,
-      [Number(mnv), attendanceDate],
+      `UPDATE PHANCALAM SET GIO_CHECKOUT = NOW(), TT = 2 WHERE MPCL = ?`,
+      [mpcl],
     );
-
-    if (Number(updateResult?.affectedRows || 0) > 0) {
-      return true;
+    if (Number(updateResult?.affectedRows || 0) <= 0) {
+      throw Object.assign(new Error("Không thể check-out, vui lòng thử lại"), {
+        statusCode: 400,
+      });
     }
 
-    const [rows] = await connection.execute(
-      `
-        SELECT
-          COUNT(*) AS TOTAL_SHIFT,
-          SUM(CASE WHEN GIO_CHECKIN IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_IN,
-          SUM(CASE WHEN GIO_CHECKIN IS NOT NULL AND GIO_CHECKOUT IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_OUT
-        FROM PHANCALAM
-        WHERE MNV = ?
-          AND NGAY = ?
-      `,
-      [Number(mnv), attendanceDate],
-    );
-
-    const totalShift = Number(rows?.[0]?.TOTAL_SHIFT || 0);
-    const checkedIn = Number(rows?.[0]?.CHECKED_IN || 0);
-    const checkedOut = Number(rows?.[0]?.CHECKED_OUT || 0);
-
-    if (totalShift <= 0) {
-      const error = new Error("Bạn không có ca làm trong ngày này");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (checkedIn <= 0) {
-      const error = new Error("Bạn chưa check-in nên không thể check-out");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (checkedOut >= checkedIn) {
-      const error = new Error("Bạn đã check-out đầy đủ cho các ca đã check-in");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const fallbackError = new Error("Không thể check-out, vui lòng thử lại");
-    fallbackError.statusCode = 400;
-    throw fallbackError;
+    return mpcl; // ← trả MPCL ra ngoài, transaction tự COMMIT sau return
   });
+  try {
+    const violation = await calculateCheckInOutViolation(
+      mnv,
+      attendanceDate,
+      mpcl,
+    );
+    if (violation.hasViolation && violation.penaltyAmount > 0) {
+      await autoUpdateKhauTruKhacFromViolation(
+        mnv,
+        attendanceDate,
+        mpcl,
+        violation.penaltyAmount,
+        violation.violationType,
+        violation.lateMinutes,
+        violation.earlyMinutes,
+      );
+    }
+  } catch (err) {
+    console.error("[checkOutMyAttendance] Violation calc error:", err);
+  }
+
+  return true;
+}
+
+// ── Hằng số & helper dùng chung cho tính vi phạm ────────────────────────────
+const PENALTY_RATES = {
+  "Quản lý cửa hàng": 50000,
+  "Nhân viên bán hàng": 25000,
+  "Nhân viên kho": 30000,
+  "Quản lý nhân sự": 40000,
+};
+const THRESHOLD_MINUTES = 10;
+
+function parseAsMinutes(val) {
+  if (!val) return NaN;
+
+  // Nếu là Date object → ISO string
+  const str = val instanceof Date ? val.toISOString() : String(val).trim();
+
+  // ISO UTC: "2026-04-15T06:19:05.000Z" hoặc "2026-04-15T06:19:05Z"
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(str)) {
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return NaN;
+    // UTC+7
+    const utc7 = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    return utc7.getUTCHours() * 60 + utc7.getUTCMinutes();
+  }
+
+  // "YYYY-MM-DD HH:MM:SS" hoặc "HH:MM:SS" hoặc "HH:MM"
+  const match = str.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  }
+
+  return NaN;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Tính vi phạm check-in/check-out cho 1 ca cụ thể (theo MPCL)
+ * Gọi SAU khi check-out thành công.
+ * @param {number} mnv
+ * @param {string} attendanceDate  YYYY-MM-DD
+ * @param {number} mpcl  Mã phân ca vừa checkout
+ * @returns {{ hasViolation, penaltyAmount, violationType, lateMinutes, earlyMinutes, mpcl }}
+ */
+async function calculateCheckInOutViolation(mnv, attendanceDate, mpcl) {
+  try {
+    // Lấy đúng ca vừa checkout (theo MPCL) — bao gồm GIO_CHECKIN và GIO_CHECKOUT
+    const shiftRows = await query(
+      `SELECT
+         pc.MPCL,
+         pc.MCA,
+         pc.GIO_CHECKIN,
+         pc.GIO_CHECKOUT,
+         ca.GIO_BATDAU,
+         ca.GIO_KETTHUC,
+         cv.TEN AS TENCHUCVU
+       FROM PHANCALAM pc
+       INNER JOIN CALAM      ca ON ca.MCA = pc.MCA
+       INNER JOIN NHANVIEN   nv ON nv.MNV = pc.MNV
+       INNER JOIN CHUCVU     cv ON cv.MCV = nv.MCV
+       WHERE pc.MPCL = ?
+         AND pc.MNV  = ?
+         AND pc.GIO_CHECKIN  IS NOT NULL
+         AND pc.GIO_CHECKOUT IS NOT NULL
+       LIMIT 1`,
+      [mpcl, Number(mnv)],
+    );
+
+    const EMPTY = {
+      hasViolation: false,
+      penaltyAmount: 0,
+      violationType: null,
+      lateMinutes: 0,
+      earlyMinutes: 0,
+      mpcl,
+    };
+
+    if (!Array.isArray(shiftRows) || shiftRows.length === 0) {
+      // console.warn(
+      //   `[calculateCheckInOutViolation] Không tìm thấy ca MPCL=${mpcl} MNV=${mnv}`,
+      // );
+      return EMPTY;
+    }
+
+    const shift = shiftRows[0];
+    const positionName = String(shift.TENCHUCVU || "").trim();
+    // Nếu chức vụ không khớp map → dùng mức Bán hàng làm mặc định
+    const penaltyRate =
+      PENALTY_RATES[positionName] ?? PENALTY_RATES["Bán hàng"];
+
+    let lateMinutes = 0; // phút đi trễ (> THRESHOLD)
+    let earlyMinutes = 0; // phút về sớm (> THRESHOLD)
+
+    // ── Kiểm tra ĐI TRỄ ──────────────────────────────────────────
+    if (shift.GIO_CHECKIN && shift.GIO_BATDAU) {
+      const checkInMin = parseAsMinutes(shift.GIO_CHECKIN);
+      const shiftStartMin = parseAsMinutes(shift.GIO_BATDAU);
+
+      if (
+        !isNaN(checkInMin) &&
+        !isNaN(shiftStartMin) &&
+        checkInMin > shiftStartMin
+      ) {
+        const diff = checkInMin - shiftStartMin;
+        if (diff > THRESHOLD_MINUTES) {
+          lateMinutes = diff;
+        }
+      }
+    }
+
+    // ── Kiểm tra VỀ SỚM ──────────────────────────────────────────
+    if (shift.GIO_CHECKOUT && shift.GIO_KETTHUC) {
+      const checkOutMin = parseAsMinutes(shift.GIO_CHECKOUT);
+      const shiftEndMin = parseAsMinutes(shift.GIO_KETTHUC);
+
+      if (
+        !isNaN(checkOutMin) &&
+        !isNaN(shiftEndMin) &&
+        checkOutMin < shiftEndMin
+      ) {
+        const diff = shiftEndMin - checkOutMin;
+        if (diff > THRESHOLD_MINUTES) {
+          earlyMinutes = diff;
+        }
+      }
+    }
+
+    const isLate = lateMinutes > 0;
+    const isEarly = earlyMinutes > 0;
+
+    let violationType = null;
+    let penaltyAmount = 0;
+
+    if (isLate && isEarly) {
+      // Vừa đi trễ vừa về sớm → phạt x2
+      violationType = "Đi trễ & Về sớm";
+      penaltyAmount = penaltyRate * 2;
+    } else if (isLate) {
+      violationType = "Đi trễ";
+      penaltyAmount = penaltyRate;
+    } else if (isEarly) {
+      violationType = "Về sớm";
+      penaltyAmount = penaltyRate;
+    }
+
+    if (penaltyAmount > 0) {
+      // console.log(
+      //   `[calculateCheckInOutViolation] MNV=${mnv}, MPCL=${mpcl}, ` +
+      //     `chucVu="${positionName}", type="${violationType}", ` +
+      //     `late=${lateMinutes}min, early=${earlyMinutes}min, penalty=${penaltyAmount}đ`,
+      // );
+      return {
+        hasViolation: true,
+        penaltyAmount,
+        violationType,
+        lateMinutes,
+        earlyMinutes,
+        mpcl,
+      };
+    }
+
+    return {
+      hasViolation: false,
+      penaltyAmount: 0,
+      violationType: null,
+      lateMinutes,
+      earlyMinutes,
+      mpcl,
+    };
+  } catch (err) {
+    console.error("[calculateCheckInOutViolation] Error:", err);
+    return {
+      hasViolation: false,
+      penaltyAmount: 0,
+      violationType: null,
+      lateMinutes: 0,
+      earlyMinutes: 0,
+      mpcl,
+    };
+  }
+}
+
+/**
+ * Ghi vi phạm "đi trễ" tạm thời khi check-in, để lúc check-out sẽ xử lý lại toàn bộ.
+ * Hàm này chỉ log, KHÔNG insert vào VIPHAM nữa (tránh duplicate).
+ * Toàn bộ logic vi phạm được xử lý trong calculateCheckInOutViolation khi check-out.
+ */
+async function recordLateCheckInViolation(mnv, attendanceDate) {
+  // PENALTY_RATES, THRESHOLD_MINUTES, parseAsMinutes → dùng từ module level
+}
+
+/**
+ * Ghi vi phạm vào VIPHAM và cập nhật KHAUTRU_KHAC trong BANGLUONG.
+ * Gọi SAU khi calculateCheckInOutViolation xác nhận có vi phạm.
+ * @param {number} mnv
+ * @param {string} attendanceDate  YYYY-MM-DD
+ * @param {number} mpcl  Mã phân ca vừa hoàn thành (để tránh duplicate)
+ * @param {number} penaltyAmount  Tiền phạt
+ * @param {string} violationType  "Đi trễ" | "Về sớm" | "Đi trễ & Về sớm"
+ */
+async function autoUpdateKhauTruKhacFromViolation(
+  mnv,
+  attendanceDate,
+  mpcl,
+  penaltyAmount,
+  violationType,
+  lateMinutes = 0,
+  earlyMinutes = 0,
+) {
+  if (!penaltyAmount || penaltyAmount <= 0) return;
+
+  try {
+    // Dùng ngày ca làm xác định tháng/năm (tránh edge-case ca đêm vắt qua tháng)
+    const refDate = new Date(attendanceDate + "T00:00:00");
+    const currentMonth = refDate.getMonth() + 1;
+    const currentYear = refDate.getFullYear();
+
+    // LOAI: 1=Đi trễ, 2=Về sớm, 3=Đi trễ & Về sớm
+    const loaiCode =
+      violationType === "Đi trễ"
+        ? 1
+        : violationType === "Về sớm"
+          ? 2
+          : violationType === "Đi trễ & Về sớm"
+            ? 3
+            : null;
+
+    if (!loaiCode) {
+      console.warn(
+        `[autoUpdateKhauTruKhacFromViolation] Unknown violationType: "${violationType}"`,
+      );
+      return;
+    }
+
+    // PHUT_VIPHAM: nếu cả 2 vi phạm → lấy max (hoặc tổng, tuỳ nghiệp vụ — hiện dùng max)
+    const phutVipham = Math.max(lateMinutes, earlyMinutes);
+
+    // ── Bước 1: Ghi VIPHAM (INSERT hoặc UPDATE theo MPCL) ────────
+    const existRows = await query(
+      `SELECT MVP, TIEN_PHAT FROM VIPHAM WHERE MPCL = ? LIMIT 1`,
+      [mpcl],
+    );
+
+    let oldPenalty = 0;
+
+    if (Array.isArray(existRows) && existRows.length > 0) {
+      // Đã có bản ghi cho ca này → cập nhật (tránh double-count)
+      oldPenalty = Number(existRows[0].TIEN_PHAT || 0);
+      await query(
+        `UPDATE VIPHAM
+         SET LOAI        = ?,
+             TIEN_PHAT   = ?,
+             PHUT_VIPHAM = ?,
+             GHICHU      = ?
+         WHERE MPCL = ?`,
+        [
+          loaiCode,
+          penaltyAmount,
+          phutVipham,
+          _buildNote(violationType, penaltyAmount),
+          mpcl,
+        ],
+      );
+      // console.log(
+      //   `[autoUpdateKhauTruKhacFromViolation] Updated VIPHAM MPCL=${mpcl}, ` +
+      //     `old=${oldPenalty}đ → new=${penaltyAmount}đ`,
+      // );
+    } else {
+      // Chưa có → INSERT mới
+      await query(
+        `INSERT INTO VIPHAM (MNV, MPCL, LOAI, PHUT_VIPHAM, TIEN_PHAT, THANG, NAM, GHICHU)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          mnv,
+          mpcl,
+          loaiCode,
+          phutVipham,
+          penaltyAmount,
+          currentMonth,
+          currentYear,
+          _buildNote(violationType, penaltyAmount),
+        ],
+      );
+      // console.log(
+      //   `[autoUpdateKhauTruKhacFromViolation] Inserted VIPHAM LOAI=${loaiCode}, ` +
+      //     `MNV=${mnv}, MPCL=${mpcl}, penalty=${penaltyAmount}đ`,
+      // );
+    }
+
+    // ── Bước 2: Cập nhật BANGLUONG ────────────────────────────────
+    const salaryRows = await query(
+      `SELECT MBL FROM BANGLUONG WHERE MNV = ? AND THANG = ? AND NAM = ? LIMIT 1`,
+      [mnv, currentMonth, currentYear],
+    );
+
+    if (!Array.isArray(salaryRows) || salaryRows.length === 0) {
+      // Chưa có bảng lương tháng này → bỏ qua (sẽ tính khi tạo bảng lương)
+      // console.log(
+      //   `[autoUpdateKhauTruKhacFromViolation] Chưa có BANGLUONG cho MNV=${mnv} ` +
+      //     `tháng ${currentMonth}/${currentYear} — bỏ qua cập nhật lương`,
+      // );
+      return;
+    }
+
+    const mbl = salaryRows[0].MBL;
+
+    const salaryInfoRows = await query(
+      `SELECT LUONGCOBAN, BHXH, BHYT, BHTN, HOA_HONG, KHAUTRU_KHAC
+       FROM BANGLUONG WHERE MBL = ?`,
+      [mbl],
+    );
+    if (!Array.isArray(salaryInfoRows) || salaryInfoRows.length === 0) return;
+
+    const salary = salaryInfoRows[0];
+    const baseSalary = Number(salary.LUONGCOBAN || 0);
+    const bhxh = Number(salary.BHXH || 0);
+    const bhyt = Number(salary.BHYT || 0);
+    const bhtn = Number(salary.BHTN || 0);
+    const commission = Number(salary.HOA_HONG || 0);
+    const currentKhauTruKhac = Number(salary.KHAUTRU_KHAC || 0);
+
+    // delta = tiền phạt mới − tiền phạt cũ (tránh double-count khi UPDATE)
+    const delta = penaltyAmount - oldPenalty;
+    const newKhauTruKhac = toMoney(Math.max(0, currentKhauTruKhac + delta));
+
+    // Ngày công quy đổi (giống updateSalaryByMbl)
+    const monthStart = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
+    const monthEnd = new Date(currentYear, currentMonth, 0)
+      .toISOString()
+      .slice(0, 10);
+
+    const [workDaysResult, unpaidLeaveResult, holidayResult] =
+      await Promise.all([
+        query(
+          `SELECT COUNT(DISTINCT p.NGAY) AS D
+         FROM PHANCALAM p
+         WHERE p.MNV = ? AND p.TT = 2
+           AND DAYOFWEEK(p.NGAY) <> 1
+           AND MONTH(p.NGAY) = ? AND YEAR(p.NGAY) = ?`,
+          [mnv, currentMonth, currentYear],
+        ),
+        query(
+          `SELECT COUNT(DISTINCT dxn.NGAYNGHI) AS D
+         FROM DONXINNGH dxn
+         WHERE dxn.MNV = ? AND dxn.TRANGTHAI = 1 AND dxn.LOAI = 1
+           AND dxn.NGAYNGHI >= ?
+           AND COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) <= ?`,
+          [mnv, monthStart, monthEnd],
+        ),
+        query(
+          `SELECT SUM(GREATEST(COALESCE(nl.HESO_LUONG, 1) - 1, 0)) AS D
+         FROM PHANCALAM p
+         INNER JOIN NGAYLE nl ON nl.NGAY = p.NGAY
+         WHERE p.MNV = ? AND p.TT = 2
+           AND DAYOFWEEK(p.NGAY) <> 1
+           AND MONTH(p.NGAY) = ? AND YEAR(p.NGAY) = ?`,
+          [mnv, currentMonth, currentYear],
+        ),
+      ]);
+
+    const workDaysRaw = Number(workDaysResult?.[0]?.D || 0);
+    const unpaidLeaveDays = Number(unpaidLeaveResult?.[0]?.D || 0);
+    const holidayExtraDays = Number(holidayResult?.[0]?.D || 0);
+    const workDaysConverted = toMoney(
+      Math.max(0, workDaysRaw - unpaidLeaveDays) + holidayExtraDays,
+    );
+
+    const salaryByWorkDays = toMoney((baseSalary / 26) * workDaysConverted);
+    const totalDeduction = toMoney(bhxh + bhyt + bhtn + newKhauTruKhac);
+    const newLuongThucLanh = toMoney(
+      salaryByWorkDays + commission - totalDeduction,
+    );
+
+    await query(
+      `UPDATE BANGLUONG SET KHAUTRU_KHAC = ?, LUONGTHUCLANH = ? WHERE MBL = ?`,
+      [newKhauTruKhac, newLuongThucLanh, mbl],
+    );
+
+    // console.log(
+    //   `[autoUpdateKhauTruKhacFromViolation] ✅ MNV=${mnv}, MPCL=${mpcl}, ` +
+    //     `delta=${delta}đ, newKhauTruKhac=${newKhauTruKhac}đ, ` +
+    //     `workDays=${workDaysConverted}, luongThucLanh=${newLuongThucLanh}đ`,
+    // );
+  } catch (err) {
+    console.error("[autoUpdateKhauTruKhacFromViolation] Error:", err);
+    // Không throw — violation là optional, không làm hỏng checkout
+  }
+}
+
+function _buildNote(violationType, penaltyAmount) {
+  const fmt = (n) => n.toLocaleString("vi-VN") + "đ";
+  if (violationType === "Đi trễ & Về sớm")
+    return `Đi trễ & Về sớm — phạt x2: ${fmt(penaltyAmount)}`;
+  return `${violationType} — phạt: ${fmt(penaltyAmount)}`;
 }
 
 async function create(payload) {
@@ -1295,6 +1705,136 @@ async function create(payload) {
   );
 }
 
+async function updateSalaryByMbl(mbl, payload) {
+  const mblNum = Number(mbl);
+  if (!Number.isFinite(mblNum) || mblNum <= 0) {
+    throw new Error("Invalid MBL");
+  }
+
+  const khauTruKhac =
+    payload.khauTruKhac !== undefined ? Number(payload.khauTruKhac) : undefined;
+
+  if (
+    khauTruKhac !== undefined &&
+    (!Number.isFinite(khauTruKhac) || khauTruKhac < 0)
+  ) {
+    throw new Error("Invalid khau tru khac");
+  }
+
+  if (khauTruKhac === undefined) {
+    throw new Error("No fields to update");
+  }
+
+  // Fetch salary record info
+  const salaryResult = await query(
+    `SELECT bl.MBL, bl.MNV, bl.LUONGCOBAN, bl.BHXH, bl.BHYT, bl.BHTN, bl.HOA_HONG, bl.THANG, bl.NAM
+     FROM BANGLUONG bl WHERE bl.MBL = ?`,
+    [mblNum],
+  );
+
+  if (!Array.isArray(salaryResult) || salaryResult.length === 0) {
+    throw new Error("Salary record not found");
+  }
+
+  const salary = salaryResult[0];
+  const mnv = Number(salary.MNV);
+  const baseSalary = Number(salary.LUONGCOBAN || 0);
+  const bhxh = Number(salary.BHXH || 0);
+  const bhyt = Number(salary.BHYT || 0);
+  const bhtn = Number(salary.BHTN || 0);
+  const hoaHong = Number(salary.HOA_HONG || 0);
+  const month = Number(salary.THANG);
+  const year = Number(salary.NAM);
+
+  // Fetch working days info
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  const monthEnd = new Date(year, month, 0).toISOString().slice(0, 10);
+
+  // Get actual working days from PHANCALAM
+  const workDaysResult = await query(
+    `SELECT COUNT(DISTINCT p.NGAY) AS SO_NGAY_CONG_THUC_TE
+     FROM PHANCALAM p
+     WHERE p.MNV = ? AND p.TT = 2 AND DAYOFWEEK(p.NGAY) <> 1 
+     AND MONTH(p.NGAY) = ? AND YEAR(p.NGAY) = ?`,
+    [mnv, month, year],
+  );
+
+  const workDaysRaw = Number(
+    (Array.isArray(workDaysResult) &&
+      workDaysResult[0]?.SO_NGAY_CONG_THUC_TE) ||
+      0,
+  );
+
+  // Get unpaid leave days
+  const unpaidLeaveResult = await query(
+    `SELECT COUNT(DISTINCT dxn.NGAYNGHI) AS NGAY_NGHI_KP
+     FROM DONXINNGH dxn
+     WHERE dxn.MNV = ? AND dxn.TRANGTHAI = 1 AND dxn.LOAI = 1
+     AND dxn.NGAYNGHI >= ? AND COALESCE(dxn.NGAYKETTHUC, dxn.NGAYNGHI) <= ?`,
+    [mnv, monthStart, monthEnd],
+  );
+
+  const unpaidLeaveDays = Number(
+    (Array.isArray(unpaidLeaveResult) && unpaidLeaveResult[0]?.NGAY_NGHI_KP) ||
+      0,
+  );
+
+  // Get holiday extra days
+  const holidayResult = await query(
+    `SELECT SUM(GREATEST(COALESCE(nl.HESO_LUONG, 1) - 1, 0)) AS NGAYCONG_LE_QUYDOI
+     FROM PHANCALAM p
+     INNER JOIN NGAYLE nl ON nl.NGAY = p.NGAY
+     WHERE p.MNV = ? AND p.TT = 2 AND DAYOFWEEK(p.NGAY) <> 1
+     AND MONTH(p.NGAY) = ? AND YEAR(p.NGAY) = ?`,
+    [mnv, month, year],
+  );
+
+  const holidayExtraDays = Number(
+    (Array.isArray(holidayResult) && holidayResult[0]?.NGAYCONG_LE_QUYDOI) || 0,
+  );
+
+  // Calculate working days converted
+  const workDaysRawFinal = Math.max(0, toMoney(workDaysRaw - unpaidLeaveDays));
+  const workDaysConverted = toMoney(workDaysRawFinal + holidayExtraDays);
+
+  // Calculate salary: (Lương cơ bản / 26) × Ngày công quy đổi + Hoa hồng - (BHXH + BHYT + BHTN + Khấu trừ khác)
+  const newKhauTruKhac = Number(khauTruKhac);
+  const salaryByWorkDays = toMoney((baseSalary / 26) * workDaysConverted);
+  const totalDeduction = toMoney(bhxh + bhyt + bhtn + newKhauTruKhac);
+  const newLuongThucLanh = toMoney(salaryByWorkDays + hoaHong - totalDeduction);
+
+  const sql = `UPDATE BANGLUONG SET KHAUTRU_KHAC = ?, LUONGTHUCLANH = ? WHERE MBL = ?`;
+  const params = [newKhauTruKhac, newLuongThucLanh, mblNum];
+
+  return query(sql, params);
+}
+
+async function finalizeSalary(mbl) {
+  const mblNum = Number(mbl);
+  if (!Number.isFinite(mblNum) || mblNum <= 0) {
+    throw new Error("Invalid MBL");
+  }
+
+  // Check if salary record exists and is not already finalized
+  const salaryResult = await query(
+    `SELECT MBL, TT FROM BANGLUONG WHERE MBL = ?`,
+    [mblNum],
+  );
+
+  if (!Array.isArray(salaryResult) || salaryResult.length === 0) {
+    throw new Error("Salary record not found");
+  }
+
+  const salary = salaryResult[0];
+  if (Number(salary.TT) === 2) {
+    throw new Error("Salary already finalized");
+  }
+
+  // Update TT = 2 (Đã thanh toán - Already paid)
+  const sql = `UPDATE BANGLUONG SET TT = 2 WHERE MBL = ?`;
+  return query(sql, [mblNum]);
+}
+
 module.exports = {
   listAll,
   findById,
@@ -1323,5 +1863,10 @@ module.exports = {
   getMyAttendanceByDate,
   checkInMyAttendance,
   checkOutMyAttendance,
+  recordLateCheckInViolation,
+  calculateCheckInOutViolation,
+  autoUpdateKhauTruKhacFromViolation,
+  updateSalaryByMbl,
+  finalizeSalary,
   create,
 };

@@ -3,10 +3,10 @@ const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
 const path = require("path");
-
 const adminRoutes = require("./routes/adminRoutes");
 const hrRoutes = require("./routes/hrRoutes");
 const salesRoutes = require("./routes/salesRoutes");
+const notificationController = require("./controllers/notificationController");
 const {
   notFoundHandler,
   errorHandler,
@@ -44,6 +44,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/hr", hrRoutes);
 app.use("/api/sales", salesRoutes);
 
+const { authenticateToken } = require("./middlewares/authMiddleware");
+app.get("/api/notifications/stream", authenticateToken, notificationController.streamNotifications);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

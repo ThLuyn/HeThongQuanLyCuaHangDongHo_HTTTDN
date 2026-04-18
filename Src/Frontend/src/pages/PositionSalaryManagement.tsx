@@ -418,7 +418,7 @@ export function PositionSalaryManagement() {
         data={rows}
         onAdd={openAdd}
         addLabel="Thêm chức vụ"
-        searchPlaceholder="Tìm theo chức vụ..."
+        searchPlaceholder="Tìm kiếm..."
         noHorizontalScroll
         pageSize={5}
         emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
@@ -446,7 +446,7 @@ export function PositionSalaryManagement() {
         defaultSortDirection="desc"
         onAdd={openTransferModal}
         addLabel="Chuyển công tác"
-        searchPlaceholder="Tìm theo..."
+        searchPlaceholder="Tìm kiếm..."
         advancedFilterKeys={['employeeSearchText', 'newPositionName', 'note']}
         externalHasActiveFilters={hasExternalHistoryDateFilters}
         onClearExternalFilters={clearExternalHistoryDateFilters}

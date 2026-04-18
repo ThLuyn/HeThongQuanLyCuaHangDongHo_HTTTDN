@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { PrinterIcon } from 'lucide-react';
+import { EyeIcon, PrinterIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { loadAuthSession } from '../utils/authStorage';
 import { getMySalaryApi, getViolationPenaltiesApi } from '../utils/backendApi';
@@ -25,7 +25,19 @@ function resolvePayrollStatus(record) {
   return statusCode === 2 ? 'Đã thanh toán' : 'Tạm tính';
 }
 
-function buildPersonalSalary(record, month, year) {
+// ============================================================
+// PATCH A: MySalary.tsx
+// Vấn đề: Sau khi ra ca, trang lương không tự reload → KHAUTRU_KHAC vẫn hiện 0
+// Fix:
+//  1. Tính khauTruKhac từ violations API (source of truth) thay vì từ record.KHAUTRU_KHAC
+//     → đảm bảo dù BANGLUONG chưa cập nhật kịp, UI vẫn hiển thị đúng
+//  2. Tổng tiền phạt từ violations = sum(penaltyAmount * violationCount)
+//     hiển thị đúng ở "Khấu trừ khác (Phạt)"
+// ============================================================
+
+// Thay thế hàm buildPersonalSalary, thêm prop violationPenaltyTotal:
+
+function buildPersonalSalary(record, month, year, violationPenaltyTotal = 0) {
   if (!record) {
     return null;
   }
@@ -41,7 +53,14 @@ function buildPersonalSalary(record, month, year) {
   const bhxh = Math.round(baseSalary * INSURANCE_RATES.bhxh);
   const bhyt = Math.round(baseSalary * INSURANCE_RATES.bhyt);
   const bhtn = Math.round(baseSalary * INSURANCE_RATES.bhtn);
-  const totalDeduction = bhxh + bhyt + bhtn;
+
+  // ✅ FIX: Ưu tiên lấy từ violations API (realtime), fallback về DB record
+  // violationPenaltyTotal = tổng tiền phạt tính từ VIPHAM (luôn mới nhất)
+  // record.KHAUTRU_KHAC = giá trị trong BANGLUONG (có thể chưa cập nhật kịp)
+  const khauTruKhacFromDb = Number(record.KHAUTRU_KHAC || 0);
+  const khauTruKhac = violationPenaltyTotal > 0 ? violationPenaltyTotal : khauTruKhacFromDb;
+
+  const totalDeduction = bhxh + bhyt + bhtn + khauTruKhac;
   const netSalary = Math.max(0, grossIncome - totalDeduction);
   const leaveRemaining =
     record.NGAYNGHI_CONLAI != null
@@ -69,6 +88,7 @@ function buildPersonalSalary(record, month, year) {
       { key: 'bhxh', label: 'Khấu trừ BHXH (8%)', value: bhxh },
       { key: 'bhyt', label: 'Khấu trừ BHYT (1.5%)', value: bhyt },
       { key: 'bhtn', label: 'Khấu trừ BHTN (1%)', value: bhtn },
+      { key: 'khauTruKhac', label: 'Khấu trừ khác (Phạt)', value: khauTruKhac },
     ],
   };
 }
@@ -85,6 +105,7 @@ export function MySalary() {
   const [historyRows, setHistoryRows] = useState([]);
   const [violations, setViolations] = useState([]);
   const [violationsLoading, setViolationsLoading] = useState(false);
+  const [violationDetailOpen, setViolationDetailOpen] = useState(false);
 
   const selectedMonth = Number(month);
   const selectedYear = Number(year);
@@ -129,10 +150,14 @@ export function MySalary() {
       }
 
       setViolationsLoading(true);
+      console.log('Loading violations for', { mnv: session?.mnv, month: selectedMonth, year: selectedYear });
       try {
         const viol = await getViolationPenaltiesApi(session.mnv, selectedMonth, selectedYear);
-        setViolations(Array.isArray(viol) ? viol : []);
+        const list = Array.isArray(viol) ? viol : [];
+        setViolations(list);
+        console.log('Violations response', { mnv: session?.mnv, month: selectedMonth, year: selectedYear, list });
       } catch (_error) {
+        console.error('Failed loading violations', _error);
         setViolations([]);
       } finally {
         setViolationsLoading(false);
@@ -141,6 +166,10 @@ export function MySalary() {
 
     loadViolations();
   }, [selectedMonth, selectedYear, session?.mnv]);
+
+  useEffect(() => {
+    console.log('Session and violations debug', { session, violations });
+  }, [session, violations]);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -185,20 +214,25 @@ export function MySalary() {
     loadHistory();
   }, [selectedMonth, selectedYear, session?.mnv]);
 
+  const violationPenaltyTotal = useMemo(
+    () =>
+      violations.reduce(
+        (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
+        0,
+      ),
+    [violations],
+  );
+
   const personalSalary = useMemo(
-    () => buildPersonalSalary(record, selectedMonth, selectedYear),
-    [record, selectedMonth, selectedYear],
+    () => buildPersonalSalary(record, selectedMonth, selectedYear, violationPenaltyTotal),
+    [record, selectedMonth, selectedYear, violationPenaltyTotal],
   );
 
   const handlePrintPayrollMonth = () => {
     if (!personalSalary) {
       return;
     }
-
-    const violationPenaltyTotal = violations.reduce(
-      (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
-      0,
-    );
+    
 
     const employee = {
       id: personalSalary.employeeCode,
@@ -211,9 +245,9 @@ export function MySalary() {
       bhxh: Number(record?.BHXH || personalSalary.deductions.find((item) => item.key === 'bhxh')?.value || 0),
       bhyt: Number(record?.BHYT || personalSalary.deductions.find((item) => item.key === 'bhyt')?.value || 0),
       bhtn: Number(record?.BHTN || personalSalary.deductions.find((item) => item.key === 'bhtn')?.value || 0),
-      khauTruKhac: Number(record?.KHAUTRU_KHAC || 0) + violationPenaltyTotal,
-      deduction: Number(record?.KHAUTRU ?? personalSalary.deductionTotal ?? 0) + violationPenaltyTotal,
-      takeHome: Number(record?.LUONGTHUCLANH ?? personalSalary.netSalary ?? 0) - violationPenaltyTotal,
+      khauTruKhac: Number(record?.KHAUTRU_KHAC || 0),
+      deduction: Number(record?.KHAUTRU ?? personalSalary.deductionTotal ?? 0),
+      takeHome: Number(record?.LUONGTHUCLANH ?? personalSalary.netSalary ?? 0),
     };
 
     const html = buildMonthlyPayslipHtml({
@@ -283,7 +317,7 @@ export function MySalary() {
           <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4">
               <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">Thực lĩnh</p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-800">{formatMoney(personalSalary.netSalary)}</p>
+              <p className="mt-2 text-2xl font-semibold text-emerald-800">{formatMoney(Math.max(0, personalSalary.netSalary))}</p>
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4">
               <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Tổng thu nhập</p>
@@ -328,45 +362,39 @@ export function MySalary() {
               <div className="space-y-2">
                 {personalSalary.deductions.map((item) => (
                   <div key={item.key} className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-sm">
-                    <span className="text-rose-700">{item.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-rose-700">{item.label}</span>
+                      {item.key === 'khauTruKhac' && violations && violations.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setViolationDetailOpen(true)}
+                          title="Xem chi tiết phạt"
+                          className="rounded p-0.5 text-red-400 hover:text-red-600 hover:bg-red-100 transition-colors"
+                        >
+                          <EyeIcon className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <span className="font-medium text-rose-800">{formatMoney(item.value)}</span>
                   </div>
                 ))}
-                {violations.length > 0 && (
-                  <div className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2 text-sm">
-                    <span className="text-orange-700">Khấu trừ khác (Vi phạm)</span>
-                    <span className="font-medium text-orange-800">
-                      {formatMoney(
-                        violations.reduce(
-                          (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
-                          0,
-                        ),
-                      )}
-                    </span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-100 px-3 py-2 text-sm">
                   <span className="font-semibold text-rose-800">Tổng khấu trừ</span>
                   <span className="font-semibold text-rose-900">
-                    {formatMoney(
-                      personalSalary.deductionTotal +
-                        violations.reduce(
-                          (sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0),
-                          0,
-                        ),
-                    )}
+                    {formatMoney(personalSalary.deductionTotal)}
                   </span>
                 </div>
               </div>
+
             </div>
           </section>
 
           <section className="rounded-xl border border-gold-200 bg-gold-50 px-4 py-4 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-gold-700">Công thức thực lĩnh</p>
             <p className="mt-2 text-sm text-gold-900">
-              Thực lĩnh = (Lương cơ bản/26) x Ngày công + Hoa hồng - Tổng khấu trừ =
+              Thực lĩnh = (Lương cơ bản/26) x Ngày công quy đổi + Hoa hồng - (BHXH + BHYT + BHTN + Khấu trừ khác) =
               <span className="ml-1 font-semibold">
-                ({formatMoney(Number(record?.LUONGCOBAN || 0))}/26) x {personalSalary.workingDays} + {formatMoney(Number(record?.HOA_HONG || record?.PHUCAP || 0))} - {formatMoney(personalSalary.deductionTotal)} = {formatMoney(personalSalary.netSalary)}
+                {formatMoney(personalSalary.netSalary)}
               </span>
             </p>
           </section>
@@ -420,6 +448,78 @@ export function MySalary() {
           </table>
         </div>
       </section>
+
+      {/* Modal Chi tiết phạt */}
+      {violationDetailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl p-6 mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Chi tiết phạt - Tháng {selectedMonth}/{selectedYear}</h2>
+              <button
+                type="button"
+                onClick={() => setViolationDetailOpen(false)}
+                className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {violationsLoading ? (
+              <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
+            ) : violations.length === 0 ? (
+              <p className="text-sm text-gray-500">Không có vi phạm trong kỳ này.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border border-gray-200 rounded-lg">
+                  <thead>
+                    <tr className="bg-red-50">
+                      <th className="px-3 py-2 border-b border-gray-200 text-left font-semibold text-red-700">Loại vi phạm</th>
+                      <th className="px-3 py-2 border-b border-gray-200 text-center font-semibold text-red-700">Ngày vi phạm</th>
+                      <th className="px-3 py-2 border-b border-gray-200 text-center font-semibold text-red-700">Số lần</th>
+                      <th className="px-3 py-2 border-b border-gray-200 text-right font-semibold text-red-700">Mức phạt/lần</th>
+                      <th className="px-3 py-2 border-b border-gray-200 text-right font-semibold text-red-700">Tổng phạt</th>
+                      <th className="px-3 py-2 border-b border-gray-200 text-left font-semibold text-red-700">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {violations.map((v, idx) => (
+                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-700">{v.violationType}</td>
+                        <td className="px-3 py-2 text-center text-gray-700">
+                          {v.violationDate || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-center font-medium text-gray-900">{v.violationCount}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{formatMoney(v.penaltyAmount)}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-red-700">
+                          {formatMoney(Number(v.penaltyAmount) * Number(v.violationCount))}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-500">{v.description || '-'}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-red-50 font-semibold">
+                      <td colSpan={4} className="px-3 py-2 text-right text-red-800">Tổng tiền phạt:</td>
+                      <td className="px-3 py-2 text-right text-red-900">
+                        {formatMoney(violations.reduce((sum, v) => sum + Number(v.penaltyAmount || 0) * Number(v.violationCount || 0), 0))}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setViolationDetailOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

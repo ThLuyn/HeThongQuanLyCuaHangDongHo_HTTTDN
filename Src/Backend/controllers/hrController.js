@@ -6,6 +6,11 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 
+const {
+  triggerLeaveNotification,
+  getMnvsByRole,
+} = require("../models/Notification");
+
 const leaveEvidenceUploadDir = path.join(
   __dirname,
   "..",
@@ -231,7 +236,8 @@ async function createMyLeaveRequest(req, res, next) {
 
     const requestedDays =
       Math.floor(
-        (new Date(endDate).getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
+        (new Date(endDate).getTime() - start.getTime()) /
+          (24 * 60 * 60 * 1000),
       ) + 1;
 
     if (
@@ -279,11 +285,35 @@ async function createMyLeaveRequest(req, res, next) {
       evidencePath,
     });
 
+    const newId = Number(result.insertId);
+
+    // Push real-time đến quản lý — không await để không delay response
+    Employee.findById(currentMnv)
+      .then((profile) => {
+        const tenNV = profile?.HOTEN || `NV#${currentMnv}`;
+        return getMnvsByRole([1, 4]).then((targetMnvList) =>
+          triggerLeaveNotification(
+            {
+              id: newId,
+              tenNV,
+              loai: type,
+              ngayBatDau: startDate,
+              ngayKetThuc: endDate,
+              lyDo: reason,
+              thoiGian: new Date().toISOString(),
+            },
+            targetMnvList,
+          ),
+        );
+      })
+      .catch((err) => {
+        // Không ảnh hưởng response — chỉ log lỗi
+        console.error("[SSE] triggerLeaveNotification failed:", err?.message);
+      });
+
     return success(
       res,
-      {
-        id: Number(result.insertId),
-      },
+      { id: newId },
       "Leave request created",
       201,
     );
@@ -356,6 +386,42 @@ async function calculateMySalary(req, res, next) {
       },
       "My payroll loaded",
     );
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function updateSalary(req, res, next) {
+  try {
+    const mbl = Number(req.params.mbl);
+    if (!Number.isFinite(mbl) || mbl <= 0) {
+      return fail(res, "Invalid MBL", 400);
+    }
+
+    const { ngayCong, doanhSo, khauTruKhac } = req.body || {};
+
+    await Employee.updateSalaryByMbl(mbl, {
+      ngayCong,
+      doanhSo,
+      khauTruKhac,
+    });
+
+    return success(res, null, "Salary updated successfully");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function finalizeSalary(req, res, next) {
+  try {
+    const mbl = Number(req.params.mbl);
+    if (!Number.isFinite(mbl) || mbl <= 0) {
+      return fail(res, "Invalid MBL", 400);
+    }
+
+    await Employee.finalizeSalary(mbl);
+
+    return success(res, null, "Salary finalized successfully");
   } catch (error) {
     return next(error);
   }
@@ -1151,14 +1217,29 @@ async function getViolationPenalties(req, res, next) {
           violationCount: 0,
           penaltyAmount: v.penaltyAmount,
           description: null,
+          violationDates: [],
         };
       }
       consolidated[key].violationCount += 1;
+      if (v.violationDate) {
+        const d = new Date(v.violationDate);
+        if (!Number.isNaN(d.getTime())) {
+          consolidated[key].violationDates.push(
+            `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+          );
+        }
+      }
     });
 
+    // Convert violationDates array to a display string
+    const result = Object.values(consolidated).map((item) => ({
+      ...item,
+      violationDate: item.violationDates.length > 0 ? item.violationDates.join(", ") : null,
+      violationDates: undefined,
+    }));
     return success(
       res,
-      Object.values(consolidated),
+      result,
       "Violation penalties loaded",
     );
   } catch (error) {
@@ -1177,6 +1258,8 @@ module.exports = {
   approveLeave,
   calculateSalary,
   calculateMySalary,
+  updateSalary,
+  finalizeSalary,
   resignEmployee,
   getPositions,
   getPositionWorkHistory,

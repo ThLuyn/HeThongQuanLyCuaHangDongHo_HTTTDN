@@ -6,11 +6,7 @@ function authenticateToken(req, res, next) {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    // Development convenience: when not in production, allow a default
-    // dev user so the frontend can load pages without a real token.
-    // This is intentionally permissive and MUST NOT be used in production.
     if (process.env.NODE_ENV !== "production") {
-      console.warn("Dev mode: no access token provided, using dev user");
       req.user = { mnv: 1, username: "dev", mnq: 1, role: "admin" };
       return next();
     }

@@ -683,6 +683,22 @@ export async function getSalaryApi(month: number, year: number): Promise<SalaryR
   return response.data.records
 }
 
+export async function updateSalaryApi(mbl: number, payload: {
+  khauTruKhac?: number
+}): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/salary/${mbl}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function finalizeSalaryApi(mbl: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/salary/${mbl}/finalize`, {
+    method: 'POST',
+    body: {},
+  })
+}
+
 export async function getTodayAttendanceApi(date?: string): Promise<DailyAttendanceData> {
   const query = date ? `?date=${encodeURIComponent(date)}` : ''
   const response = await apiRequest<ApiEnvelope<DailyAttendanceData>>(`/api/hr/attendance/today${query}`)

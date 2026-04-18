@@ -25,13 +25,23 @@ const REQUEST_STATUS_LABEL = {
 };
 
 function getStatusBadgeClass(status) {
-  if (Number(status) === 1) {
-    return 'bg-emerald-100 text-emerald-700';
-  }
-  if (Number(status) === 2) {
-    return 'bg-red-100 text-red-700';
-  }
+  if (Number(status) === 1) return 'bg-emerald-100 text-emerald-700';
+  if (Number(status) === 2) return 'bg-red-100 text-red-700';
   return 'bg-amber-100 text-amber-700';
+}
+
+// Đếm số ngày thực tế, trừ Chủ nhật
+function countWorkingDays(startStr, endStr) {
+  if (!startStr || !endStr) return 0;
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  if (end < start) return 0;
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() !== 0) count++;
+  }
+  return count;
 }
 
 export function LeaveOperations() {
@@ -57,17 +67,13 @@ export function LeaveOperations() {
     return item?.NGAYKETTHUC || item?.NGAYNGHI || null;
   };
 
+  // Tính số ngày nghỉ thực tế — trừ Chủ nhật
   const getLeaveDays = (item) => {
-    const fallbackDays = Number(item?.SONGAY || 0);
-    const start = new Date(item?.NGAYNGHI || '');
-    const end = new Date(getLeaveEndDate(item) || '');
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return fallbackDays;
-    }
-
-    const computed = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-    return computed > 0 ? computed : fallbackDays;
+    const start = item?.NGAYNGHI || '';
+    const end = getLeaveEndDate(item) || '';
+    const working = countWorkingDays(start, end);
+    if (working > 0) return working;
+    return Number(item?.SONGAY || 0);
   };
 
   const loadRequests = async () => {
@@ -121,9 +127,7 @@ export function LeaveOperations() {
 
     return requests.filter((item) => {
       const startDate = new Date(item.NGAYNGHI || item.NGAYTAO || '');
-      if (Number.isNaN(startDate.getTime())) {
-        return false;
-      }
+      if (Number.isNaN(startDate.getTime())) return false;
 
       if (shouldFilterByYear && Number.isInteger(yearValue) && yearValue > 0 && startDate.getFullYear() !== yearValue) {
         return false;
@@ -131,12 +135,8 @@ export function LeaveOperations() {
 
       if (selectedMonth !== 'all') {
         const monthValue = Number(selectedMonth);
-        if (!Number.isInteger(monthValue) || monthValue < 1 || monthValue > 12) {
-          return false;
-        }
-        if (startDate.getMonth() + 1 !== monthValue) {
-          return false;
-        }
+        if (!Number.isInteger(monthValue) || monthValue < 1 || monthValue > 12) return false;
+        if (startDate.getMonth() + 1 !== monthValue) return false;
       }
 
       if (selectedStatus !== 'all' && Number(item.TRANGTHAI) !== Number(selectedStatus)) {
@@ -199,17 +199,17 @@ export function LeaveOperations() {
       key: 'startDate',
       label: 'Ngày nghỉ',
       render: (value, row) => {
-        if (!value) {
-          return '-';
-        }
+        if (!value) return '-';
         const startText = new Date(value).toLocaleDateString('vi-VN');
-        if (!row.endDate || row.endDate === value) {
-          return startText;
-        }
+        if (!row.endDate || row.endDate === value) return startText;
         return `${startText} - ${new Date(row.endDate).toLocaleDateString('vi-VN')}`;
       },
     },
-    { key: 'days', label: 'Số ngày' },
+    {
+      key: 'days',
+      label: 'Số ngày',
+      render: (value) => `${value} ngày`,
+    },
     {
       key: 'createdAt',
       label: 'Ngày tạo',
@@ -219,9 +219,7 @@ export function LeaveOperations() {
       key: 'resignationDate',
       label: 'Ngày nghỉ việc',
       render: (value, row) => {
-        if (row?.leaveType !== 'Nghỉ việc') {
-          return '-';
-        }
+        if (row?.leaveType !== 'Nghỉ việc') return '-';
         return value ? new Date(value).toLocaleDateString('vi-VN') : '-';
       },
     },
@@ -244,10 +242,7 @@ export function LeaveOperations() {
   };
 
   const submitDecision = async (status) => {
-    if (!selectedRequest) {
-      return;
-    }
-
+    if (!selectedRequest) return;
     setSavingDecision(true);
     setError('');
     try {
@@ -267,15 +262,9 @@ export function LeaveOperations() {
   };
 
   const saveReviewerNote = async () => {
-    if (!selectedRequest) {
-      return;
-    }
-
+    if (!selectedRequest) return;
     const currentStatus = Number(selectedRequest.statusCode);
-    if (![1, 2].includes(currentStatus)) {
-      return;
-    }
-
+    if (![1, 2].includes(currentStatus)) return;
     setSavingDecision(true);
     setError('');
     try {
@@ -450,9 +439,7 @@ export function LeaveOperations() {
               <div className="rounded-lg bg-gray-50 px-3 py-2">
                 <p className="text-xs text-gray-500">Ngày tạo đơn</p>
                 <p className="font-medium text-gray-900">
-                  {selectedRequest.createdAt
-                    ? new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN')
-                    : '-'}
+                  {selectedRequest.createdAt ? new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN') : '-'}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2">
@@ -465,36 +452,38 @@ export function LeaveOperations() {
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2">
                 <p className="text-xs text-gray-500">Loại nghỉ</p>
-                <p className="font-medium text-gray-900">
-                  {selectedRequest.leaveType} 
-                </p>
+                <p className="font-medium text-gray-900">{selectedRequest.leaveType}</p>
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2">
-                <p className="text-xs text-gray-500">Số ngày nghỉ</p>
-                <p className="font-medium text-gray-900">{selectedRequest.days} ngày</p>
+                <p className="text-xs text-gray-500">Số ngày nghỉ thực tế</p>
+                <p className="font-medium text-gray-900">
+                  {selectedRequest.days} ngày
+                  {(() => {
+                    const total = selectedRequest.startDate && selectedRequest.endDate
+                      ? Math.floor((new Date(selectedRequest.endDate) - new Date(selectedRequest.startDate)) / 86400000) + 1
+                      : 0;
+                    return total > selectedRequest.days
+                      ? <span className="ml-1 text-xs text-gray-400">(đã trừ Chủ nhật)</span>
+                      : null;
+                  })()}
+                </p>
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2">
                 <p className="text-xs text-gray-500">Từ ngày</p>
                 <p className="font-medium text-gray-900">
-                  {selectedRequest.startDate
-                    ? new Date(selectedRequest.startDate).toLocaleDateString('vi-VN')
-                    : '-'}
+                  {selectedRequest.startDate ? new Date(selectedRequest.startDate).toLocaleDateString('vi-VN') : '-'}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2">
                 <p className="text-xs text-gray-500">Đến ngày</p>
                 <p className="font-medium text-gray-900">
-                  {selectedRequest.endDate
-                    ? new Date(selectedRequest.endDate).toLocaleDateString('vi-VN')
-                    : '-'}
+                  {selectedRequest.endDate ? new Date(selectedRequest.endDate).toLocaleDateString('vi-VN') : '-'}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 px-3 py-2 sm:col-span-2">
                 <p className="text-xs text-gray-500">Ngày nghỉ việc (nếu là đơn nghỉ việc)</p>
                 <p className="font-medium text-gray-900">
-                  {selectedRequest.resignationDate
-                    ? new Date(selectedRequest.resignationDate).toLocaleDateString('vi-VN')
-                    : '-'}
+                  {selectedRequest.resignationDate ? new Date(selectedRequest.resignationDate).toLocaleDateString('vi-VN') : '-'}
                 </p>
               </div>
             </div>

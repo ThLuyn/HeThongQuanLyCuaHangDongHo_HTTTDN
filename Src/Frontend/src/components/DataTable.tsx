@@ -376,7 +376,7 @@ export function DataTable({ title, columns, data, searchPlaceholder = 'TÃ¬m kiáº
                                   action.onClick(row);
                             }} disabled={isDisabled} className={`${action.className ||
                             'px-3 py-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 hover:bg-gold-50 rounded-lg transition-colors'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`} aria-label={action.label} title={action.label}>
-                              {icon || action.label}
+                              {action.render ? action.render(row) : (icon || action.label)}
                             </button>);
                 })}
                       </div>

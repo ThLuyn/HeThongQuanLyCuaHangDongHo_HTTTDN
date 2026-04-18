@@ -24,6 +24,31 @@ function getStatusBadgeClass(status) {
   return 'bg-amber-100 text-amber-700';
 }
 
+function isSunday(dateStr) {
+  if (!dateStr) return false;
+  return new Date(dateStr).getDay() === 0;
+}
+
+// Đếm số ngày thực tế trong khoảng, trừ Chủ nhật
+function countWorkingDays(startStr, endStr) {
+  if (!startStr || !endStr) return 0;
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (end < start) return 0;
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() !== 0) count++;
+  }
+  return count;
+}
+
+function totalDays(startStr, endStr) {
+  if (!startStr || !endStr) return 0;
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  return Math.floor((end - start) / 86400000) + 1;
+}
+
 export function MyLeaveRequests() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -128,6 +153,17 @@ export function MyLeaveRequests() {
     setDetailOpen(true);
   };
 
+  // Tính số ngày hiển thị trên form (trừ Chủ nhật)
+  const workingDaysPreview = useMemo(() => {
+    const type = Number(form.type);
+    if (type === 3) return null;
+    if (!form.startDate || !form.endDate) return null;
+    if (isSunday(form.endDate)) return null;
+    const working = countWorkingDays(form.startDate, form.endDate);
+    const total = totalDays(form.startDate, form.endDate);
+    return { working, hasSunday: working < total };
+  }, [form.startDate, form.endDate, form.type]);
+
   const submitRequest = async () => {
     const type = Number(form.type);
     const startDate = String(form.startDate || '').trim();
@@ -145,14 +181,29 @@ export function MyLeaveRequests() {
       return;
     }
 
+    if (isSunday(startDate)) {
+      setError('Ngày bắt đầu không được là Chủ nhật (cửa hàng không làm việc)');
+      return;
+    }
+
     if (type === 3) {
       if (!resignationDate) {
         setError('Vui lòng chọn ngày nghỉ việc chính thức');
         return;
       }
-    } else if (!endDate) {
-      setError('Vui lòng chọn ngày kết thúc');
-      return;
+      if (isSunday(resignationDate)) {
+        setError('Ngày nghỉ việc không được là Chủ nhật (cửa hàng không làm việc)');
+        return;
+      }
+    } else {
+      if (!endDate) {
+        setError('Vui lòng chọn ngày kết thúc');
+        return;
+      }
+      if (isSunday(endDate)) {
+        setError('Ngày kết thúc không được là Chủ nhật (cửa hàng không làm việc)');
+        return;
+      }
     }
 
     if (!reason) {
@@ -207,7 +258,7 @@ export function MyLeaveRequests() {
 
       <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-gray-900">Nộp đơn xin nghỉ</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Nộp đơn xin nghỉ</h2>
           <button
             type="button"
             onClick={() => setFormExpanded((prev) => !prev)}
@@ -220,105 +271,120 @@ export function MyLeaveRequests() {
         {formExpanded ? (
           <>
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Loại nghỉ</label>
-            <select
-              value={form.type}
-              onChange={(e) => setForm((prev) => ({ ...prev, type: Number(e.target.value) }))}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-            >
-              <option value={0}>Phép năm</option>
-              <option value={1}>Không lương</option>
-              <option value={2}>Chế độ</option>
-              <option value={3}>Nghỉ việc</option>
-            </select>
-          </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Loại nghỉ</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm((prev) => ({ ...prev, type: Number(e.target.value) }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                >
+                  <option value={0}>Phép năm</option>
+                  <option value={1}>Không lương</option>
+                  <option value={2}>Chế độ</option>
+                  <option value={3}>Nghỉ việc</option>
+                </select>
+              </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
-            <input
-              type="date"
-              value={form.startDate}
-              onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-            />
-          </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
+                {isSunday(form.startDate) && (
+                  <p className="mt-1 text-xs text-red-500">Ngày bắt đầu không được là Chủ nhật</p>
+                )}
+              </div>
 
-          {Number(form.type) === 3 ? (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Ngày nghỉ việc chính thức</label>
-              <input
-                type="date"
-                value={form.resignationDate}
-                onChange={(e) => setForm((prev) => ({ ...prev, resignationDate: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Ngày kết thúc</label>
-              <input
-                type="date"
-                value={form.endDate}
-                onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-              />
-            </div>
-          )}
+              {Number(form.type) === 3 ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Ngày nghỉ việc chính thức</label>
+                  <input
+                    type="date"
+                    value={form.resignationDate}
+                    onChange={(e) => setForm((prev) => ({ ...prev, resignationDate: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                  {isSunday(form.resignationDate) && (
+                    <p className="mt-1 text-xs text-red-500">Ngày nghỉ việc không được là Chủ nhật</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Ngày kết thúc</label>
+                  <input
+                    type="date"
+                    value={form.endDate}
+                    onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                  {isSunday(form.endDate) ? (
+                    <p className="mt-1 text-xs text-red-500">Ngày kết thúc không được là Chủ nhật</p>
+                  ) : workingDaysPreview ? (
+                    <p className="mt-1 text-xs text-blue-600">
+                      Số ngày nghỉ thực tế:{' '}
+                      <strong>{workingDaysPreview.working} ngày</strong>
+                      {workingDaysPreview.hasSunday ? ' (đã trừ Chủ nhật)' : ''}
+                    </p>
+                  ) : null}
+                </div>
+              )}
 
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Lý do</label>
-            <textarea
-              rows={3}
-              value={form.reason}
-              onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-              placeholder="Nhập lý do nghỉ..."
-            />
-          </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Lý do</label>
+                <textarea
+                  rows={3}
+                  value={form.reason}
+                  onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  placeholder="Nhập lý do nghỉ..."
+                />
+              </div>
 
-          {[0, 2].includes(Number(form.type)) ? (
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-gray-700">Minh chứng (ảnh/PDF)</label>
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setEvidenceFile(file);
-                }}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-              />
-              <p className="mt-1 text-xs text-gray-500">Chỉ áp dụng cho Phép năm và Chế độ, tối đa 8MB.</p>
-            </div>
-          ) : null}
+              {[0, 2].includes(Number(form.type)) ? (
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Minh chứng (ảnh/PDF)</label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setEvidenceFile(file);
+                    }}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Chỉ áp dụng cho Phép năm và Chế độ, tối đa 8MB.</p>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setForm({
-                type: 0,
-                startDate: '',
-                endDate: '',
-                resignationDate: '',
-                reason: '',
-              });
-              setEvidenceFile(null);
-            }}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50"
-          >
-            Làm mới
-          </button>
-          <button
-            type="button"
-            onClick={submitRequest}
-            disabled={saving}
-            className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:opacity-60"
-          >
-            {saving ? 'Đang gửi...' : 'Nộp đơn'}
-          </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm({
+                    type: 0,
+                    startDate: '',
+                    endDate: '',
+                    resignationDate: '',
+                    reason: '',
+                  });
+                  setEvidenceFile(null);
+                }}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50"
+              >
+                Làm mới
+              </button>
+              <button
+                type="button"
+                onClick={submitRequest}
+                disabled={saving}
+                className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:opacity-60"
+              >
+                {saving ? 'Đang gửi...' : 'Nộp đơn'}
+              </button>
             </div>
           </>
         ) : null}
@@ -333,7 +399,7 @@ export function MyLeaveRequests() {
         title="Đơn xin nghỉ của tôi"
         columns={columns}
         data={tableRows}
-        searchPlaceholder="Tìm đơn nghỉ..."
+        searchPlaceholder="Tìm kiếm..."
         pageSize={5}
         defaultSortBy="createdAt"
         defaultSortDirection="desc"

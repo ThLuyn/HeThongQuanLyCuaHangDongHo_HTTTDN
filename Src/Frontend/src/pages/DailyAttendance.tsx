@@ -52,7 +52,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     { name: '273 An Dương Vương, Phường Chợ Quán, TP. Hồ Chí Minh', lat: 10.759421130525608, lng: 106.6824379075026 },
     { name: '35A Tân Trang, Phường Tân Hòa, TP. Hồ Chí Minh', lat: 10.7788976, lng: 106.6547478 },
     { name: '13C Khu Bờ Hàng, Phường Phú Định, TP. Hồ Chí Minh', lat: 10.713926, lng: 106.622889 },
-    { name: '78/9 An Dương Vương, Phường An Đông, TP. Hồ Chí Minh', lat: 10.713926, lng: 106.622889 },
+    { name: '78/9 An Dương Vương, Phường An Đông, TP. Hồ Chí Minh', lat: 10.757314, lng: 106.670805 },
   ]
   const STORE_RADIUS_METERS = 100
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'checking' | 'ok' | 'far' | 'denied' | 'error'>('idle')
@@ -119,6 +119,9 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   const [currentAttendancePage, setCurrentAttendancePage] = useState(0)
   const [currentShiftPage, setCurrentShiftPage] = useState(0)
   const pageSize = 5
+  // Search
+  const [searchAttendance, setSearchAttendance] = useState('')
+  const [searchShift, setSearchShift] = useState('')
   // Track local changes ở tab Phân ca để không bị reset khi polling
   const [hasLocalShiftChanges, setHasLocalShiftChanges] = useState(false)
 
@@ -304,6 +307,10 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     return () => window.clearTimeout(timer)
   }, [success])
 
+  // Reset pages khi search thay đổi
+  useEffect(() => { setCurrentAttendancePage(0) }, [searchAttendance])
+  useEffect(() => { setCurrentShiftPage(0) }, [searchShift])
+
   // ── Computed ───────────────────────────────────────────────────────────────
   
   // Pagination computed & sorting
@@ -311,8 +318,18 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     () => [...attendanceRows].sort((a, b) => a.mnv - b.mnv),
     [attendanceRows],
   )
-  const totalAttendancePages = Math.ceil(sortedAttendanceRows.length / pageSize)
-  const paginatedAttendanceRows = sortedAttendanceRows.slice(
+  const filteredAttendanceRows = useMemo(() => {
+    const q = searchAttendance.trim().toLowerCase()
+    if (!q) return sortedAttendanceRows
+    return sortedAttendanceRows.filter(r =>
+      r.fullName.toLowerCase().includes(q) ||
+      String(r.mnv).includes(q) ||
+      `mnv-${String(r.mnv).padStart(3, '0')}`.includes(q) ||
+      (r.positionName || '').toLowerCase().includes(q)
+    )
+  }, [sortedAttendanceRows, searchAttendance])
+  const totalAttendancePages = Math.ceil(filteredAttendanceRows.length / pageSize)
+  const paginatedAttendanceRows = filteredAttendanceRows.slice(
     currentAttendancePage * pageSize,
     (currentAttendancePage + 1) * pageSize,
   )
@@ -321,28 +338,38 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     () => [...shiftEmployees].sort((a, b) => a.mnv - b.mnv),
     [shiftEmployees],
   )
-  const totalShiftPages = Math.ceil(sortedShiftEmployees.length / pageSize)
-  const paginatedShiftEmployees = sortedShiftEmployees.slice(
+  const filteredShiftEmployees = useMemo(() => {
+    const q = searchShift.trim().toLowerCase()
+    if (!q) return sortedShiftEmployees
+    return sortedShiftEmployees.filter(e =>
+      e.fullName.toLowerCase().includes(q) ||
+      String(e.mnv).includes(q) ||
+      `mnv-${String(e.mnv).padStart(3, '0')}`.includes(q) ||
+      (e.positionName || '').toLowerCase().includes(q)
+    )
+  }, [sortedShiftEmployees, searchShift])
+  const totalShiftPages = Math.ceil(filteredShiftEmployees.length / pageSize)
+  const paginatedShiftEmployees = filteredShiftEmployees.slice(
     currentShiftPage * pageSize,
     (currentShiftPage + 1) * pageSize,
   )
 
   const presentCount = useMemo(
-    () => sortedAttendanceRows.filter(r => {
+    () => filteredAttendanceRows.filter(r => {
       const shifts = checkInOutByShift[r.mnv] || {}
       return Object.values(shifts).some((s: any) => Boolean(s.checkIn))
     }).length,
-    [sortedAttendanceRows, checkInOutByShift],
+    [filteredAttendanceRows, checkInOutByShift],
   )
 
   const assignedCount = useMemo(
-    () => sortedShiftEmployees.filter(e => (shiftAssignmentsByEmployee[e.mnv] || []).length > 0).length,
-    [sortedShiftEmployees, shiftAssignmentsByEmployee],
+    () => filteredShiftEmployees.filter(e => (shiftAssignmentsByEmployee[e.mnv] || []).length > 0).length,
+    [filteredShiftEmployees, shiftAssignmentsByEmployee],
   )
 
   const totalAssignments = useMemo(
-    () => sortedShiftEmployees.reduce((sum, e) => sum + (shiftAssignmentsByEmployee[e.mnv]?.length || 0), 0),
-    [sortedShiftEmployees, shiftAssignmentsByEmployee],
+    () => filteredShiftEmployees.reduce((sum, e) => sum + (shiftAssignmentsByEmployee[e.mnv]?.length || 0), 0),
+    [filteredShiftEmployees, shiftAssignmentsByEmployee],
   )
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -408,7 +435,97 @@ export function DailyAttendance({ viewMode = 'auto' }) {
       loadAdminAttendance(today)
     }
   }
+  // Calculate violation status for a shift
+  const calculateViolationStatus = (shift) => {
+    const THRESHOLD_MINUTES = 10
+    
+    // Helper: Extract HH:MM từ time string và convert UTC→UTC+7 nếu cần
+    const extractTimeOnly = (timeStr) => {
+      if (!timeStr) return null
+      try {
+        // Nếu là ISO format với Z (UTC timezone) như "2026-04-15T06:19:05.000Z"
+        if (timeStr.includes('Z')) {
+          const date = new Date(timeStr)
+          // Convert UTC → UTC+7 bằng cách thêm 7 giờ
+          const utcPlus7 = new Date(date.getTime() + 7 * 60 * 60 * 1000)
+          const h = String(utcPlus7.getUTCHours()).padStart(2, '0')
+          const m = String(utcPlus7.getUTCMinutes()).padStart(2, '0')
+          return `${h}:${m}`
+        }
+        
+        // Nếu là local time format như "08:00:00" hoặc "2026-04-15 08:00:00"
+        const match = timeStr.match(/(\d{2}):(\d{2})/)
+        if (match) {
+          return `${match[1]}:${match[2]}`
+        }
+        
+        return timeStr
+      } catch (e) {
+        return timeStr
+      }
+    }
+    
+    if (!shift.checkIn || !shift.startTime) {
+      return { hasViolation: false, type: null, message: null }
+    }
 
+    let hasLateCheckIn = false
+    let hasEarlyCheckOut = false
+
+    // Check late check-in
+    try {
+      const checkInTimeStr = extractTimeOnly(shift.checkIn)
+      const startTimeStr = extractTimeOnly(shift.startTime)
+      
+      const [ciH, ciM] = checkInTimeStr.split(':').map(Number)
+      const [stH, stM] = startTimeStr.split(':').map(Number)
+      
+      const checkInMin = ciH * 60 + ciM
+      const startMin = stH * 60 + stM
+      
+      if (checkInMin > startMin) {
+        const diffMinutes = checkInMin - startMin
+        if (diffMinutes > THRESHOLD_MINUTES) {
+          hasLateCheckIn = true
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+
+    // Check early check-out
+    if (shift.checkOut && shift.endTime) {
+      try {
+        const checkOutTimeStr = extractTimeOnly(shift.checkOut)
+        const endTimeStr = extractTimeOnly(shift.endTime)
+        
+        const [coH, coM] = checkOutTimeStr.split(':').map(Number)
+        const [ehH, ehM] = endTimeStr.split(':').map(Number)
+        
+        const checkOutMin = coH * 60 + coM
+        const endMin = ehH * 60 + ehM
+        
+        if (checkOutMin < endMin) {
+          const diffMinutes = endMin - checkOutMin
+          if (diffMinutes > THRESHOLD_MINUTES) {
+            hasEarlyCheckOut = true
+          }
+        }
+      } catch (e) {
+        // Handle error silently
+      }
+    }
+
+    if (hasLateCheckIn && hasEarlyCheckOut) {
+      return { hasViolation: true, type: 'both', message: 'Đi trễ & Về sớm ⚠️' }
+    } else if (hasLateCheckIn) {
+      return { hasViolation: true, type: 'late', message: 'Đi trễ ⚠️' }
+    } else if (hasEarlyCheckOut) {
+      return { hasViolation: true, type: 'early', message: 'Về sớm ⚠️' }
+    }
+
+    return { hasViolation: false, type: null, message: null }
+  }
   const handleShiftDateChange = (value: string) => {
     setHasLocalShiftChanges(false)
     setShiftDate(value)
@@ -576,6 +693,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                     <th className="px-6 py-3">Vào ca</th>
                     <th className="px-6 py-3">Ra ca</th>
                     <th className="px-6 py-3">Trạng thái</th>
+                    <th className="px-6 py-3">Vi phạm</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -584,6 +702,10 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                     const hasOut = Boolean(shift.checkOut)
                     const statusText = hasOut ? 'Hoàn thành' : hasIn ? 'Đang làm' : 'Chưa bắt đầu'
                     const statusClass = hasOut ? 'bg-green-50 text-green-700' : hasIn ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'
+                    const violation = calculateViolationStatus(shift)
+                    const violationBg = !violation.hasViolation ? 'bg-slate-50 text-slate-500'
+                      : violation.type === 'both' ? 'bg-red-100 text-red-700 font-semibold'
+                      : 'bg-amber-100 text-amber-700'
                     return (
                       <tr key={shift.mpcl}>
                         <td className="px-6 py-3 font-medium text-slate-800">{shift.shiftName || `Ca #${shift.shiftId}`}</td>
@@ -592,6 +714,13 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                         <td className="px-6 py-3 text-slate-600">{hasOut ? new Date(shift.checkOut).toLocaleTimeString('vi-VN') : '-'}</td>
                         <td className="px-6 py-3">
                           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass}`}>{statusText}</span>
+                        </td>
+                        <td className="px-6 py-3">
+                          {violation.hasViolation ? (
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${violationBg}`}>{violation.message}</span>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
                         </td>
                       </tr>
                     )
@@ -647,7 +776,31 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               <h2 className="text-lg font-semibold text-gray-900">Chấm công</h2>
               <p className="mt-0.5 text-sm text-gray-400">Ngày: {formatDateVN(shiftDate)}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm..."
+                  value={searchAttendance}
+                  onChange={e => setSearchAttendance(e.target.value)}
+                  className="pl-9 pr-8 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50 w-56"
+                />
+                {searchAttendance && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchAttendance('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Xóa tìm kiếm"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <input type="date" value={shiftDate} onChange={e => handleShiftDateChange(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
               <button type="button" onClick={handleReloadToday}
@@ -660,8 +813,8 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           {/* Stats */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 px-5 py-4 border-b border-gray-100">
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-500">Tổng nhân viên</p>
-              <p className="mt-1 text-xl font-semibold text-gray-900">{sortedAttendanceRows.length}</p>
+              <p className="text-xs text-gray-500">{searchAttendance ? 'Kết quả tìm kiếm' : 'Tổng nhân viên'}</p>
+              <p className="mt-1 text-xl font-semibold text-gray-900">{filteredAttendanceRows.length}{searchAttendance ? <span className="text-sm font-normal text-gray-400"> / {sortedAttendanceRows.length}</span> : ''}</p>
             </div>
             <div className="rounded-lg border border-green-100 bg-green-50 px-4 py-3">
               <p className="text-xs text-green-700">Có mặt</p>
@@ -669,7 +822,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
             </div>
             <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
               <p className="text-xs text-red-600">Vắng</p>
-              <p className="mt-1 text-xl font-semibold text-red-700">{sortedAttendanceRows.length - presentCount}</p>
+              <p className="mt-1 text-xl font-semibold text-red-700">{filteredAttendanceRows.length - presentCount}</p>
             </div>
           </div>
 
@@ -679,6 +832,14 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               <div className="py-16 text-center text-sm text-gray-400">Đang tải dữ liệu...</div>
             ) : attendanceRows.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">Không có dữ liệu chấm công.</div>
+            ) : filteredAttendanceRows.length === 0 ? (
+              <div className="py-16 text-center">
+                <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-500">Không tìm thấy kết quả cho "<span className="text-blue-600">{searchAttendance}</span>"</p>
+                <button onClick={() => setSearchAttendance('')} className="mt-2 text-xs text-blue-500 hover:underline">Xóa tìm kiếm</button>
+              </div>
             ) : (
               <table className="min-w-full text-sm">
                 <thead>
@@ -688,6 +849,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ca làm</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Vào ca</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ra ca</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Vi phạm</th>
                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Trạng thái</th>
                   </tr>
                 </thead>
@@ -760,6 +922,37 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                             </div>
                           )}
                         </td>
+                        <td className="px-5 py-3.5 text-left">
+                          {empShifts.length === 0 ? (
+                            <span className="text-gray-300">—</span>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              {empShifts.map(shift => {
+                                const shiftCheck = (checkInOutByShift[item.mnv] || {})[shift.mca] || {}
+                                const violation = calculateViolationStatus({
+                                  checkIn: shiftCheck.checkIn,
+                                  checkOut: shiftCheck.checkOut,
+                                  startTime: shift.startTime,
+                                  endTime: shift.endTime,
+                                })
+                                
+                                if (!violation.hasViolation) {
+                                  return <span key={shift.mca} className="text-xs text-gray-300">—</span>
+                                }
+                                
+                                const badgeColor = violation.type === 'both' 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : 'bg-amber-100 text-amber-700'
+                                
+                                return (
+                                  <span key={shift.mca} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${badgeColor}`}>
+                                    {violation.message}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-5 py-3.5 text-right">
                           {isPresent
                             ? <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-green-700"><CheckCircle2Icon className="h-3 w-3" />Có mặt</span>
@@ -777,10 +970,10 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           </div>
 
           {/* Pagination for Attendance */}
-          {sortedAttendanceRows.length > 0 && (
+          {filteredAttendanceRows.length > 0 && (
             <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50">
               <p className="text-sm text-gray-600">
-                Hiển thị {currentAttendancePage * pageSize + 1}-{Math.min((currentAttendancePage + 1) * pageSize, sortedAttendanceRows.length)} / {sortedAttendanceRows.length} bản ghi
+                Hiển thị {currentAttendancePage * pageSize + 1}-{Math.min((currentAttendancePage + 1) * pageSize, filteredAttendanceRows.length)} / {filteredAttendanceRows.length} bản ghi
               </p>
               <div className="flex items-center gap-4">
                 <button
@@ -818,7 +1011,31 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               <h2 className="text-lg font-semibold text-gray-900">Phân ca làm việc</h2>
               <p className="mt-0.5 text-sm text-gray-400">Ngày: {formatDateVN(shiftDate)}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm..."
+                  value={searchShift}
+                  onChange={e => setSearchShift(e.target.value)}
+                  className="pl-9 pr-8 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50 w-56"
+                />
+                {searchShift && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchShift('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Xóa tìm kiếm"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <input type="date" value={shiftDate} onChange={e => handleShiftDateChange(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
               <button type="button" onClick={() => loadAdminAttendance(shiftDate)}
@@ -835,8 +1052,8 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           {/* Stats */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 px-5 py-4 border-b border-gray-100">
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
-              <p className="text-xs text-gray-500">Tổng nhân viên</p>
-              <p className="mt-1 text-xl font-semibold text-gray-900">{sortedShiftEmployees.length}</p>
+              <p className="text-xs text-gray-500">{searchShift ? 'Kết quả tìm kiếm' : 'Tổng nhân viên'}</p>
+              <p className="mt-1 text-xl font-semibold text-gray-900">{filteredShiftEmployees.length}{searchShift ? <span className="text-sm font-normal text-gray-400"> / {sortedShiftEmployees.length}</span> : ''}</p>
             </div>
             <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
               <p className="text-xs text-blue-700">Đã được phân ca</p>
@@ -854,6 +1071,14 @@ export function DailyAttendance({ viewMode = 'auto' }) {
               <div className="py-16 text-center text-sm text-gray-400">Đang tải dữ liệu...</div>
             ) : shiftEmployees.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">Không có dữ liệu phân ca.</div>
+            ) : filteredShiftEmployees.length === 0 ? (
+              <div className="py-16 text-center">
+                <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-500">Không tìm thấy kết quả cho "<span className="text-blue-600">{searchShift}</span>"</p>
+                <button onClick={() => setSearchShift('')} className="mt-2 text-xs text-blue-500 hover:underline">Xóa tìm kiếm</button>
+              </div>
             ) : (
               <table className="min-w-full text-sm">
                 <thead>
@@ -908,10 +1133,10 @@ export function DailyAttendance({ viewMode = 'auto' }) {
           </div>
 
           {/* Pagination for Shift */}
-          {sortedShiftEmployees.length > 0 && (
+          {filteredShiftEmployees.length > 0 && (
             <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50">
               <p className="text-sm text-gray-600">
-                Hiển thị {currentShiftPage * pageSize + 1}-{Math.min((currentShiftPage + 1) * pageSize, sortedShiftEmployees.length)} / {sortedShiftEmployees.length} bản ghi
+                Hiển thị {currentShiftPage * pageSize + 1}-{Math.min((currentShiftPage + 1) * pageSize, filteredShiftEmployees.length)} / {filteredShiftEmployees.length} bản ghi
               </p>
               <div className="flex items-center gap-4">
                 <button

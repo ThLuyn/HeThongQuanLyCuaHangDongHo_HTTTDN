@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { IconBar } from './components/IconBar';
 import { Sidebar } from './components/Sidebar';
-import { BackupRestore } from './pages/BackupRestore';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { DailyAttendance } from './pages/DailyAttendance';
 import { Dashboard } from './pages/Dashboard';
@@ -43,7 +42,6 @@ const pageTitles = {
     'sales-report': 'Báo cáo doanh số',
     'user-management': 'Quản lý User',
     'permission-management': 'Phân quyền hệ thống',
-    'backup-restore': 'Sao lưu & Phục hồi',
     profile: 'Thông tin cá nhân',
     'change-password': 'Đổi mật khẩu',
 };
@@ -380,8 +378,6 @@ export function App() {
                 return <UserManagement />;
             case 'permission-management':
                 return <PermissionManagement />;
-            case 'backup-restore':
-                return <BackupRestore />;
             case 'profile':
                 return <PersonalProfile onProfileUpdated={handleProfileUpdated}/>;
             case 'change-password':

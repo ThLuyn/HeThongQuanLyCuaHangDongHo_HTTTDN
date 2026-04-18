@@ -282,7 +282,7 @@ export function StockReceipts() {
           Đang tải dữ liệu phiếu nhập...
         </div>)}
 
-      <DataTable title="Phiếu nhập kho" columns={columns} data={viewRows} searchPlaceholder="Tìm phiếu nhập..." advancedFilterKeys={["supplier", "employee", "status", "date", "total", "productCount", "qtyTotal"]} forceSelectFilterKeys={["supplier", "employee", "status"]} rangeFilterKeys={[
+      <DataTable title="Phiếu nhập kho" columns={columns} data={viewRows} searchPlaceholder="Tìm kiếm..." advancedFilterKeys={["supplier", "employee", "status", "date", "total", "productCount", "qtyTotal"]} forceSelectFilterKeys={["supplier", "employee", "status"]} rangeFilterKeys={[
                 { key: 'total', minPlaceholder: 'Tổng tiền từ', maxPlaceholder: 'Tổng tiền đến', inputType: 'number' },
                 { key: 'date', minPlaceholder: 'Ngày nhập từ', maxPlaceholder: 'Ngày nhập đến', inputType: 'date' },
                 { key: 'productCount', minPlaceholder: 'Số dòng SP từ', maxPlaceholder: 'Số dòng SP đến', inputType: 'number' },

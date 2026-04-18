@@ -310,7 +310,7 @@ export function ExportReceipts() {
 
       {loading ? (<div className="rounded-xl border border-gray-100 bg-white p-6 text-center text-gray-600 shadow-sm">
           Đang tải dữ liệu phiếu xuất...
-        </div>) : (<DataTable title="Phiếu xuất hàng" columns={columns} data={viewRows} searchPlaceholder="Tìm phiếu xuất..." advancedFilterKeys={['customer', 'employee', 'status', 'date', 'total', 'productCount', 'qtyTotal']} forceSelectFilterKeys={['customer', 'employee', 'status']} rangeFilterKeys={[
+        </div>) : (<DataTable title="Phiếu xuất hàng" columns={columns} data={viewRows} searchPlaceholder="Tìm kiếm..." advancedFilterKeys={['customer', 'employee', 'status', 'date', 'total', 'productCount', 'qtyTotal']} forceSelectFilterKeys={['customer', 'employee', 'status']} rangeFilterKeys={[
               { key: 'total', minPlaceholder: 'Tổng tiền từ', maxPlaceholder: 'Tổng tiền đến', inputType: 'number' },
               { key: 'date', minPlaceholder: 'Ngày bán từ', maxPlaceholder: 'Ngày bán đến', inputType: 'date' },
               { key: 'productCount', minPlaceholder: 'Số dòng SP từ', maxPlaceholder: 'Số dòng SP đến', inputType: 'number' },
