@@ -72,6 +72,7 @@ async function listAll() {
         cv.TEN AS TENCHUCVU,
         cv.LUONGCOBAN,
         cv.TY_LE_HOA_HONG,
+        tk.MNQ,
         COALESCE(
           (
             SELECT MAX(COALESCE(dxn.NGAY_NGHIVIEC, dxn.NGAYNGHI))
@@ -89,6 +90,7 @@ async function listAll() {
         ) AS NGAYNGHIVIEC
       FROM NHANVIEN nv
       INNER JOIN CHUCVU cv ON cv.MCV = nv.MCV
+      LEFT JOIN TAIKHOAN tk ON tk.MNV = nv.MNV
       ORDER BY nv.MNV DESC
     `,
   );

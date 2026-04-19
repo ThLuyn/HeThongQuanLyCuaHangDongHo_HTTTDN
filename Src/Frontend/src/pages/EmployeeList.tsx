@@ -226,7 +226,7 @@ const columns = [
     },
   },
 ];
-export function EmployeeList() {
+export function EmployeeList({ currentMnv = 0 }) {
   const [employees, setEmployees] = useState([]);
   const [positionOptions, setPositionOptions] = useState(POSITION_OPTIONS);
   const [positionProfiles, setPositionProfiles] = useState(POSITION_PROFILE_MAP);
@@ -324,6 +324,7 @@ export function EmployeeList() {
           resignedDate: row.NGAYNGHIVIEC || null,
           isLocal: false,
           status: row.TT === 1 ? 'Đang làm' : 'Đã nghỉ',
+          mnq: row.MNQ != null ? Number(row.MNQ) : null,
         }));
         setEmployees(sortEmployeesNewestFirst(mapped));
       }
@@ -647,12 +648,16 @@ export function EmployeeList() {
     }
   };
   const handleDelete = async (emp) => {
-    if (!confirm(`Bạn có chắc muốn xóa nhân viên?`)) {
+    const employeeId = Number(emp.id.replace(/\D/g, ''));
+    if (employeeId && employeeId === Number(currentMnv)) {
+      setError('Không thể cho chính mình nghỉ việc.');
+      return;
+    }
+    if (!confirm(`Bạn có chắc muốn cho nhân viên này nghỉ việc?`)) {
       return;
     }
     try {
       setError('');
-      const employeeId = Number(emp.id.replace(/\D/g, ''));
       if (!employeeId) {
         setError('Mã nhân viên không hợp lệ.');
         return;
@@ -709,15 +714,21 @@ export function EmployeeList() {
     </div>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Chức vụ *
+        Chức vụ {editingEmployee ? <span className="text-xs text-gray-400 font-normal"></span> : '*'}
       </label>
-      <select value={form.position} onChange={(e) => setFormField('position', e.target.value)} className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50 ${fieldErrors.position ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
-        {!positionOptions.includes(form.position) && form.position && (<option value={form.position}>{form.position}</option>)}
-        {positionOptions.map((position) => (<option key={position} value={position}>
-          {position}
-        </option>))}
-      </select>
-      {fieldErrors.position && <p className="mt-1 text-xs text-red-600">{fieldErrors.position}</p>}
+      {editingEmployee ? (
+        <input value={form.position} disabled className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed" />
+      ) : (
+        <>
+          <select value={form.position} onChange={(e) => setFormField('position', e.target.value)} className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50 ${fieldErrors.position ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
+            {!positionOptions.includes(form.position) && form.position && (<option value={form.position}>{form.position}</option>)}
+            {positionOptions.map((position) => (<option key={position} value={position}>
+              {position}
+            </option>))}
+          </select>
+          {fieldErrors.position && <p className="mt-1 text-xs text-red-600">{fieldErrors.position}</p>}
+        </>
+      )}
     </div>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm quyền</label>
@@ -832,8 +843,32 @@ export function EmployeeList() {
           {
             key: 'delete',
             label: 'Xóa',
-            onClick: handleDelete,
+            onClick: (row) => {
+              const rowMnv = Number(String(row.id || '').replace(/\D/g, ''));
+              if (rowMnv && rowMnv === Number(currentMnv)) return;
+              if (Number(row.mnq) === 1) return;
+              handleDelete(row);
+            },
             className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
+            render: (row) => {
+              const rowMnv = Number(String(row.id || '').replace(/\D/g, ''));
+              const isSelf = rowMnv && rowMnv === Number(currentMnv);
+              const isStoreManager = Number(row.mnq) === 1;
+              const isDisabled = isSelf || isStoreManager;
+              const tooltip = isSelf
+                ? 'Không thể cho chính mình nghỉ việc'
+                : isStoreManager
+                  ? 'Không thể cho Quản lý cửa hàng nghỉ việc'
+                  : 'Cho nghỉ việc';
+              return (
+                <span title={tooltip}
+                  style={{ opacity: isDisabled ? 0.3 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </span>
+              );
+            },
           },
         ]}
         addLabel="Thêm nhân viên"

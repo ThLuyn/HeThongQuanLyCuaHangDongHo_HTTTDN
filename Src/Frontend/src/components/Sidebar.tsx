@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { BarChart3Icon, ChevronDownIcon, ChevronUpIcon, LayoutDashboardIcon, MenuIcon, PackageIcon, SettingsIcon, UserIcon, UsersIcon } from 'lucide-react';
+import { BarChart3Icon, ChevronDownIcon, ChevronUpIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PackageIcon, SettingsIcon, UserIcon, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import logo from '../assets/LOGO.png';
 const menuItems = [
@@ -104,7 +104,7 @@ const menuItems = [
         ],
     },
 ];
-export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages = [], }) {
+export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages = [], onLogout, currentMnq = 0 }) {
     const allowedSet = new Set(allowedPages);
     const [expandedSections, setExpandedSections] = useState([
         'personal-work',
@@ -125,6 +125,9 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
     };
     const visibleMenuItems = menuItems
         .map((item) => {
+        // Ẩn Tổng quan với các nhóm quyền không phải MNQ=1
+        if (item.id === 'dashboard' && Number(currentMnq) !== 1)
+            return null;
         if (!item.children)
             return item;
         const visibleChildren = item.children.filter((child) => allowedSet.has(child.id));
@@ -136,7 +139,7 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
         };
     })
         .filter(Boolean);
-    return (<div className={`bg-dark-700 flex flex-col flex-shrink-0 transition-all duration-300 overflow-hidden ${isOpen ? 'w-[250px]' : 'w-0'}`}>
+    return (<div className={`bg-dark-700 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'w-[250px]' : 'w-0'}`}>
       {/* Brand Header */}
       <div className="h-16 flex items-center px-4 gap-3 border-b border-white/5 flex-shrink-0">
         <button onClick={onToggle} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-500 transition-colors" aria-label="Đóng/Mở sidebar">
@@ -182,5 +185,16 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
             </div>);
         })}
       </nav>
+
+      {/* Logout Button */}
+      <div className="px-3 py-3 border-t border-white/5 flex-shrink-0">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+        >
+          <LogOutIcon className="w-4 h-4 flex-shrink-0" />
+          <span className="whitespace-nowrap">Đăng xuất</span>
+        </button>
+      </div>
     </div>);
 }

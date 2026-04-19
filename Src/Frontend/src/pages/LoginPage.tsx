@@ -40,9 +40,6 @@ export function LoginPage({ onLogin }) {
             <h1 className="text-lg font-semibold">Admin</h1>
           </div>
         </div>
-        <p className="text-sm text-gray-200 text-center">
-          ĐĂNG NHẬP
-        </p>
       </div>
 
       <form className="px-8 py-6 space-y-4" onSubmit={handleSubmit}>
@@ -74,7 +71,7 @@ export function LoginPage({ onLogin }) {
         </p>)}
 
         <button type="submit" disabled={isSubmitting} className="w-full py-2.5 rounded-lg text-white font-medium bg-gold-500 hover:bg-gold-600 transition-colors">
-          {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {isSubmitting ? 'Đang đăng nhập' : 'Đăng nhập'}
         </button>
       </form>
     </div>

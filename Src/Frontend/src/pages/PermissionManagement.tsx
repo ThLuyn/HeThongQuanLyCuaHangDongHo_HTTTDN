@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DataTable } from '../components/DataTable'
 import { Modal } from '../components/Modal'
@@ -8,6 +9,7 @@ import {
     getPermissionGroupDetailApi,
     getPermissionMetaApi,
     getPermissionsApi,
+    getUserAccountsApi,
     updatePermissionApi,
 } from '../utils/backendApi'
 
@@ -209,7 +211,26 @@ export function PermissionManagement() {
   }
 
   const handleDelete = async (row) => {
-    const confirmDelete = window.confirm(`Chuyển nhóm quyền ${row.roleName} sang trạng thái ngưng hoạt động?`)
+    // Cấm xóa nhóm quyền MNQ = 1 (Quản lý cửa hàng)
+    if (Number(row.mnq) === 1) {
+      alert('Không thể xóa nhóm quyền Quản lý cửa hàng (MNQ = 1)!')
+      return
+    }
+
+    // Kiểm tra nhóm có tài khoản nào đang dùng không
+    try {
+      const allUsers = await getUserAccountsApi()
+      const usersInGroup = allUsers.filter((u) => Number(u.mnq) === Number(row.mnq))
+      if (usersInGroup.length > 0) {
+        alert(`Không thể xóa nhóm quyền "${row.roleName}" vì đang có ${usersInGroup.length} tài khoản sử dụng nhóm quyền này!`)
+        return
+      }
+    } catch (e) {
+      alert('Không kiểm tra được danh sách tài khoản. Vui lòng thử lại.')
+      return
+    }
+
+    const confirmDelete = window.confirm(`Chuyển nhóm quyền "${row.roleName}" sang trạng thái ngưng hoạt động?`)
     if (!confirmDelete) return
 
     try {
@@ -235,22 +256,33 @@ export function PermissionManagement() {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 bg-white">
-          {features.map((feature) => (
-            <tr key={feature.mcn}>
-              <td className="px-3 py-2 text-sm text-gray-700">{feature.name}</td>
-              {actions.map((action) => (
-                <td key={`${feature.mcn}-${action.key}`} className="px-3 py-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(matrix[feature.mcn]?.[action.key])}
-                    onChange={() => toggleMatrix(feature.mcn, action.key)}
-                    disabled={readonly}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
-                  />
+          {features.map((feature) => {
+            const isUserMgmt = String(feature.mcn).toLowerCase() === 'taikhoan'
+            // Khi edit nhóm MNQ=1, dòng "Quản lý tài khoản" hiện nhưng không cho sửa
+            const isProtected = !readonly && isUserMgmt && editing && Number(editing.mnq) === 1
+            return (
+              <tr key={feature.mcn} className={isProtected ? 'bg-gray-50' : ''}>
+                <td className="px-3 py-2 text-sm text-gray-700">
+                  {feature.name}
+                  {isProtected && (
+                    <span className="ml-2 text-xs text-gray-400 italic">(không thể chỉnh sửa)</span>
+                  )}
                 </td>
-              ))}
-            </tr>
-          ))}
+                {actions.map((action) => (
+                  <td key={`${feature.mcn}-${action.key}`} className="px-3 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(matrix[feature.mcn]?.[action.key])}
+                      onChange={() => !isProtected && toggleMatrix(feature.mcn, action.key)}
+                      disabled={readonly || isProtected}
+                      title={isProtected ? 'Không thể thay đổi quyền Quản lý tài khoản của nhóm này' : undefined}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
+                    />
+                  </td>
+                ))}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -295,8 +327,20 @@ export function PermissionManagement() {
               key: 'delete',
               label: 'Xóa',
               onClick: handleDelete,
-              className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
               hidden: (row) => Number(row.status) !== 1,
+              className: 'p-1.5 rounded-lg transition-colors',
+              render: (row) => {
+                const isDisabled = Number(row.mnq) === 1
+                return (
+                  <span
+                    title={isDisabled ? 'Không thể xóa nhóm quyền Quản lý cửa hàng' : 'Xóa'}
+                    onClick={isDisabled ? (e) => e.stopPropagation() : undefined}
+                    style={isDisabled ? { pointerEvents: 'auto', cursor: 'not-allowed' } : {}}
+                  >
+                    <Trash2 className={`h-4 w-4 ${isDisabled ? 'text-gray-300' : 'text-red-500'}`} />
+                  </span>
+                )
+              },
             },
           ]}
         />

@@ -51,7 +51,7 @@ const columns = [
     label: 'Ngày vào làm',
   },
 ];
-export function UserManagement() {
+export function UserManagement({ currentUsername = '' }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [detailUser, setDetailUser] = useState(null);
@@ -179,6 +179,12 @@ export function UserManagement() {
   const handleToggleLock = async (u) => {
     const isActive = Number(u.status) === 1;
 
+    // Cấm khóa tài khoản đang đăng nhập
+    if (isActive && String(u.username) === String(currentUsername)) {
+      alert('Không thể khóa tài khoản đang đăng nhập!');
+      return;
+    }
+
     if (!confirm(
       isActive
         ? `Khóa tài khoản "${u.username}"?`
@@ -229,6 +235,10 @@ export function UserManagement() {
           className: 'p-1.5 rounded-lg hover:bg-gray-100',
           render: (row) => {
             const isActive = Number(row.status) === 1;
+            const isSelf = String(row.username) === String(currentUsername);
+            if (isSelf && isActive) {
+              return <Lock className="h-4 w-4 text-gray-300 cursor-not-allowed" title="Không thể khóa tài khoản đang đăng nhập" />;
+            }
             return isActive ? (
               <Lock className="h-4 w-4 text-red-600" />
             ) : (

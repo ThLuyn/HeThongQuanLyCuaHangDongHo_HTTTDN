@@ -47,7 +47,11 @@ const pageTitles = {
 };
 export function App() {
     const initialSession = loadAuthSession();
-    const initialActivePage = localStorage.getItem(ACTIVE_PAGE_STORAGE_KEY) || 'dashboard';
+    const initialMnq = initialSession?.mnq || 0;
+    const savedPage = localStorage.getItem(ACTIVE_PAGE_STORAGE_KEY) || 'dashboard';
+    const initialActivePage = (savedPage === 'dashboard' && Number(initialMnq) !== 1)
+        ? 'my-attendance'
+        : savedPage;
     const [activePage, setActivePage] = useState(initialActivePage);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initialSession));
@@ -58,6 +62,8 @@ export function App() {
     const [currentDepartment, setCurrentDepartment] = useState(initialSession?.department || '');
     const [currentPermissions, setCurrentPermissions] = useState(initialSession?.permissions || []);
     const [currentMnv, setCurrentMnv] = useState(initialSession?.mnv || 0);
+    const [currentMnq, setCurrentMnq] = useState(initialSession?.mnq || 0);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [watchCategoryLowStockOnly, setWatchCategoryLowStockOnly] = useState(false);
     const [targetLowStockProductId, setTargetLowStockProductId] = useState(null);
     const [targetLeaveId, setTargetLeaveId] = useState(null);
@@ -69,9 +75,14 @@ export function App() {
     const isSales = String(currentRole || '').toLowerCase() === 'sales';
     const isWarehouse = String(currentRole || '').toLowerCase() === 'warehouse';
 
-    const canAccessPage = (pageId) => {
+    const canAccessPage = (pageId, mnqOverride?: number) => {
+        // Dashboard chỉ dành cho MNQ=1 (Quản lý cửa hàng)
+        if (pageId === 'dashboard') {
+            const effectiveMnq = mnqOverride !== undefined ? mnqOverride : Number(currentMnq);
+            return effectiveMnq === 1;
+        }
         // Everyone can access these pages
-        if (['dashboard', 'profile', 'change-password', 'my-attendance', 'my-leave-requests', 'my-salary'].includes(pageId)) {
+        if (['profile', 'change-password', 'my-attendance', 'my-leave-requests', 'my-salary'].includes(pageId)) {
             return true;
         }
 
@@ -155,11 +166,14 @@ export function App() {
 
     const findFirstAllowedPage = () => allowedPages[0] || 'dashboard';
 
+    // Chỉ redirect nếu user đang ở trang không có quyền (vd: sau khi quyền bị thu hồi)
+    // KHÔNG dùng để điều hướng sau login — handleLogin tự xử lý
     useEffect(() => {
+        if (!isAuthenticated) return;
         if (!canAccessPage(activePage)) {
             setActivePage(findFirstAllowedPage());
         }
-    }, [activePage, currentPermissions]);
+    }, [currentPermissions, currentRole]);
     useEffect(() => {
         localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, activePage);
     }, [activePage]);
@@ -173,6 +187,7 @@ export function App() {
                 avatar: loginData.user.hinhAnh || '',
                 role: loginData.user.role,
                 mnv: loginData.user.mnv,
+                mnq: loginData.user.mnq || 0,
                 permissions: loginData.user.permissions || [],
             });
             setIsAuthenticated(true);
@@ -183,6 +198,10 @@ export function App() {
             setCurrentDepartment(loginData.user.department || '');
             setCurrentPermissions(loginData.user.permissions || []);
             setCurrentMnv(loginData.user.mnv || 0);
+            setCurrentMnq(loginData.user.mnq || 0);
+            // Điều hướng trang mặc định theo MNQ từ API (không dùng state vì chưa kịp update)
+            const defaultPage = Number(loginData.user.mnq) === 1 ? 'dashboard' : 'my-attendance';
+            setActivePage(defaultPage);
             return { ok: true };
         }
         catch (error) {
@@ -193,6 +212,10 @@ export function App() {
         }
     };
     const handleLogout = () => {
+        setShowLogoutConfirm(true);
+    };
+    const confirmLogout = () => {
+        setShowLogoutConfirm(false);
         clearAuthSession();
         localStorage.removeItem(ACTIVE_PAGE_STORAGE_KEY);
         setIsAuthenticated(false);
@@ -202,7 +225,8 @@ export function App() {
         setCurrentRole('');
         setCurrentDepartment('');
         setCurrentPermissions([]);
-        setActivePage('dashboard');
+        setCurrentMnq(0);
+        setActivePage('my-attendance');
     };
     useEffect(() => {
         const onAuthExpired = () => {
@@ -257,6 +281,7 @@ export function App() {
                 const session = loadAuthSession();
                 if (!session)
                     return;
+                const nextMnq = profile.mnq != null ? Number(profile.mnq) : (session.mnq || 0);
                 saveAuthSession({
                     ...session,
                     fullName: nextName,
@@ -264,10 +289,12 @@ export function App() {
                     permissions: profile.permissions || session.permissions || [],
                     role: profile.role || session.role,
                     department: profile.department || session.department || '',
+                    mnq: nextMnq,
                 });
                 setCurrentRole(profile.role || '');
                 setCurrentDepartment(profile.department || '');
                 setCurrentPermissions(profile.permissions || []);
+                setCurrentMnq(nextMnq);
             }
             catch (_error) {
             }
@@ -342,7 +369,7 @@ export function App() {
             case 'dashboard':
                 return <Dashboard onOpenLowStockProducts={handleOpenLowStockProducts} onOpenExportReceipts={handleOpenExportReceipts}/>;
             case 'employees':
-                return <EmployeeList />;
+                return <EmployeeList currentMnv={currentMnv} />;
             case 'salary-leave':
                 return <SalaryLeave />;
             case 'leave-operations':
@@ -376,7 +403,7 @@ export function App() {
             case 'sales-report':
                 return <SalesReport />;
             case 'user-management':
-                return <UserManagement />;
+                return <UserManagement currentUsername={currentUsername} />;
             case 'permission-management':
                 return <PermissionManagement />;
             case 'profile':
@@ -391,11 +418,40 @@ export function App() {
         return <LoginPage onLogin={handleLogin}/>;
     }
     return (<div className="h-screen w-full flex overflow-hidden bg-gray-100">
+      {/* Logout Confirm Dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 flex flex-col items-center">
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">Xác nhận</h2>
+            <p className="text-gray-500 text-sm text-center mb-6">Đăng xuất khỏi tài khoản của bạn?</p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left Icon Bar */}
-      <IconBar activePage={activePage} onNavigate={handleIconNavigate} onLogout={handleLogout} allowedPages={allowedPages}/>
+      <IconBar activePage={activePage} onNavigate={handleIconNavigate} onLogout={handleLogout} allowedPages={allowedPages} isVisible={!sidebarOpen}/>
 
       {/* Sidebar */}
-      <Sidebar activePage={activePage} onNavigate={(page) => {
+      <Sidebar activePage={activePage} onLogout={handleLogout} currentMnq={currentMnq} onNavigate={(page) => {
             if (canAccessPage(page)) {
                 setActivePage(page);
             }

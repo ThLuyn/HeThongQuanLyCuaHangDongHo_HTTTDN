@@ -430,9 +430,24 @@ async function finalizeSalary(req, res, next) {
 async function resignEmployee(req, res, next) {
   try {
     const id = Number(req.params.id);
+    const currentMnv = Number(req.user?.mnv || 0);
 
     if (!Number.isInteger(id) || id <= 0) {
       return fail(res, "Invalid employee id", 400);
+    }
+
+    // Không cho phép tự cho mình nghỉ việc
+    if (id === currentMnv) {
+      return fail(res, "Không thể cho chính mình nghỉ việc", 400);
+    }
+
+    // Không cho phép cho nghỉ việc nhân viên giữ MNQ=1 (Quản lý cửa hàng)
+    const targetEmployee = await Employee.findById(id);
+    if (!targetEmployee) {
+      return fail(res, "Employee not found", 404);
+    }
+    if (Number(targetEmployee.MNQ) === 1) {
+      return fail(res, "Không thể cho nghỉ việc tài khoản Quản lý cửa hàng", 403);
     }
 
     await Employee.markAsResigned(id);

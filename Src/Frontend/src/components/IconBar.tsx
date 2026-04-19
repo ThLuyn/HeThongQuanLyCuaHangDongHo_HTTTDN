@@ -27,7 +27,7 @@ const topIcons = [
         label: 'Hệ thống',
     },
 ];
-export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [] }) {
+export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [], isVisible = true }) {
     const allowedSet = new Set(allowedPages);
     const getGroupForPage = (page) => {
         if (page === 'dashboard')
@@ -60,7 +60,7 @@ export function IconBar({ activePage, onNavigate, onLogout, allowedPages = [] })
         return pages.some((page) => allowedSet.has(page));
     });
     const activeGroup = getGroupForPage(activePage);
-    return (<div className="w-[60px] bg-dark-900 flex flex-col items-center py-4 flex-shrink-0">
+    return (<div className={`bg-dark-900 flex flex-col items-center py-4 flex-shrink-0 transition-all duration-300 ease-in-out ${isVisible ? 'w-[60px] opacity-100' : 'w-0 opacity-0 overflow-hidden pointer-events-none'}`}>
       <div className="flex-1 flex flex-col items-center gap-2 mt-2">
         {visibleTopIcons.map((item) => {
             const isActive = activeGroup === item.id;
