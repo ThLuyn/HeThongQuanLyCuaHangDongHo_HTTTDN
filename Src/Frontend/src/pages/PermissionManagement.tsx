@@ -213,7 +213,7 @@ export function PermissionManagement() {
   const handleDelete = async (row) => {
     // Cấm xóa nhóm quyền MNQ = 1 (Quản lý cửa hàng)
     if (Number(row.mnq) === 1) {
-      alert('Không thể xóa nhóm quyền Quản lý cửa hàng (MNQ = 1)!')
+      alert('Không thể xóa nhóm quyền Quản lý cửa hàng!')
       return
     }
 
@@ -265,7 +265,7 @@ export function PermissionManagement() {
                 <td className="px-3 py-2 text-sm text-gray-700">
                   {feature.name}
                   {isProtected && (
-                    <span className="ml-2 text-xs text-gray-400 italic">(không thể chỉnh sửa)</span>
+                    <span className="ml-2 text-xs text-gray-400 italic"></span>
                   )}
                 </td>
                 {actions.map((action) => (
