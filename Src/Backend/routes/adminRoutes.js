@@ -139,6 +139,17 @@ router.post(
   inventoryController.uploadProductImage,
 );
 
+// Route lịch sử nhập hàng theo sản phẩm — đặt TRƯỚC /:id để không bị conflict
+router.get(
+  "/inventory/products/:id/import-history",
+  authenticateToken,
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "phieunhap", actions: ["view"] }],
+  ),
+  inventoryController.getProductImportHistory,
+);
+
 router.put(
   "/inventory/products/:id",
   authenticateToken,

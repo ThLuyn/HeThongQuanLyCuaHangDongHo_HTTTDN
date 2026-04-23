@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { loadAuthSession } from '../utils/authStorage';
-import { createImportReceiptApi, decideImportReceiptApi, getImportReceiptDetailApi, getImportReceiptsApi, getProductsApi, getSuppliersApi, } from '../utils/backendApi';
+import { createImportReceiptApi, decideImportReceiptApi, getImportReceiptDetailApi, getImportReceiptsApi, getProductsApi, getSuppliersApi, updateProductApi, } from '../utils/backendApi';
 const STATUS_LABEL = {
   0: 'Đã hủy',
   1: 'Hoàn thành',
@@ -41,7 +41,11 @@ const columns = [
 export function StockReceipts() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [notice, setNotice] = useState({ type: 'info', message: '' });
+  const showNotice = (message, type = 'info') => {
+    if (!message) return;
+    setNotice({ type, message: String(message) });
+  };
   const [receipts, setReceipts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -52,6 +56,13 @@ export function StockReceipts() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState(null);
+
+  // Modal gợi ý cập nhật giá bán sau khi approve
+  const [priceChangeOpen, setPriceChangeOpen] = useState(false);
+  const [priceChanges, setPriceChanges] = useState([]);
+  const [priceUpdateValues, setPriceUpdateValues] = useState({});
+  const [priceUpdateSaving, setPriceUpdateSaving] = useState(false);
+
   const loadAll = async () => {
     setLoading(true);
     setError('');
@@ -77,11 +88,10 @@ export function StockReceipts() {
     loadAll();
   }, []);
   useEffect(() => {
-    if (!successMessage)
-      return;
-    const timer = setTimeout(() => setSuccessMessage(''), 2500);
-    return () => clearTimeout(timer);
-  }, [successMessage]);
+    if (!notice.message) return;
+    const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice.message]);
   const viewRows = useMemo(() => {
     return receipts.map((row) => ({
       mpn: Number(row.MPN),
@@ -147,9 +157,9 @@ export function StockReceipts() {
       setError('Phiếu nhập cần ít nhất 1 sản phẩm.');
       return false;
     }
-    const invalid = items.some((line) => line.msp === '' || Number(line.sl) <= 0 || Number(line.tienNhap) <= 0);
+    const invalid = items.some((line) => line.msp === '' || !Number.isInteger(Number(line.sl)) || Number(line.sl) <= 0 || !Number.isInteger(Number(line.tienNhap)) || Number(line.tienNhap) <= 0);
     if (invalid) {
-      setError('Mỗi dòng phải chọn sản phẩm, số lượng > 0 và giá nhập > 0.');
+      setError('Mỗi dòng phải chọn sản phẩm, số lượng và giá nhập phải là số nguyên dương.');
       return false;
     }
 
@@ -173,7 +183,6 @@ export function StockReceipts() {
       return;
     setSaving(true);
     setError('');
-    setSuccessMessage('');
     try {
       const session = loadAuthSession();
       const inferredSupplierId = Number(mncc || products.find((product) => Number(product.MSP) === Number(items[0]?.msp))?.MNCC || 0);
@@ -192,10 +201,11 @@ export function StockReceipts() {
       });
       closeCreate();
       await loadAll();
+      // showNotice('Tạo phiếu nhập kho thành công', 'success');
     }
     catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể tạo phiếu nhập kho';
-      setError(message);
+      // const message = e instanceof Error ? e.message : 'Không thể tạo phiếu nhập kho';
+      // setError(message);
     }
     finally {
       setSaving(false);
@@ -206,7 +216,6 @@ export function StockReceipts() {
     setDetail(null);
     setDetailLoading(true);
     setError('');
-    setSuccessMessage('');
     try {
       const detailData = await getImportReceiptDetailApi(Number(row.mpn));
       setDetail(detailData);
@@ -228,15 +237,32 @@ export function StockReceipts() {
       ? window.prompt(`Lý do từ chối phiếu ${row.id} (có thể để trống):`, '') || ''
       : '';
     setError('');
-    setSuccessMessage('');
     try {
-      await decideImportReceiptApi(Number(row.mpn), {
+      const result = await decideImportReceiptApi(Number(row.mpn), {
         action,
         reason: reason.trim() || undefined,
       });
+
       if (action === 'approve') {
-        setSuccessMessage('Đã duyệt phiếu nhập thành công');
+        showNotice('Đã duyệt phiếu nhập thành công', 'success');
+
+        // Nếu có thay đổi giá nhập đáng kể, mở modal gợi ý
+        const changes = result?.priceChanges || [];
+        if (changes.length > 0) {
+          const initialValues = {};
+          changes.forEach((c) => {
+            // Gợi ý giá bán mới = giá nhập mới * 1.2 (margin 20%) nếu đang bán dưới giá nhập
+            // Hoặc giữ nguyên giá bán cũ nếu vẫn hợp lý
+            initialValues[c.msp] = c.sellBelowImport
+              ? Math.ceil(c.newImportPrice * 1.2 / 1000) * 1000
+              : c.currentSellPrice;
+          });
+          setPriceChanges(changes);
+          setPriceUpdateValues(initialValues);
+          setPriceChangeOpen(true);
+        }
       }
+
       await loadAll();
       if (detailOpen && detail && Number(detail.MPN) === Number(row.mpn)) {
         const refreshed = await getImportReceiptDetailApi(Number(row.mpn));
@@ -248,6 +274,39 @@ export function StockReceipts() {
       setError(message);
     }
   };
+
+  const handleApplyPriceUpdates = async () => {
+    setPriceUpdateSaving(true);
+    try {
+      const toUpdate = priceChanges.filter((c) => {
+        const newSellPrice = Number(priceUpdateValues[c.msp] || 0);
+        return newSellPrice > 0 && newSellPrice !== c.currentSellPrice;
+      });
+
+      await Promise.all(
+        toUpdate.map(async (c) => {
+          const product = products.find((p) => Number(p.MSP) === Number(c.msp));
+          if (!product) return;
+          await updateProductApi(c.msp, {
+            name: product.TEN,
+            mncc: product.MNCC,
+            sellPrice: Number(priceUpdateValues[c.msp]),
+            brand: product.THUONGHIEU || undefined,
+            status: product.TT,
+          });
+        })
+      );
+
+      setPriceChangeOpen(false);
+      await loadAll();
+      showNotice(`Đã cập nhật giá bán cho ${toUpdate.length} sản phẩm`, 'success');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không thể cập nhật giá bán');
+    } finally {
+      setPriceUpdateSaving(false);
+    }
+  };
+
   const rowActions = [
     {
       key: 'view',
@@ -271,18 +330,22 @@ export function StockReceipts() {
     },
   ];
   return (<>
+    {notice.message ? (
+      <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
+        <div className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
+          <p className="leading-relaxed">{notice.message}</p>
+          <button type="button" onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5" aria-label="Đóng thông báo">×</button>
+        </div>
+      </div>
+    ) : null}
     {error && (<div className="mb-3 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
       {error}
     </div>)}
-    {successMessage && (<div className="mb-3 rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
-      {successMessage}
-    </div>)}
-
     {loading && (<div className="mb-3 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-800">
       Đang tải dữ liệu phiếu nhập...
     </div>)}
 
-    <DataTable title="Phiếu nhập kho" columns={columns} data={viewRows} searchPlaceholder="Tìm kiếm..." advancedFilterKeys={["supplier", "employee", "status", "date", "total", "productCount", "qtyTotal"]} forceSelectFilterKeys={["supplier", "employee", "status"]} rangeFilterKeys={[
+    <DataTable title="Phiếu nhập kho" columns={columns} data={viewRows} searchPlaceholder="Tìm kiếm..." defaultSortBy="id" defaultSortDirection="desc" advancedFilterKeys={["supplier", "employee", "status", "date", "total", "productCount", "qtyTotal"]} forceSelectFilterKeys={["supplier", "employee", "status"]} rangeFilterKeys={[
       { key: 'total', minPlaceholder: 'Tổng tiền từ', maxPlaceholder: 'Tổng tiền đến', inputType: 'number' },
       { key: 'date', minPlaceholder: 'Ngày nhập từ', maxPlaceholder: 'Ngày nhập đến', inputType: 'date' },
       { key: 'productCount', minPlaceholder: 'Số dòng SP từ', maxPlaceholder: 'Số dòng SP đến', inputType: 'number' },
@@ -338,12 +401,38 @@ export function StockReceipts() {
 
               <div className="col-span-6 md:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-gray-600">Số lượng</label>
-                <input type="number" min={1} value={line.sl} onChange={(e) => updateLine(index, { sl: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={line.sl}
+                  onChange={(e) => {
+                    const val = Math.floor(Math.abs(Number(e.target.value) || 0));
+                    updateLine(index, { sl: val });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',' || e.key === '-' || e.key === 'e') e.preventDefault();
+                  }}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
               </div>
 
               <div className="col-span-6 md:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-gray-600">Giá nhập</label>
-                <input type="number" min={1} value={line.tienNhap} onChange={(e) => updateLine(index, { tienNhap: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={line.tienNhap}
+                  onChange={(e) => {
+                    const val = Math.floor(Math.abs(Number(e.target.value) || 0));
+                    updateLine(index, { tienNhap: val });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',' || e.key === '-' || e.key === 'e') e.preventDefault();
+                  }}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                />
               </div>
 
               <div className="col-span-6 md:col-span-2">
@@ -449,6 +538,77 @@ export function StockReceipts() {
           </button>
         </div>
       </div>) : (<div className="py-8 text-center text-sm text-gray-500">Không có dữ liệu chi tiết phiếu.</div>)}
+    </Modal>
+
+    {/* Modal gợi ý cập nhật giá bán sau khi approve */}
+    <Modal isOpen={priceChangeOpen} onClose={() => setPriceChangeOpen(false)} title="Giá nhập thay đổi — Gợi ý cập nhật giá bán" size="xl">
+      <div className="space-y-4">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Phiếu nhập vừa được duyệt có sản phẩm thay đổi giá nhập đáng kể. Bạn có muốn cập nhật giá bán không?
+        </div>
+
+        <div className="overflow-x-auto rounded-lg border border-gray-100">
+          <table className="w-full min-w-[600px]">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Sản phẩm</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá nhập cũ</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá nhập mới</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá bán hiện tại</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá bán mới</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {priceChanges.map((c) => {
+                const priceUp = c.newImportPrice > c.oldImportPrice;
+                return (
+                  <tr key={c.msp}>
+                    <td className="px-3 py-2">
+                      <p className="font-medium text-gray-900">{c.tenSP}</p>
+                      {c.sellBelowImport ? (
+                        <span className="text-[10px] text-red-600 font-medium">⚠ Giá bán đang thấp hơn giá nhập</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-500">{VND.format(c.oldImportPrice)} đ</td>
+                    <td className="px-3 py-2 text-right">
+                      <span className={`font-semibold ${priceUp ? 'text-red-600' : 'text-green-600'}`}>
+                        {priceUp ? '▲' : '▼'} {VND.format(c.newImportPrice)} đ
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600">{VND.format(c.currentSellPrice)} đ</td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={priceUpdateValues[c.msp] || ''}
+                        onChange={(e) => setPriceUpdateValues((prev) => ({
+                          ...prev,
+                          [c.msp]: Number(e.target.value) || 0,
+                        }))}
+                        className="w-36 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button type="button" onClick={() => setPriceChangeOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
+            Bỏ qua
+          </button>
+          <button
+            type="button"
+            onClick={handleApplyPriceUpdates}
+            disabled={priceUpdateSaving}
+            className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:opacity-60"
+          >
+            {priceUpdateSaving ? 'Đang lưu...' : 'Cập nhật giá bán'}
+          </button>
+        </div>
+      </div>
     </Modal>
   </>);
 }

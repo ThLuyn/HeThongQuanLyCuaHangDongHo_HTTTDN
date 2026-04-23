@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Printer } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { loadAuthSession } from '../utils/authStorage';
@@ -244,6 +244,95 @@ const columns = [
   },
 ];
 
+function ProductCombobox({ value, onChange, products }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const selected = products.find((p) => Number(p.MSP) === Number(value));
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return products.slice(0, 50);
+    const q = query.toLowerCase();
+    return products.filter(
+      (p) =>
+        String(p.MSP).includes(q) ||
+        (p.TEN || '').toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [query, products]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSelect = (product) => {
+    onChange(product);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onChange(null);
+    setQuery('');
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className="flex items-center w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm cursor-pointer focus-within:ring-2 focus-within:ring-gold-400/50"
+        onClick={() => setOpen(true)}
+      >
+        {!open && selected ? (
+          <span className="flex-1 truncate text-gray-800">
+            {selected.TEN}
+            <span className="ml-1 text-gray-400">(Tồn: {selected.SOLUONG})</span>
+          </span>
+        ) : (
+          <input
+            autoFocus={open}
+            className="flex-1 outline-none bg-transparent placeholder-gray-400"
+            placeholder={selected ? selected.TEN : 'Tìm theo tên hoặc mã SP...'}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+          />
+        )}
+        {selected && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="ml-1 text-gray-400 hover:text-gray-600 text-base leading-none"
+          >×</button>
+        )}
+        <span className="ml-1 text-gray-400 text-xs">▾</span>
+      </div>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-56 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-4 text-center text-sm text-gray-400">Không tìm thấy sản phẩm</div>
+          ) : filtered.map((p) => (
+            <div
+              key={p.MSP}
+              className={`flex items-center justify-between px-3 py-2 text-sm cursor-pointer hover:bg-gold-50 hover:text-gold-700 ${Number(value) === Number(p.MSP) ? 'bg-gold-50 font-medium' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(p); }}
+            >
+              <span className="truncate">{p.TEN}</span>
+              <span className="ml-3 shrink-0 text-xs text-gray-400">Tồn: {p.SOLUONG}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ExportReceipts() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -419,9 +508,9 @@ export function ExportReceipts() {
       onClick: async (row) => {
         try {
           const invoiceData = await getExportReceiptDetailApi(Number(row.mpx));
-          await downloadInvoice(invoiceData);
+          printInvoice(invoiceData);
         } catch (e) {
-          setError('Không thể tải dữ liệu để xuất hóa đơn PDF');
+          setError('Không thể tải dữ liệu để in hóa đơn');
         }
       },
       hidden: (row) => Number(row.statusCode) === 0,
@@ -445,7 +534,7 @@ export function ExportReceipts() {
     if (items.length === 0) {
       setError('Phiếu xuất cần ít nhất 1 sản phẩm.');
       return false;
-    } F
+    }
 
     const invalid = items.some((line) => {
       if (line.msp === '')
@@ -532,7 +621,8 @@ export function ExportReceipts() {
       { key: 'date', minPlaceholder: 'Ngày bán từ', maxPlaceholder: 'Ngày bán đến', inputType: 'date' },
       { key: 'productCount', minPlaceholder: 'Số dòng SP từ', maxPlaceholder: 'Số dòng SP đến', inputType: 'number' },
       { key: 'qtyTotal', minPlaceholder: 'Tổng SL từ', maxPlaceholder: 'Tổng SL đến', inputType: 'number' },
-    ]} onAdd={openCreate} addLabel="Tạo phiếu xuất" rowActions={rowActions} emptyState={<div>
+    ]} onAdd={openCreate} addLabel="Tạo phiếu xuất" rowActions={rowActions}  defaultSortBy="id"
+        defaultSortDirection="desc" emptyState={<div>
       <p className="font-medium text-gray-500">Chưa có phiếu xuất nào</p>
       <p className="mt-1 text-xs text-gray-400">Tạo phiếu xuất bán tại quầy đầu tiên để đồng bộ doanh thu và tồn kho.</p>
     </div>} />)}
@@ -562,19 +652,16 @@ export function ExportReceipts() {
             return (<div key={index} className="grid grid-cols-12 gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
               <div className="col-span-12 md:col-span-6">
                 <label className="mb-1 block text-xs font-medium text-gray-600">Sản phẩm</label>
-                <select value={line.msp} onChange={(e) => {
-                  const productId = e.target.value ? Number(e.target.value) : '';
-                  const nextProduct = products.find((product) => Number(product.MSP) === Number(productId));
-                  updateLine(index, {
-                    msp: productId,
-                    tienXuat: Number(nextProduct?.GIABAN || 0),
-                  });
-                }} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50">
-                  <option value="">Chọn sản phẩm</option>
-                  {saleProducts.map((product) => (<option key={product.MSP} value={product.MSP}>
-                    {product.TEN} (Tồn: {product.SOLUONG})
-                  </option>))}
-                </select>
+                <ProductCombobox
+                  value={line.msp}
+                  products={saleProducts}
+                  onChange={(product) => {
+                    updateLine(index, {
+                      msp: product ? Number(product.MSP) : '',
+                      tienXuat: Number(product?.GIABAN || 0),
+                    });
+                  }}
+                />
               </div>
               <div className="col-span-6 md:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-gray-600">Số lượng</label>

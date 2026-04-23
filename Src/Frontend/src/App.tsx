@@ -37,10 +37,10 @@ const pageTitles = {
     'position-salary': 'Chức vụ và Lương',
     'watch-categories': 'Sản phẩm',
     suppliers: 'Nhà cung cấp',
-    'stock-receipts': 'Phiếu nhập kho',
-    'export-receipts': 'Phiếu xuất hàng',
+    'stock-receipts': 'Nhập kho',
+    'export-receipts': 'Xuất hàng',
     'sales-report': 'Báo cáo doanh số',
-    'user-management': 'Quản lý User',
+    'user-management': 'Quản lý tài khoản người dùng',
     'permission-management': 'Phân quyền hệ thống',
     profile: 'Thông tin cá nhân',
     'change-password': 'Đổi mật khẩu',
@@ -170,10 +170,10 @@ export function App() {
     // KHÔNG dùng để điều hướng sau login — handleLogin tự xử lý
     useEffect(() => {
         if (!isAuthenticated) return;
-        if (!canAccessPage(activePage)) {
+        if (!canAccessPage(activePage, Number(currentMnq))) {
             setActivePage(findFirstAllowedPage());
         }
-    }, [currentPermissions, currentRole]);
+    }, [currentPermissions, currentRole, currentMnq]);
     useEffect(() => {
         localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, activePage);
     }, [activePage]);
@@ -198,9 +198,19 @@ export function App() {
             setCurrentDepartment(loginData.user.department || '');
             setCurrentPermissions(loginData.user.permissions || []);
             setCurrentMnv(loginData.user.mnv || 0);
-            setCurrentMnq(loginData.user.mnq || 0);
-            // Điều hướng trang mặc định theo MNQ từ API (không dùng state vì chưa kịp update)
-            const defaultPage = Number(loginData.user.mnq) === 1 ? 'dashboard' : 'my-attendance';
+            // Lấy mnq từ loginData nếu có, nếu không thì gọi thêm profile để lấy
+            let resolvedMnq = Number(loginData.user.mnq) || 0;
+            if (!resolvedMnq) {
+                try {
+                    const profile = await getMyProfileApi();
+                    resolvedMnq = Number(profile.mnq) || 0;
+                } catch (_) {}
+            }
+            setCurrentMnq(resolvedMnq);
+            const session = loadAuthSession();
+            if (session) saveAuthSession({ ...session, mnq: resolvedMnq });
+            // Điều hướng trang mặc định theo MNQ
+            const defaultPage = resolvedMnq === 1 ? 'dashboard' : 'my-attendance';
             setActivePage(defaultPage);
             return { ok: true };
         }
@@ -291,10 +301,10 @@ export function App() {
                     department: profile.department || session.department || '',
                     mnq: nextMnq,
                 });
+                setCurrentMnq(nextMnq);
                 setCurrentRole(profile.role || '');
                 setCurrentDepartment(profile.department || '');
                 setCurrentPermissions(profile.permissions || []);
-                setCurrentMnq(nextMnq);
             }
             catch (_error) {
             }

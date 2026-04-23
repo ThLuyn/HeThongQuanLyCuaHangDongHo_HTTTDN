@@ -466,7 +466,22 @@ async function getSalesReportByDateRange(startDate, endDate) {
     `
       SELECT
         COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU,
-        COALESCE(SUM(ctx.SL * sp.GIANHAP), 0) AS GIANVON,
+        COALESCE(
+          SUM(
+            ctx.SL * (
+              SELECT
+                CASE WHEN SUM(cti.SL) > 0
+                     THEN SUM(cti.SL * cti.TIENNHAP) / SUM(cti.SL)
+                     ELSE sp.GIANHAP
+                END
+              FROM CTPHIEUNHAP cti
+              INNER JOIN PHIEUNHAP pni ON pni.MPN = cti.MPN
+              WHERE cti.MSP = ctx.MSP
+                AND pni.TT  = 1
+                AND pni.TG <= px.TG
+            )
+          ), 0
+        ) AS GIANVON,
         COALESCE(SUM(ctx.SL), 0) AS TONGSOLUONG
       FROM PHIEUXUAT px
       INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
@@ -528,7 +543,22 @@ async function getSalesReportByDateRange(startDate, endDate) {
         COALESCE(NULLIF(TRIM(sp.THUONGHIEU), ''), 'Khác') AS DANHMUC,
         COALESCE(SUM(ctx.SL), 0) AS SOLUONG,
         COALESCE(SUM(ctx.SL * ctx.TIENXUAT), 0) AS DOANHTHU,
-        COALESCE(SUM(ctx.SL * sp.GIANHAP), 0) AS GIANVON
+        COALESCE(
+          SUM(
+            ctx.SL * (
+              SELECT
+                CASE WHEN SUM(cti.SL) > 0
+                     THEN SUM(cti.SL * cti.TIENNHAP) / SUM(cti.SL)
+                     ELSE sp.GIANHAP
+                END
+              FROM CTPHIEUNHAP cti
+              INNER JOIN PHIEUNHAP pni ON pni.MPN = cti.MPN
+              WHERE cti.MSP = ctx.MSP
+                AND pni.TT  = 1
+                AND pni.TG <= px.TG
+            )
+          ), 0
+        ) AS GIANVON
       FROM PHIEUXUAT px
       INNER JOIN CTPHIEUXUAT ctx ON ctx.MPX = px.MPX
       INNER JOIN SANPHAM sp ON sp.MSP = ctx.MSP

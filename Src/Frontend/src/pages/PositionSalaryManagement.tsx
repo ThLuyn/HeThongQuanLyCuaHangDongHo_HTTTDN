@@ -31,6 +31,7 @@ export function PositionSalaryManagement() {
     effectiveDate: '',
     note: '',
   });
+  const [tab, setTab] = useState<'position' | 'history'>('position');
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const [selectedHistoryRow, setSelectedHistoryRow] = useState(null);
   const [effectiveDateRange, setEffectiveDateRange] = useState({ from: '', to: '' });
@@ -412,93 +413,109 @@ export function PositionSalaryManagement() {
 
   return (
     <div className="space-y-5">
-      <DataTable
-        title="Danh sách chức vụ"
-        columns={columns}
-        data={rows}
-        onAdd={openAdd}
-        addLabel="Thêm chức vụ"
-        searchPlaceholder="Tìm kiếm..."
-        noHorizontalScroll
-        pageSize={5}
-        emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
-        rowActions={[
-          {
-            key: 'edit',
-            label: 'Sửa',
-            onClick: openEdit,
-            className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
-          },
-          {
-            key: 'delete',
-            label: 'Ngưng áp dụng',
-            onClick: handleSoftDelete,
-            className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
-          },
-        ]}
-      />
+      {/* Tabs */}
+      <div className="flex gap-2 border-b mb-4">
+        <button
+          className={`px-4 py-2 font-semibold border-b-2 transition-colors ${tab === 'position' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
+          onClick={() => setTab('position')}
+        >Chức vụ</button>
+        <button
+          className={`px-4 py-2 font-semibold border-b-2 transition-colors ${tab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
+          onClick={() => setTab('history')}
+        >Lịch sử công tác</button>
+      </div>
 
-      <DataTable
-        title="Lịch sử công tác"
-        columns={historyColumns}
-        data={filteredHistoryTableData}
-        defaultSortBy="effectiveDate"
-        defaultSortDirection="desc"
-        onAdd={openTransferModal}
-        addLabel="Chuyển công tác"
-        searchPlaceholder="Tìm kiếm..."
-        advancedFilterKeys={['employeeSearchText', 'newPositionName', 'note']}
-        externalHasActiveFilters={hasExternalHistoryDateFilters}
-        onClearExternalFilters={clearExternalHistoryDateFilters}
-        customAdvancedFilters={
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Ngày hiệu lực</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={effectiveDateRange.from}
-                  onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-                />
-                <input
-                  type="date"
-                  value={effectiveDateRange.to}
-                  onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-                />
+      {tab === 'position' && (
+        <DataTable
+          title="Danh sách chức vụ"
+          columns={columns}
+          data={rows}
+          onAdd={openAdd}
+          addLabel="Thêm chức vụ"
+          searchPlaceholder="Tìm kiếm..."
+          noHorizontalScroll
+          pageSize={5}
+          emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
+          rowActions={[
+            {
+              key: 'edit',
+              label: 'Sửa',
+              onClick: openEdit,
+              className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
+            },
+            {
+              key: 'delete',
+              label: 'Ngưng áp dụng',
+              onClick: handleSoftDelete,
+              className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
+            },
+          ]}
+        />
+      )}
+
+      {tab === 'history' && (
+        <DataTable
+          title="Lịch sử công tác"
+          columns={historyColumns}
+          data={filteredHistoryTableData}
+          defaultSortBy="effectiveDate"
+          defaultSortDirection="desc"
+          onAdd={openTransferModal}
+          addLabel="Chuyển công tác"
+          searchPlaceholder="Tìm kiếm..."
+          advancedFilterKeys={['employeeSearchText', 'newPositionName', 'note']}
+          externalHasActiveFilters={hasExternalHistoryDateFilters}
+          onClearExternalFilters={clearExternalHistoryDateFilters}
+          customAdvancedFilters={
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Ngày hiệu lực</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={effectiveDateRange.from}
+                    onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, from: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                  <input
+                    type="date"
+                    value={effectiveDateRange.to}
+                    onChange={(e) => setEffectiveDateRange((prev) => ({ ...prev, to: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Ngày kết thúc</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={endDateRange.from}
+                    onChange={(e) => setEndDateRange((prev) => ({ ...prev, from: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                  <input
+                    type="date"
+                    value={endDateRange.to}
+                    onChange={(e) => setEndDateRange((prev) => ({ ...prev, to: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Ngày kết thúc</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={endDateRange.from}
-                  onChange={(e) => setEndDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-                />
-                <input
-                  type="date"
-                  value={endDateRange.to}
-                  onChange={(e) => setEndDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
-                />
-              </div>
-            </div>
-          </div>
-        }
-        pageSize={5}
-        emptyState={historyLoading ? 'Đang tải lịch sử công tác...' : 'Chưa có dữ liệu lịch sử công tác'}
-        rowActions={[
-          {
-            key: 'view',
-            label: 'Xem chi tiết',
-            onClick: openHistoryDetail,
-            className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
-          },
-        ]}
-      />
+          }
+          pageSize={5}
+          emptyState={historyLoading ? 'Đang tải lịch sử công tác...' : 'Chưa có dữ liệu lịch sử công tác'}
+          rowActions={[
+            {
+              key: 'view',
+              label: 'Xem chi tiết',
+              onClick: openHistoryDetail,
+              className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
+            },
+          ]}
+        />
+      )}
 
       <Modal isOpen={historyDetailOpen} onClose={() => setHistoryDetailOpen(false)} title="Chi tiết lịch sử chức vụ" size="lg">
         {selectedHistoryRow ? (

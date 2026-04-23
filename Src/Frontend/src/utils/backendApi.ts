@@ -499,9 +499,12 @@ export type SalesReportData = {
     category: string
     units: number
     revenue: number
+    /** Tiền vốn xuất = SL × WAC tại thời điểm bán */
     cost: number
     profit: number
     margin: number
+    /** Giá nhập bình quân gia quyền (WAC) toàn lịch sử — tham khảo */
+    wacOverall: number
   }>
 }
 
@@ -1065,14 +1068,54 @@ export async function getImportReceiptDetailApi(id: number): Promise<ImportRecei
   return response.data
 }
 
+export type PriceChangeItem = {
+  msp: number
+  tenSP: string
+  oldImportPrice: number
+  newImportPrice: number
+  currentSellPrice: number
+  sellBelowImport: boolean
+  priceIncreased: boolean
+}
+
+export type DecideImportReceiptResult = {
+  priceChanges: PriceChangeItem[]
+}
+
 export async function decideImportReceiptApi(
   id: number,
   payload: { action: 'approve' | 'reject'; reason?: string },
-): Promise<void> {
-  await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/import-receipts/${id}/decision`, {
-    method: 'PATCH',
-    body: payload,
-  })
+): Promise<DecideImportReceiptResult> {
+  const response = await apiRequest<ApiEnvelope<DecideImportReceiptResult>>(
+    `/api/admin/inventory/import-receipts/${id}/decision`,
+    {
+      method: 'PATCH',
+      body: payload,
+    },
+  )
+  return response.data ?? { priceChanges: [] }
+}
+
+export type ImportHistoryItem = {
+  MPN: number
+  TG: string
+  SL: number
+  TIENNHAP: number
+  THANHTIEN: number
+  TENNHACUNGCAP: string
+  TENNHANVIEN: string | null
+}
+
+export type ProductImportHistory = {
+  history: ImportHistoryItem[]
+  wac: number
+}
+
+export async function getProductImportHistoryApi(productId: number): Promise<ProductImportHistory> {
+  const response = await apiRequest<ApiEnvelope<ProductImportHistory>>(
+    `/api/admin/inventory/products/${productId}/import-history`,
+  )
+  return response.data
 }
 
 export async function getCustomersApi(): Promise<CustomerItem[]> {

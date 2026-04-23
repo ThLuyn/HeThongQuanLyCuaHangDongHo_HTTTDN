@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { AlertTriangleIcon, CircleAlertIcon, FileTextIcon, ImageOffIcon, LayoutGridIcon, ListIcon, PackageSearchIcon, RefreshCcwIcon } from 'lucide-react';
+import { AlertTriangleIcon, CircleAlertIcon, ClockIcon, FileTextIcon, ImageOffIcon, LayoutGridIcon, ListIcon, PackageSearchIcon, RefreshCcwIcon, TrendingUpIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { loadAuthSession } from '../utils/authStorage';
-import { createDisplayLocationApi, createImportReceiptApi, createProductApi, decideImportReceiptApi, deleteDisplayLocationApi, deleteProductApi, getDisplayLocationsApi, getInventoryReportApi, getProductsApi, getSuppliersApi, updateDisplayLocationApi, updateProductApi, uploadProductImageApi, } from '../utils/backendApi';
+import { createDisplayLocationApi, createImportReceiptApi, createProductApi, decideImportReceiptApi, deleteDisplayLocationApi, deleteProductApi, getDisplayLocationsApi, getInventoryReportApi, getProductImportHistoryApi, getProductsApi, getSuppliersApi, updateDisplayLocationApi, updateProductApi, uploadProductImageApi, } from '../utils/backendApi';
 import { buildInventoryReportDocument, exportInventoryReportPdf, printInventoryReportDocument } from '../utils/inventoryReportExport';
 const productImageModules = import.meta.glob('../assets/img_products/*.{png,jpg,jpeg,webp,avif}', {
   eager: true,
@@ -28,6 +28,11 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     const [displayLocations, setDisplayLocations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState({ type: 'info', message: '' });
+    const showNotice = (message, type = 'info') => {
+      if (!message) return;
+      setNotice({ type, message: String(message) });
+    };
     const [modalOpen, setModalOpen] = useState(false);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [viewingProduct, setViewingProduct] = useState(null);
@@ -50,7 +55,18 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     const [quickImportOpen, setQuickImportOpen] = useState(false);
     const [quickImportSaving, setQuickImportSaving] = useState(false);
     const [quickImportLines, setQuickImportLines] = useState([]);
+    const [quickImportConfirmOpen, setQuickImportConfirmOpen] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
+
+    // Modal xác nhận xóa
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'product'|'location', row }
+
+    // Lịch sử nhập hàng
+    const [importHistoryOpen, setImportHistoryOpen] = useState(false);
+    const [importHistoryProduct, setImportHistoryProduct] = useState(null);
+    const [importHistoryData, setImportHistoryData] = useState(null);
+    const [importHistoryLoading, setImportHistoryLoading] = useState(false);
+
     const [form, setForm] = useState({
         name: '',
       image: '',
@@ -197,6 +213,13 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
         },
         {
+            key: 'history',
+            label: 'Lịch sử nhập hàng',
+            onClick: (row) => openImportHistory(row),
+            className: 'p-1.5 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors',
+            render: () => <ClockIcon className="w-4 h-4" />,
+        },
+        {
             key: 'edit',
             label: 'Sửa',
             onClick: (row) => openEdit(row),
@@ -291,6 +314,22 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     useEffect(() => {
         loadReport();
     }, [reportMonth, reportYear]);
+
+    const openImportHistory = async (row) => {
+      setImportHistoryProduct(row);
+      setImportHistoryData(null);
+      setImportHistoryOpen(true);
+      setImportHistoryLoading(true);
+      try {
+        const data = await getProductImportHistoryApi(row.msp);
+        setImportHistoryData(data);
+      } catch (e) {
+        setImportHistoryData(null);
+      } finally {
+        setImportHistoryLoading(false);
+      }
+    };
+
     const openAdd = () => {
         setEditing(null);
         setForm({
@@ -339,6 +378,10 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     const handleSave = async () => {
         if (!form.name.trim() || !form.supplierId)
             return;
+        if (form.productionYear && Number(form.productionYear) > new Date().getFullYear()) {
+            showNotice('Năm sản xuất không được là năm tương lai.', 'error');
+            return;
+        }
         const payload = {
             name: form.name.trim(),
           image: form.image.trim() || undefined,
@@ -361,9 +404,10 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             setModalOpen(false);
             await loadProductsAndSuppliers();
             await loadReport();
+            showNotice(editing ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công', 'success');
         }
         catch (e) {
-            alert(e instanceof Error ? e.message : 'Khong the luu san pham');
+            showNotice(e instanceof Error ? e.message : 'Không thể lưu sản phẩm', 'error');
         }
     };
     const handleUploadImageFromDevice = async (event) => {
@@ -386,16 +430,25 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
         setImageUploading(false);
       }
     };
-    const handleDelete = async (row) => {
-        if (!confirm(`Xóa sản phẩm "${row.name}"?`))
-            return;
+    const handleDelete = (row) => {
+        setDeleteConfirm({ type: 'product', row });
+    };
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { type, row } = deleteConfirm;
+        setDeleteConfirm(null);
         try {
-            await deleteProductApi(row.msp);
-            await loadProductsAndSuppliers();
-            await loadReport();
+            if (type === 'product') {
+                await deleteProductApi(row.msp);
+                await loadProductsAndSuppliers();
+                await loadReport();
+            } else if (type === 'location') {
+                await deleteDisplayLocationApi(row.mvt);
+                await loadProductsAndSuppliers();
+            }
         }
         catch (e) {
-            alert(e instanceof Error ? e.message : 'Khong the xoa san pham');
+            showNotice(e instanceof Error ? e.message : 'Không thể xóa', 'error');
         }
     };
       const handleSaveLocation = async () => {
@@ -421,16 +474,8 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
           alert(e instanceof Error ? e.message : 'Không thể lưu vị trí trưng bày');
         }
       };
-      const handleDeleteLocation = async (row) => {
-        if (!confirm(`Xóa vị trí trưng bày?`))
-          return;
-        try {
-          await deleteDisplayLocationApi(row.mvt);
-          await loadProductsAndSuppliers();
-        }
-        catch (e) {
-          alert(e instanceof Error ? e.message : 'Không thể xóa vị trí trưng bày. Vị trí có thể đang được sản phẩm sử dụng.');
-        }
+      const handleDeleteLocation = (row) => {
+        setDeleteConfirm({ type: 'location', row });
       };
       const locationRows = useMemo(() => displayLocations.map((item) => ({
         mvt: Number(item.MVT),
@@ -524,23 +569,24 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
     };
     const saveQuickImport = async () => {
       if (quickImportLines.length === 0) {
-        alert('Không có sản phẩm để nhập kho.');
+        showNotice('Không có sản phẩm để nhập kho.', 'error');
         return;
       }
-      const hasInvalid = quickImportLines.some((line) => Number(line.qty) <= 0 || Number(line.tienNhap) <= 0);
+      const hasInvalid = quickImportLines.some(
+        (line) => Math.floor(Number(line.qty)) <= 0 || Number(line.tienNhap) <= 0
+      );
       if (hasInvalid) {
-        alert('Vui lòng nhập số lượng và giá nhập hợp lệ (> 0).');
+        showNotice('Vui lòng nhập số lượng và giá nhập hợp lệ (> 0).', 'error');
         return;
       }
       const groupedBySupplier = quickImportLines.reduce((acc, line) => {
         const key = Number(line.supplierId);
-        if (!acc[key]) {
-          acc[key] = [];
-        }
+        if (!acc[key]) acc[key] = [];
         acc[key].push(line);
         return acc;
       }, {});
       setQuickImportSaving(true);
+      setError('');
       try {
         const session = loadAuthSession();
         for (const supplierId of Object.keys(groupedBySupplier)) {
@@ -550,8 +596,8 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             mncc: Number(supplierId),
             items: lines.map((line) => ({
               msp: Number(line.msp),
-              sl: Number(line.qty),
-              tienNhap: Number(line.tienNhap),
+              sl: Math.floor(Number(line.qty)),
+              tienNhap: Math.floor(Number(line.tienNhap)),
             })),
           });
           await decideImportReceiptApi(Number(created.importReceiptId), { action: 'approve' });
@@ -560,9 +606,10 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
         setSelectedLowStockIds([]);
         await loadProductsAndSuppliers();
         await loadReport();
+        showNotice('Nhập kho nhanh thành công', 'success');
       }
       catch (e) {
-        alert(e instanceof Error ? e.message : 'Không thể nhập kho nhanh');
+        showNotice(e instanceof Error ? e.message : 'Không thể nhập kho nhanh', 'error');
       }
       finally {
         setQuickImportSaving(false);
@@ -586,7 +633,6 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
       if (!allVisibleLowStockIds.includes(targetId))
         return;
       setPrioritizedLowStockProductId(targetId);
-      // Notification targeting is single-focus: keep only the clicked low-stock product checked.
       setSelectedLowStockIds([targetId]);
       if (typeof onConsumeTargetLowStock === 'function') {
         onConsumeTargetLowStock();
@@ -598,6 +644,11 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
         setPrioritizedLowStockProductId(null);
       }
     }, [isLowStockMode]);
+    useEffect(() => {
+      if (!notice.message) return;
+      const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 5000);
+      return () => window.clearTimeout(timer);
+    }, [notice.message]);
     const buildInventoryReportData = () => {
       const session = loadAuthSession();
       const reportCreator = session?.fullName || session?.username || 'Chưa xác định';
@@ -630,8 +681,16 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
       exportInventoryReportPdf(reportData, reportMonth, reportYear);
     };
     return (<div className="space-y-4">
+      {notice.message ? (
+        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
+          <div className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
+            <p className="leading-relaxed">{notice.message}</p>
+            <button type="button" onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5" aria-label="Đóng thông báo">×</button>
+          </div>
+        </div>
+      ) : null}
       {error && (<div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Không tải được dữ liệu backend: {error}
+          {error}
         </div>)}
 
       {isLowStockMode ? (<div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -762,7 +821,8 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
         emptyState={emptyState}
         addLabel="Thêm sản phẩm"
         pageSize={5}
-        defaultSortBy="name"
+        defaultSortBy="id"
+        defaultSortDirection="desc"
       />
 
       <div className="space-y-3">
@@ -903,35 +963,11 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Năm sản xuất</label>
-              <input type="number" value={form.productionYear ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, productionYear: e.target.value ? Number(e.target.value) : null }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"/>
+              <input type="number" value={form.productionYear ?? ''} max={new Date().getFullYear()} onChange={(e) => { const val = e.target.value ? Number(e.target.value) : null; setForm((prev) => ({ ...prev, productionYear: val })); }} className={'w-full px-3 py-2 text-sm border rounded-lg ' + (form.productionYear && form.productionYear > new Date().getFullYear() ? 'border-red-300 bg-red-50/40' : 'border-gray-200')}/>
+              {form.productionYear && form.productionYear > new Date().getFullYear() ? (<p className="mt-1 text-xs text-red-600">Năm sản xuất không được là năm tương lai.</p>) : null}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Giá nhập</label>
-              <input
-                type="number"
-                value={form.importPrice}
-                onChange={(e) => setForm((prev) => ({ ...prev, importPrice: Number(e.target.value) || 0 }))}
-                disabled={Boolean(editing)}
-                className={`w-full px-3 py-2 text-sm border rounded-lg ${editing
-                    ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : 'border-gray-200'}`}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán</label>
-              <input type="number" value={form.sellPrice} onChange={(e) => setForm((prev) => ({ ...prev, sellPrice: Number(e.target.value) || 0 }))} className={`w-full px-3 py-2 text-sm border rounded-lg ${isSellPriceLowerThanImport ? 'border-amber-300 bg-amber-50/40' : 'border-gray-200'}`}/>
-              {isSellPriceLowerThanImport ? (<p className="mt-1 inline-flex items-center gap-1 text-xs text-amber-700">
-                  <AlertTriangleIcon className="h-3.5 w-3.5"/>
-                  Giá bán đang nhỏ hơn giá nhập.
-                </p>) : null}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho</label>
-              <input type="number" value={form.stock} onChange={(e) => setForm((prev) => ({ ...prev, stock: Number(e.target.value) || 0 }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"/>
-            </div>
-          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
             <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg">
@@ -973,10 +1009,6 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
 
       <Modal isOpen={quickImportOpen} onClose={() => setQuickImportOpen(false)} title="Nhập kho nhanh sản phẩm sắp hết hàng" size="xl">
         <div className="space-y-3">
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-            Hệ thống sẽ tự tạo phiếu nhập theo từng nhà cung cấp và tự duyệt để cập nhật tồn kho ngay.
-          </div>
-
           <div className="overflow-x-auto rounded-lg border border-gray-100">
             <table className="w-full min-w-[760px]">
               <thead>
@@ -999,8 +1031,13 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
                       <input
                         type="number"
                         min={1}
+                        step={1}
                         value={line.qty}
-                        onChange={(e) => setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, qty: Number(e.target.value) || 0 } : item))}
+                        onChange={(e) => {
+                          const val = Math.floor(Math.abs(Number(e.target.value) || 0));
+                          setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, qty: val } : item));
+                        }}
+                        onKeyDown={(e) => { if (['.', ',', '-', 'e'].includes(e.key)) e.preventDefault(); }}
                         className="w-24 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
                       />
                     </td>
@@ -1008,8 +1045,13 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
                       <input
                         type="number"
                         min={1}
+                        step={1}
                         value={line.tienNhap}
-                        onChange={(e) => setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, tienNhap: Number(e.target.value) || 0 } : item))}
+                        onChange={(e) => {
+                          const val = Math.floor(Math.abs(Number(e.target.value) || 0));
+                          setQuickImportLines((prev) => prev.map((item, idx) => idx === index ? { ...item, tienNhap: val } : item));
+                        }}
+                        onKeyDown={(e) => { if (['.', ',', '-', 'e'].includes(e.key)) e.preventDefault(); }}
                         className="w-32 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
                       />
                     </td>
@@ -1022,8 +1064,52 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             <button type="button" onClick={() => setQuickImportOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
               Hủy
             </button>
-            <button type="button" onClick={saveQuickImport} disabled={quickImportSaving} className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60">
-              {quickImportSaving ? 'Đang nhập...' : 'Xác nhận nhập kho'}
+            <button type="button" onClick={() => setQuickImportConfirmOpen(true)} disabled={quickImportSaving} className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60">
+              Xác nhận nhập kho
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal xác nhận nhập kho nhanh */}
+      <Modal isOpen={quickImportConfirmOpen} onClose={() => setQuickImportConfirmOpen(false)} title="" size="sm">
+        <div className="flex flex-col items-center text-center px-2 pb-2 space-y-4">
+          {/* Icon */}
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-100">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gold-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8 8-4-4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h2m0 0V6a1 1 0 011-1h12a1 1 0 011 1v4m-14 0h14m0 0v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8" />
+            </svg>
+          </div>
+
+          {/* Title & description */}
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-semibold text-gray-900">Xác nhận nhập kho</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Xác nhận nhập kho cho sản phẩm này?<br />
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex w-full gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setQuickImportConfirmOpen(false)}
+              disabled={quickImportSaving}
+              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setQuickImportConfirmOpen(false);
+                await saveQuickImport();
+              }}
+              disabled={quickImportSaving}
+              className="flex-1 rounded-xl bg-gold-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+            >
+              {quickImportSaving ? 'Đang nhập...' : 'Nhập kho'}
             </button>
           </div>
         </div>
@@ -1069,7 +1155,7 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
                 <p className="mt-1 font-medium text-gray-900">{viewingProduct?.productionYear || 'Chưa cập nhật'}</p>
               </div>
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-                <p className="text-xs text-blue-600">Giá nhập</p>
+                <p className="text-xs text-blue-600">Giá nhập mới nhất</p>
                 <p className="mt-1 font-semibold text-blue-800">{formatMoney(viewingProduct?.importPrice || 0)}</p>
               </div>
               <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
@@ -1090,5 +1176,140 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
           </div>
         </div>
       </Modal>
+
+      {/* Modal lịch sử nhập hàng */}
+      <Modal isOpen={importHistoryOpen} onClose={() => setImportHistoryOpen(false)} title={`Lịch sử nhập hàng — ${importHistoryProduct?.name || ''}`} size="xl">
+        {importHistoryLoading ? (
+          <div className="py-10 text-center text-sm text-gray-500">Đang tải lịch sử nhập hàng...</div>
+        ) : importHistoryData ? (
+          <div className="space-y-4">
+            {/* Tóm tắt WAC */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm">
+                <p className="text-xs text-blue-600">Giá nhập mới nhất</p>
+                <p className="mt-1 font-semibold text-blue-800">
+                  {importHistoryData.history.length > 0
+                    ? formatMoney(Number(importHistoryData.history[0].TIENNHAP || 0))
+                    : '—'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm">
+                <p className="text-xs text-purple-600 flex items-center gap-1">
+                  <TrendingUpIcon className="h-3 w-3" />
+                  Giá bình quân gia quyền (WAC)
+                </p>
+                <p className="mt-1 font-semibold text-purple-800">{formatMoney(importHistoryData.wac)}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+                <p className="text-xs text-gray-500">Số đợt nhập</p>
+                <p className="mt-1 font-semibold text-gray-900">{importHistoryData.history.length} đợt</p>
+              </div>
+            </div>
+
+            {/* Bảng lịch sử */}
+            {importHistoryData.history.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                Chưa có lịch sử nhập hàng được duyệt.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-gray-100">
+                <table className="w-full min-w-[640px]">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Phiếu nhập</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Ngày nhập</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Nhà cung cấp</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Nhân viên</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">SL</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Đơn giá nhập</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-sm">
+                    {importHistoryData.history.map((row, index) => {
+                      const isLatest = index === 0;
+                      const prevPrice = index < importHistoryData.history.length - 1
+                        ? Number(importHistoryData.history[index + 1].TIENNHAP || 0)
+                        : null;
+                      const currPrice = Number(row.TIENNHAP || 0);
+                      const priceUp = prevPrice !== null && currPrice > prevPrice;
+                      const priceDown = prevPrice !== null && currPrice < prevPrice;
+
+                      return (
+                        <tr key={`${row.MPN}-${index}`} className={isLatest ? 'bg-blue-50/40' : ''}>
+                          <td className="px-3 py-2 font-medium text-gray-700">
+                            PNK{String(row.MPN).padStart(4, '0')}
+                            {isLatest ? <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">Mới nhất</span> : null}
+                          </td>
+                          <td className="px-3 py-2 text-gray-600">
+                            {new Date(row.TG).toLocaleString('vi-VN')}
+                          </td>
+                          <td className="px-3 py-2 text-gray-600">{row.TENNHACUNGCAP || '—'}</td>
+                          <td className="px-3 py-2 text-gray-600">{row.TENNHANVIEN || '—'}</td>
+                          <td className="px-3 py-2 text-right font-medium text-gray-900">{row.SL}</td>
+                          <td className="px-3 py-2 text-right">
+                            <span className="font-semibold text-gray-900">{formatMoney(currPrice)}</span>
+                            {priceUp ? <span className="ml-1 text-[10px] text-red-500">▲</span> : null}
+                            {priceDown ? <span className="ml-1 text-[10px] text-green-500">▼</span> : null}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-700">{formatMoney(Number(row.THANHTIEN || 0))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setImportHistoryOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
+                Đóng
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-10 text-center text-sm text-gray-500">Không thể tải lịch sử nhập hàng.</div>
+        )}
+      </Modal>
+
+      {/* Modal xác nhận xóa */}
+      {deleteConfirm ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-gray-900">Xác nhận</h3>
+                <p className="text-sm text-gray-500">
+                  {deleteConfirm.type === 'product'
+                    ? <>Xóa sản phẩm <span className="font-semibold text-gray-700">&ldquo;{deleteConfirm.row.name}&rdquo;</span>?</>
+                    : <>Xóa vị trí trưng bày <span className="font-semibold text-gray-700">&ldquo;{deleteConfirm.row.name}&rdquo;</span>?</>}
+                </p>
+              </div>
+              <div className="flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>);
 }

@@ -7,7 +7,7 @@ import { StatCard } from '../components/StatCard';
 import { getSalesReportApi } from '../utils/backendApi';
 
 function formatCurrency(value) {
-    return `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} đ`;
+    return `${new Intl.NumberFormat('vi-VN').format(Math.round(Number(value || 0)))} đ`;
 }
 
 function getLastDateOfMonth(year, month) {
@@ -164,7 +164,9 @@ export function SalesReport() {
                 productName: item.productName,
                 units: Number(item.units || 0),
                 revenue: Number(item.revenue || 0),
+                cost: Number(item.cost || 0),
                 profit: Number(item.profit || 0),
+                wacOverall: Number(item.wacOverall || 0),
             }));
     }, [report]);
 
@@ -186,6 +188,7 @@ export function SalesReport() {
         const revenue = Number(report.revenue || 0);
         const grossProfit = Number(report.grossProfit || 0);
         const totalCost = Number(report.totalCost || 0);
+        
         const topProduct = [...rows].sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))[0];
         const topRevenue = Number(topProduct?.revenue || 0);
 
@@ -211,8 +214,13 @@ export function SalesReport() {
             render: (value) => formatCurrency(value),
         },
         {
+            key: 'cost',
+            label: 'Tiền vốn (WAC)',
+            render: (value) => formatCurrency(value),
+        },
+        {
             key: 'profit',
-            label: 'Lợi nhuận',
+            label: 'Lợi nhuận gộp',
             render: (value) => formatCurrency(value),
         },
     ];
@@ -265,6 +273,8 @@ export function SalesReport() {
                                 <th>Tên sản phẩm</th>
                                 <th>Số lượng bán</th>
                                 <th>Doanh thu</th>
+                                <th>Tiền vốn (WAC)</th>
+                                <th>Lợi nhuận gộp</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -274,6 +284,8 @@ export function SalesReport() {
                                     <td>${item.productName}</td>
                                     <td>${new Intl.NumberFormat('vi-VN').format(Number(item.units || 0))}</td>
                                     <td>${formatCurrency(item.revenue)}</td>
+                                    <td>${formatCurrency(item.cost)}</td>
+                                    <td>${formatCurrency(item.profit)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -399,8 +411,8 @@ export function SalesReport() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <StatCard icon={PackageIcon} label="Tổng sản phẩm đã bán" value={new Intl.NumberFormat('vi-VN').format(Number(report.orders || 0))} />
                         <StatCard icon={DollarSignIcon} label="Tổng doanh thu" value={formatCurrency(report.revenue)} />
-                        <StatCard icon={TrendingUpIcon} label="Tổng vốn" value={formatCurrency(report.totalCost)} />
-                        <StatCard icon={DollarSignIcon} label="Lợi nhuận gộp" value={formatCurrency(report.grossProfit)} />
+                        <StatCard icon={TrendingUpIcon} label="Tổng vốn" value={formatCurrency(Math.round(Number(report.totalCost || 0)))} />
+                        <StatCard icon={DollarSignIcon} label="Lợi nhuận gộp" value={formatCurrency(Math.round(Number(report.grossProfit || 0)))} />
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -487,7 +499,7 @@ export function SalesReport() {
                         columns={productColumns}
                         data={productTableData}
                         searchPlaceholder="Tìm kiếm..."
-                        advancedFilterKeys={['productName', 'units', 'revenue', 'profit']}
+                        advancedFilterKeys={['productName', 'units', 'revenue', 'cost', 'profit']}
                         rangeFilterKeys={[
                             {
                                 key: 'units',
@@ -500,6 +512,12 @@ export function SalesReport() {
                                 inputType: 'number',
                                 minPlaceholder: 'Từ doanh thu',
                                 maxPlaceholder: 'Đến doanh thu',
+                            },
+                            {
+                                key: 'cost',
+                                inputType: 'number',
+                                minPlaceholder: 'Từ tiền vốn',
+                                maxPlaceholder: 'Đến tiền vốn',
                             },
                             {
                                 key: 'profit',

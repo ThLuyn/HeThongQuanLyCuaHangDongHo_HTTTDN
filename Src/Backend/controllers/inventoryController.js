@@ -201,7 +201,58 @@ async function decideImportReceipt(req, res, next) {
       Order.decideImportReceipt(connection, receiptId, action, reason),
     );
 
-    return success(res, null, "Import receipt status updated");
+    // Nếu approve: kiểm tra xem có sản phẩm nào thay đổi giá nhập không
+    // để FE hiển thị gợi ý cập nhật giá bán
+    let priceChanges = [];
+    if (action === "approve") {
+      try {
+        const detail = await Order.getImportReceiptDetail(receiptId);
+        if (detail?.ITEMS?.length) {
+          const changes = await Promise.all(
+            detail.ITEMS.map(async (item) => {
+              const product = await Product.findById(item.MSP);
+              if (!product) return null;
+
+              const newImportPrice = Number(item.TIENNHAP || 0);
+              const currentSellPrice = Number(product.GIABAN || 0);
+
+              // Chỉ cảnh báo khi giá nhập mới cao hơn giá bán hiện tại
+              // hoặc khi giá nhập tăng đáng kể (>5%)
+              const oldImportPrice = Number(product.GIANHAP || 0);
+              const priceIncreased =
+                oldImportPrice > 0 &&
+                newImportPrice > oldImportPrice &&
+                Math.abs(newImportPrice - oldImportPrice) / oldImportPrice >
+                  0.05;
+              const sellBelowImport = newImportPrice > currentSellPrice;
+
+              if (priceIncreased || sellBelowImport) {
+                return {
+                  msp: item.MSP,
+                  tenSP: item.TENSP,
+                  oldImportPrice,
+                  newImportPrice,
+                  currentSellPrice,
+                  sellBelowImport,
+                  priceIncreased,
+                };
+              }
+              return null;
+            }),
+          );
+          priceChanges = changes.filter(Boolean);
+        }
+      } catch {
+        // Không để lỗi kiểm tra giá chặn response chính
+        priceChanges = [];
+      }
+    }
+
+    return success(
+      res,
+      { priceChanges },
+      "Import receipt status updated",
+    );
   } catch (error) {
     if (error?.statusCode === 404) {
       return fail(res, error.message, 404);
@@ -209,6 +260,28 @@ async function decideImportReceipt(req, res, next) {
     if (error?.statusCode === 400) {
       return fail(res, error.message, 400);
     }
+    return next(error);
+  }
+}
+
+async function getProductImportHistory(req, res, next) {
+  try {
+    const productId = Number(req.params.id);
+    if (!Number.isInteger(productId) || productId <= 0) {
+      return fail(res, "Product id is invalid", 400);
+    }
+
+    const [history, wac] = await Promise.all([
+      Product.getImportHistory(productId),
+      Product.getWAC(productId),
+    ]);
+
+    return success(
+      res,
+      { history, wac },
+      "Import history loaded",
+    );
+  } catch (error) {
     return next(error);
   }
 }
@@ -463,6 +536,7 @@ module.exports = {
   getImportReceipts,
   getImportReceiptDetail,
   decideImportReceipt,
+  getProductImportHistory,
   createProduct,
   updateProduct,
   deleteProduct,

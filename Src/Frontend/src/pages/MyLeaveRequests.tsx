@@ -248,12 +248,37 @@ export function MyLeaveRequests() {
 
   return (
     <div className="space-y-5">
+      {/* Toast notifications - góc trên bên phải */}
       {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-lg">
+            <p className="leading-relaxed">{error}</p>
+            <button
+              type="button"
+              onClick={() => setError('')}
+              className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
+              aria-label="Đóng thông báo"
+            >
+              ×
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {success ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</div>
+        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg">
+            <p className="leading-relaxed">{success}</p>
+            <button
+              type="button"
+              onClick={() => setSuccess('')}
+              className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
+              aria-label="Đóng thông báo"
+            >
+              ×
+            </button>
+          </div>
+        </div>
       ) : null}
 
       <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">

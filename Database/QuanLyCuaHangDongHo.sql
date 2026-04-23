@@ -268,6 +268,7 @@ CREATE TABLE `CTPHIEUNHAP` (
     `SL` INT(11) NOT NULL COMMENT 'Số lượng nhập',
     `TIENNHAP` DECIMAL(15, 2) NOT NULL COMMENT 'Đơn giá nhập',
     `HINHTHUC` INT(11) NOT NULL DEFAULT 0 COMMENT 'Hình thức thanh toán (0: tiền mặt, 1: chuyển khoản)',
+    `GIA_NHAP_BINH_QUAN` DECIMAL(15,2) NOT NULL DEFAULT 0,
     PRIMARY KEY (MPN, MSP)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
