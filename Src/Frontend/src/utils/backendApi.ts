@@ -1096,6 +1096,19 @@ export async function decideImportReceiptApi(
   return response.data ?? { priceChanges: [] }
 }
 
+export async function cancelImportReceiptApi(
+  id: number,
+  payload: { reason: string },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(
+    `/api/admin/inventory/import-receipts/${id}/decision`,
+    {
+      method: 'PATCH',
+      body: { action: 'reject', reason: payload.reason },
+    },
+  )
+}
+
 export type ImportHistoryItem = {
   MPN: number
   TG: string

@@ -2,15 +2,17 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DataTable } from '../components/DataTable'
+import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import { Modal } from '../components/Modal'
+import { usePermission } from '../components/PermissionContext'
 import {
-    createPermissionApi,
-    deletePermissionApi,
-    getPermissionGroupDetailApi,
-    getPermissionMetaApi,
-    getPermissionsApi,
-    getUserAccountsApi,
-    updatePermissionApi,
+  createPermissionApi,
+  deletePermissionApi,
+  getPermissionGroupDetailApi,
+  getPermissionMetaApi,
+  getPermissionsApi,
+  getUserAccountsApi,
+  updatePermissionApi,
 } from '../utils/backendApi'
 
 const EMPTY_FORM = {
@@ -42,6 +44,7 @@ const columns = [
 ]
 
 export function PermissionManagement() {
+  const { can } = usePermission();
   const [groups, setGroups] = useState([])
   const [features, setFeatures] = useState([])
   const [actions, setActions] = useState([])
@@ -49,6 +52,8 @@ export function PermissionManagement() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [alertModal, setAlertModal] = useState(null) // { message }
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -67,17 +72,17 @@ export function PermissionManagement() {
 
   const normalizeMatrixFromPermissions = (featureRows, actionRows, permissions) => {
     const next = createEmptyMatrix(featureRows, actionRows)
-    ;(permissions || []).forEach((item) => {
-      const mcn = String(item.mcn || '').toLowerCase()
-      const assignedActions = Array.isArray(item.actions) ? item.actions : []
-      if (!next[mcn]) return
-      assignedActions.forEach((action) => {
-        const key = String(action || '').toLowerCase()
-        if (next[mcn][key] != null) {
-          next[mcn][key] = true
-        }
+      ; (permissions || []).forEach((item) => {
+        const mcn = String(item.mcn || '').toLowerCase()
+        const assignedActions = Array.isArray(item.actions) ? item.actions : []
+        if (!next[mcn]) return
+        assignedActions.forEach((action) => {
+          const key = String(action || '').toLowerCase()
+          if (next[mcn][key] != null) {
+            next[mcn][key] = true
+          }
+        })
       })
-    })
     return next
   }
 
@@ -211,28 +216,34 @@ export function PermissionManagement() {
   }
 
   const handleDelete = async (row) => {
-    // Cấm xóa nhóm quyền MNQ = 1 (Quản lý cửa hàng)
     if (Number(row.mnq) === 1) {
-      alert('Không thể xóa nhóm quyền Quản lý cửa hàng!')
+      setAlertModal({ message: 'Không thể xóa nhóm quyền Quản lý cửa hàng!' })
       return
     }
-
-    // Kiểm tra nhóm có tài khoản nào đang dùng không
     try {
-      const allUsers = await getUserAccountsApi()
-      const usersInGroup = allUsers.filter((u) => Number(u.mnq) === Number(row.mnq))
-      if (usersInGroup.length > 0) {
-        alert(`Không thể xóa nhóm quyền "${row.roleName}" vì đang có ${usersInGroup.length} tài khoản sử dụng nhóm quyền này!`)
-        return
+      if (can('taikhoan', 'view')) {
+        const allUsers = await getUserAccountsApi()
+        // Chỉ chặn nếu có tài khoản ĐANG HOẠT ĐỘNG (status = 1) thuộc nhóm này
+        // Tài khoản đã khóa (status = 0) không cản trở việc xóa nhóm quyền
+        const activeUsersInGroup = allUsers.filter(
+          (u) => Number(u.mnq) === Number(row.mnq) && Number(u.status) === 1
+        )
+        if (activeUsersInGroup.length > 0) {
+          setAlertModal({ message: `Không thể xóa nhóm quyền "${row.roleName}" vì đang có ${activeUsersInGroup.length} tài khoản đang hoạt động sử dụng nhóm quyền này! Hãy khóa hoặc chuyển nhóm quyền cho các tài khoản đó trước.` })
+          return
+        }
       }
     } catch (e) {
-      alert('Không kiểm tra được danh sách tài khoản. Vui lòng thử lại.')
+      setAlertModal({ message: 'Không kiểm tra được danh sách tài khoản. Vui lòng thử lại.' })
       return
     }
+    setDeleteConfirm({ row })
+  }
 
-    const confirmDelete = window.confirm(`Chuyển nhóm quyền "${row.roleName}" sang trạng thái ngưng hoạt động?`)
-    if (!confirmDelete) return
-
+  const confirmDelete = async () => {
+    const row = deleteConfirm?.row
+    setDeleteConfirm(null)
+    if (!row) return
     try {
       setError('')
       await deletePermissionApi(Number(row.mnq))
@@ -308,8 +319,7 @@ export function PermissionManagement() {
           searchPlaceholder="Tìm kiếm..."
           advancedFilterKeys={['mnq', 'roleName', 'status']}
           forceSelectFilterKeys={['roleName', 'status']}
-          onAdd={openCreate}
-          addLabel="Thêm nhóm quyền"
+          {...(can('nhomquyen', 'create') ? { onAdd: openCreate, addLabel: 'Thêm nhóm quyền' } : {})}
           rowActions={[
             {
               key: 'view',
@@ -317,17 +327,20 @@ export function PermissionManagement() {
               onClick: openView,
               className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
             },
-            {
+            ...(can('nhomquyen', 'update') ? [{
               key: 'edit',
               label: 'Sửa',
               onClick: openEdit,
               className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
-            },
-            {
+            }] : []),
+            ...(can('nhomquyen', 'delete') ? [{
               key: 'delete',
               label: 'Xóa',
-              onClick: handleDelete,
-              hidden: (row) => Number(row.status) !== 1,
+              onClick: (row) => {
+                if (Number(row.status) !== 1) return;
+                handleDelete(row);
+              },
+              disabled: (row) => Number(row.status) !== 1 || Number(row.mnq) === 1,
               className: 'p-1.5 rounded-lg transition-colors',
               render: (row) => {
                 const isDisabled = Number(row.mnq) === 1
@@ -337,11 +350,11 @@ export function PermissionManagement() {
                     onClick={isDisabled ? (e) => e.stopPropagation() : undefined}
                     style={isDisabled ? { pointerEvents: 'auto', cursor: 'not-allowed' } : {}}
                   >
-                    <Trash2 className={`h-4 w-4 ${isDisabled ? 'text-gray-300' : 'text-red-500'}`} />
+                    <Trash2 className={`h-4 w-4 ${isDisabled || Number(row.status) !== 1 ? 'text-red-300' : 'text-red-500'}`} />
                   </span>
                 )
               },
-            },
+            }] : []),
           ]}
         />
       )}
@@ -400,6 +413,39 @@ export function PermissionManagement() {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmModal
+        deleteConfirm={deleteConfirm}
+        setDeleteConfirm={setDeleteConfirm}
+        confirmDelete={confirmDelete}
+      />
+
+      {/* Modal thông báo lỗi */}
+      {alertModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAlertModal(null)} />
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-gray-900">Thông báo</h3>
+                <p className="text-sm text-gray-500">{alertModal.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAlertModal(null)}
+                className="w-full rounded-xl bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-900 transition-colors"
+              >
+                Đã hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

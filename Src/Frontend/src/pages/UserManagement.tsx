@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { createUserAccountApi, getUserAccountsApi, getUserMetaApi, updateUserAccountApi } from '../utils/backendApi';
+import { usePermission } from '../components/PermissionContext';
 
 const columns = [
   {
@@ -52,6 +53,7 @@ const columns = [
   },
 ];
 export function UserManagement({ currentUsername = '' }) {
+  const { can } = usePermission();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [detailUser, setDetailUser] = useState(null);
@@ -215,6 +217,7 @@ export function UserManagement({ currentUsername = '' }) {
       searchPlaceholder="Tìm kiếm..."
       onAdd={openAdd}
       addLabel="Thêm người dùng"
+      {...(can('taikhoan', 'create') ? { onAdd: openAdd, addLabel: 'Thêm người dùng' } : {})}
       rowActions={[
         {
           key: 'view',
@@ -223,13 +226,13 @@ export function UserManagement({ currentUsername = '' }) {
           className: 'p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg',
           render: () => <Eye className="w-4 h-4 text-green-600" />
         },
-        {
+        ...(can('taikhoan', 'update') ? [{
           key: 'edit',
           label: 'Sửa',
           onClick: openEdit,
           className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg'
-        },
-        {
+        }] : []),
+        ...(can('taikhoan', 'delete') ? [{
           key: 'lock',
           onClick: handleToggleLock,
           className: 'p-1.5 rounded-lg hover:bg-gray-100',
@@ -245,7 +248,7 @@ export function UserManagement({ currentUsername = '' }) {
               <Unlock className="h-4 w-4 text-green-600" />
             );
           }
-        }
+        }] : [])
       ]}
     />
 

@@ -68,6 +68,18 @@ async function listAll() {
         nv.SDT,
         nv.EMAIL,
         nv.TT,
+        -- TT_EFFECTIVE: nếu TT=0 nhưng đơn nghỉ việc (LOAI=3) đã duyệt chưa tới ngày
+        -- thì vẫn hiển thị "Đang làm" (= 1), chỉ chuyển "Đã nghỉ" khi đúng/qua ngày nghỉ
+        CASE
+          WHEN nv.TT = 0 AND EXISTS (
+            SELECT 1 FROM DONXINNGH dxn2
+            WHERE dxn2.MNV = nv.MNV
+              AND dxn2.LOAI = 3
+              AND dxn2.TRANGTHAI = 1
+              AND COALESCE(dxn2.NGAY_NGHIVIEC, dxn2.NGAYNGHI) > CURDATE()
+          ) THEN 1
+          ELSE nv.TT
+        END AS TT_EFFECTIVE,
         cv.MCV,
         cv.TEN AS TENCHUCVU,
         cv.LUONGCOBAN,
@@ -107,6 +119,18 @@ async function findById(mnv) {
         nv.SDT,
         nv.EMAIL,
         nv.TT,
+        -- TT_EFFECTIVE: nếu TT=0 nhưng đơn nghỉ việc (LOAI=3) đã duyệt chưa tới ngày
+        -- thì vẫn hiển thị "Đang làm" (= 1), chỉ chuyển "Đã nghỉ" khi đúng/qua ngày nghỉ
+        CASE
+          WHEN nv.TT = 0 AND EXISTS (
+            SELECT 1 FROM DONXINNGH dxn2
+            WHERE dxn2.MNV = nv.MNV
+              AND dxn2.LOAI = 3
+              AND dxn2.TRANGTHAI = 1
+              AND COALESCE(dxn2.NGAY_NGHIVIEC, dxn2.NGAYNGHI) > CURDATE()
+          ) THEN 1
+          ELSE nv.TT
+        END AS TT_EFFECTIVE,
         nv.QUEQUAN,
         nv.DIACHI,
         nv.HINHANH,

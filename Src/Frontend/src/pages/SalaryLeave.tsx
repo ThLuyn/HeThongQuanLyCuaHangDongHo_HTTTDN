@@ -2,7 +2,9 @@
 import { BarChart3Icon, CalendarDaysIcon, PencilIcon, PlusIcon, PrinterIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, UsersIcon, WalletIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { Modal } from '../components/Modal';
+import { usePermission } from '../components/PermissionContext';
 import {
   createHolidayMultiplierApi,
   deleteHolidayMultiplierApi,
@@ -70,6 +72,7 @@ const columns = [
 ];
 
 export function SalaryLeave() {
+  const { can } = usePermission();
   const [violations, setViolations] = useState([]);
   const [violationsLoading, setViolationsLoading] = useState(false);
   const now = new Date();
@@ -77,6 +80,8 @@ export function SalaryLeave() {
   const [year, setYear] = useState(String(now.getFullYear()));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'holiday'|'finalize', row }
+  const [finalizeConfirm, setFinalizeConfirm] = useState(null); // row
   const [records, setRecords] = useState([]);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -155,7 +160,10 @@ export function SalaryLeave() {
       });
       setYearlyStats(aggregated);
     } catch (e) {
-      showNotice('Không thể tải thống kê năm', 'error');
+      const msg = e instanceof Error ? e.message : '';
+      if (!msg.includes('403') && !msg.includes('Forbidden')) {
+        showNotice('Không thể tải thống kê năm', 'error');
+      }
     } finally {
       setYearlyStatsLoading(false);
     }
@@ -191,7 +199,11 @@ export function SalaryLeave() {
         setRecords(Array.isArray(response) ? response : []);
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Khong the tai du lieu luong';
-        setError(message);
+        if (message.includes('403') || message.includes('Forbidden')) {
+          setError('Tài khoản của bạn chưa được cấp quyền xem dữ liệu bảng lương trên máy chủ.');
+        } else {
+          setError(message);
+        }
       } finally {
         setLoading(false);
       }
@@ -254,6 +266,8 @@ export function SalaryLeave() {
         if (isHolidayRouteMissingError(message)) {
           setHolidayFeatureUnavailable(true);
           setHolidayRows([]);
+        } else if (message.includes('403') || message.includes('Forbidden')) {
+          // Bỏ qua lỗi 403 cho ngày lễ để không làm hỏng trải nghiệm UI
         } else {
           setError(message);
         }
@@ -345,23 +359,9 @@ export function SalaryLeave() {
     setHolidayModalOpen(true);
   };
 
-  const handleDeleteHoliday = async (row) => {
-    if (!row?.id) {
-      return;
-    }
-
-    if (!confirm(`Xóa ngày lễ "${row.name}"?`)) {
-      return;
-    }
-
-    try {
-      await deleteHolidayMultiplierApi(Number(row.id));
-      setHolidayRows((prev) => prev.filter((item) => Number(item.id) !== Number(row.id)));
-      showNotice('Đã xóa ngày lễ thành công', 'success');
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể xóa ngày lễ';
-      setError(message);
-    }
+  const handleDeleteHoliday = (row) => {
+    if (!row?.id) return;
+    setDeleteConfirm({ type: 'holiday', row });
   };
 
   const handleSaveHoliday = async () => {
@@ -489,25 +489,40 @@ export function SalaryLeave() {
     }
   };
 
-  const handleFinalizeSalary = async (row) => {
+  const handleFinalizeSalary = (row) => {
     if (!row || !row.mbl) {
       showNotice('Không có dữ liệu bảng lương', 'error');
       return;
     }
+    setFinalizeConfirm(row);
+  };
 
-    if (!confirm(`Chốt lương cho nhân viên ${row.name}?`)) {
-      return;
+  const confirmDelete = async () => {
+    const { type, row } = deleteConfirm || {};
+    setDeleteConfirm(null);
+    if (!row) return;
+    if (type === 'holiday') {
+      try {
+        await deleteHolidayMultiplierApi(Number(row.id));
+        setHolidayRows((prev) => prev.filter((item) => Number(item.id) !== Number(row.id)));
+        showNotice('Đã xóa ngày lễ thành công', 'success');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Không thể xóa ngày lễ');
+      }
     }
+  };
 
+  const confirmFinalize = async () => {
+    const row = finalizeConfirm;
+    setFinalizeConfirm(null);
+    if (!row) return;
     try {
       await finalizeSalaryApi(row.mbl);
       showNotice(`Chốt lương thành công cho ${row.name}`, 'success');
-      // Reload lại dữ liệu
       const newRecords = await getSalaryApi(selectedMonth, selectedYear);
       setRecords(newRecords || []);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể chốt lương';
-      showNotice(message, 'error');
+      showNotice(e instanceof Error ? e.message : 'Không thể chốt lương', 'error');
     }
   };
 
@@ -551,28 +566,22 @@ export function SalaryLeave() {
 
   return (
     <div className="space-y-4">
-      {notice.message ? (
-        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
-          <div
-            className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${notice.type === 'success'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                : notice.type === 'error'
-                  ? 'border-red-200 bg-red-50 text-red-800'
-                  : 'border-blue-200 bg-blue-50 text-blue-800'
-              }`}
+      {notice.message && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            notice.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+          <span>{notice.message}</span>
+          <button
+            onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
+            className="ml-2 opacity-80 hover:opacity-100"
           >
-            <p className="leading-relaxed">{notice.message}</p>
-            <button
-              type="button"
-              onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
-              className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
-              aria-label="Đóng thông báo"
-            >
-              ×
-            </button>
-          </div>
+            ×
+          </button>
         </div>
-      ) : null}
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
         <div className="flex items-center gap-3">
@@ -624,15 +633,17 @@ export function SalaryLeave() {
                 ? `Xem theo kỳ lương ${selectedMonth}/${selectedYear}`
                 : `Xem tất cả trong năm ${selectedYear}`}
             </button>
-            <button
-              type="button"
-              onClick={openCreateHolidayModal}
-              disabled={holidayFeatureUnavailable}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Thêm ngày lễ
-            </button>
+            {can('bangluong', 'create') && (
+              <button
+                type="button"
+                onClick={openCreateHolidayModal}
+                disabled={holidayFeatureUnavailable}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Thêm ngày lễ
+              </button>
+            )}
           </div>
         </div>
 
@@ -675,22 +686,26 @@ export function SalaryLeave() {
                     <td className="px-3 py-2">{row.note || '-'}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEditHolidayModal(row)}
-                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"
-                          title="Sửa"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteHoliday(row)}
-                          className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                          title="Xóa"
-                        >
-                          <Trash2Icon className="h-4 w-4" />
-                        </button>
+                        {can('bangluong', 'update') && (
+                          <button
+                            type="button"
+                            onClick={() => openEditHolidayModal(row)}
+                            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"
+                            title="Sửa"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                        {can('bangluong', 'delete') && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteHoliday(row)}
+                            className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                            title="Xóa"
+                          >
+                            <Trash2Icon className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -883,13 +898,13 @@ export function SalaryLeave() {
             onClick: openDetail,
             className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
           },
-          {
+          ...(can('bangluong', 'update') ? [{
             key: 'finalize',
             label: '✓ Chốt',
             onClick: (row) => handleFinalizeSalary(row),
             className: 'px-2.5 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors',
             title: 'Chốt lương',
-          },
+          }] : []),
           {
             key: 'print-month',
             label: 'In tháng',
@@ -1147,6 +1162,41 @@ export function SalaryLeave() {
           </div>
         </div>
       </Modal>
+
+      <Modal
+        isOpen={!!finalizeConfirm}
+        onClose={() => setFinalizeConfirm(null)}
+        title="Xác nhận chốt lương"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            Bạn có chắc muốn chốt lương cho <span className="font-semibold">{finalizeConfirm?.name}</span>?
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setFinalizeConfirm(null)}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={confirmFinalize}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+            >
+              ✓ Chốt lương
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <DeleteConfirmModal
+        deleteConfirm={deleteConfirm}
+        setDeleteConfirm={setDeleteConfirm}
+        confirmDelete={confirmDelete}
+      />
 
     </div>
   );

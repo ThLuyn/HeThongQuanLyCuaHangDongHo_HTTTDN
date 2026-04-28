@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { decideLeaveRequestApi, getLeaveRequestsApi } from '../utils/backendApi';
+import { usePermission } from '../components/PermissionContext';
 
 const LEAVE_TYPE_LABEL = {
   0: 'Phép năm',
@@ -45,6 +46,7 @@ function countWorkingDays(startStr, endStr) {
 }
 
 export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = null }) {
+  const { can } = usePermission();
   const now = new Date();
   const currentYear = now.getFullYear();
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,7 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
   const [detailOpen, setDetailOpen] = useState(false);
   const [decisionNote, setDecisionNote] = useState('');
   const [savingDecision, setSavingDecision] = useState(false);
+  const [notice, setNotice] = useState({ type: 'success', message: '' });
   const [tableResetSignal, setTableResetSignal] = useState(0);
   const [pinnedLeaveId, setPinnedLeaveId] = useState(null);
 
@@ -94,6 +97,14 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useEffect(() => {
+    if (!notice.message) return;
+    const timer = window.setTimeout(() => {
+      setNotice((prev) => ({ ...prev, message: '' }));
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice.message]);
 
   // Khi nhận targetLeaveId từ thông báo: xóa filter, pin đơn lên đầu, mở modal
   useEffect(() => {
@@ -277,7 +288,6 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
   const submitDecision = async (status) => {
     if (!selectedRequest) return;
     setSavingDecision(true);
-    setError('');
     try {
       await decideLeaveRequestApi(Number(selectedRequest.id), {
         status: Number(status) === 1 ? 1 : 2,
@@ -286,9 +296,10 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       setDetailOpen(false);
       setSelectedRequest(null);
       await loadRequests();
+      setNotice({ type: 'success', message: Number(status) === 1 ? 'Đã duyệt đơn nghỉ thành công' : 'Đã từ chối đơn nghỉ' });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể cập nhật trạng thái đơn nghỉ';
-      setError(message);
+      setNotice({ type: 'error', message });
     } finally {
       setSavingDecision(false);
     }
@@ -299,7 +310,6 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
     const currentStatus = Number(selectedRequest.statusCode);
     if (![1, 2].includes(currentStatus)) return;
     setSavingDecision(true);
-    setError('');
     try {
       await decideLeaveRequestApi(Number(selectedRequest.id), {
         status: currentStatus,
@@ -308,9 +318,10 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       setDetailOpen(false);
       setSelectedRequest(null);
       await loadRequests();
+      setNotice({ type: 'success', message: 'Đã lưu ghi chú duyệt thành công' });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể lưu ghi chú duyệt';
-      setError(message);
+      setNotice({ type: 'error', message });
     } finally {
       setSavingDecision(false);
     }
@@ -323,21 +334,34 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       onClick: (row) => openDetail(row, 'view'),
       className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
     },
-    {
+    ...(can('donxinngh', 'update') ? [{
       key: 'edit',
       label: 'Chỉnh sửa',
       onClick: (row) => openDetail(row, 'edit'),
       className: 'p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors',
-    },
+    }] : []),
   ];
 
   return (
     <div className="space-y-5">
-      {error ? (
-        <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          {error}
+      {notice.message && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            notice.type === 'success'
+              ? 'bg-green-500 text-white'
+              : 'bg-red-500 text-white'
+          }`}
+        >
+          <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+          <span>{notice.message}</span>
+          <button
+            onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
+            className="ml-2 opacity-80 hover:opacity-100"
+          >
+            ×
+          </button>
         </div>
-      ) : null}
+      )}
 
       <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         {/* Header */}

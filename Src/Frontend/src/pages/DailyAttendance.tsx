@@ -10,6 +10,7 @@ import {
   getShiftAssignmentsApi,
   saveShiftAssignmentsApi,
 } from '../utils/backendApi'
+import { usePermission } from '../components/PermissionContext';
 
 function formatDateVN(dateStr: string) {
   if (!dateStr) return ''
@@ -36,6 +37,7 @@ function getDelayUntilNextVietnamMidnight() {
 }
 
 export function DailyAttendance({ viewMode = 'auto' }) {
+  const { can } = usePermission();
   const currentSession = loadAuthSession()
   const currentRole = String(currentSession?.role || '').toLowerCase()
   const isAdminOrHr = ['admin', 'hr'].includes(currentRole)
@@ -307,6 +309,13 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     return () => window.clearTimeout(timer)
   }, [success])
 
+  // Auto close toast
+  useEffect(() => {
+    if (!modal) return
+    const timer = window.setTimeout(() => setModal(null), 8000)
+    return () => window.clearTimeout(timer)
+  }, [modal])
+
   // Reset pages khi search thay đổi
   useEffect(() => { setCurrentAttendancePage(0) }, [searchAttendance])
   useEffect(() => { setCurrentShiftPage(0) }, [searchShift])
@@ -568,17 +577,16 @@ export function DailyAttendance({ viewMode = 'auto' }) {
     } finally { setShiftSaving(false) }
   }
 
-  // ── Modal component ────────────────────────────────────────────────────────
+  // ── Toast notification ─────────────────────────────────────────────────────
   const ModalEl = modal ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal}>
-      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
-        <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${modal.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
-          {modal.type === 'success' ? <CheckCircle2Icon className="h-7 w-7 text-green-600" /> : <AlertCircleIcon className="h-7 w-7 text-red-500" />}
-        </div>
-        <p className="text-center text-base font-semibold text-gray-900 mb-1">{modal.type === 'success' ? 'Thành công' : 'Có lỗi xảy ra'}</p>
-        <p className="text-center text-sm text-gray-500 mb-5">{modal.message}</p>
-        <button type="button" onClick={closeModal} className={`w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}>Đóng</button>
-      </div>
+    <div
+      className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+        modal.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+      }`}
+    >
+      <span>{modal.type === 'success' ? '✓' : '✕'}</span>
+      <span>{modal.message}</span>
+      <button onClick={closeModal} className="ml-2 opacity-80 hover:opacity-100">×</button>
     </div>
   ) : null
 
@@ -1064,10 +1072,12 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <RefreshCcwIcon className="h-4 w-4" />Làm mới
               </button>
+              {can('chamcong', 'update') && (
               <button type="button" onClick={handleShiftSave} disabled={shiftSaving || shiftLoading}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
                 <SaveIcon className="h-4 w-4" />{shiftSaving ? 'Đang lưu...' : 'Lưu'}
               </button>
+              )}
             </div>
           </div>
 
@@ -1142,6 +1152,8 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                                 onChange={e => handleShiftToggle(emp.mnv, shift.mca, e.target.checked)}
                                 disabled={shiftSaving || shiftLoading}
                                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                disabled={shiftSaving || shiftLoading || !can('chamcong', 'update')}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                               />
                             </td>
                           )

@@ -1,6 +1,10 @@
 const { withTransaction } = require("../config/db");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const {
+  getMnvsByRole,
+  triggerLowStockNotification,
+} = require("../models/Notification");
 const { formatCurrencyVND } = require("../utils/formatters");
 const { success, fail } = require("../utils/response");
 
@@ -41,6 +45,39 @@ async function createExportReceipt(req, res, next) {
         items: normalizedItems,
       }),
     );
+
+    const uniqueProductIds = [...new Set(normalizedItems.map((item) => Number(item.msp)).filter((id) => Number.isInteger(id) && id > 0))];
+
+    Promise.all(uniqueProductIds.map((productId) => Product.findById(productId)))
+      .then(async (products) => {
+        const lowStockProducts = products.filter(
+          (product) =>
+            product &&
+            Number(product.TT) === 1 &&
+            Number(product.SOLUONG) <= 3,
+        );
+
+        if (lowStockProducts.length === 0) {
+          return;
+        }
+
+        const targetMnvList = await getMnvsByRole([1, 3]);
+        await Promise.all(
+          lowStockProducts.map((product) =>
+            triggerLowStockNotification(
+              {
+                id: Number(product.MSP),
+                tenSP: product.TEN,
+                soLuong: Number(product.SOLUONG || 0),
+              },
+              targetMnvList,
+            ),
+          ),
+        );
+      })
+      .catch((err) => {
+        console.error("[SSE] triggerLowStockNotification failed:", err?.message);
+      });
 
     return success(
       res,
@@ -112,6 +149,8 @@ async function getSaleProducts(req, res, next) {
       .map((product) => ({
         MSP: Number(product.MSP),
         TEN: product.TEN,
+        HINHANH: product.HINHANH || null,
+        THUONGHIEU: product.THUONGHIEU || '',
         GIABAN: Number(product.GIABAN || 0),
         SOLUONG: Number(product.SOLUONG || 0),
         TT: Number(product.TT || 0),

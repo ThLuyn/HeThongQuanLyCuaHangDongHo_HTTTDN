@@ -2,12 +2,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
+import { usePermission } from '../components/PermissionContext';
 import { loadAuthSession } from '../utils/authStorage';
-import { createImportReceiptApi, decideImportReceiptApi, getImportReceiptDetailApi, getImportReceiptsApi, getProductsApi, getSuppliersApi, updateProductApi, } from '../utils/backendApi';
+import { createImportReceiptApi, cancelImportReceiptApi, getImportReceiptDetailApi, getImportReceiptsApi, getProductsApi, getSuppliersApi, } from '../utils/backendApi';
 const STATUS_LABEL = {
   0: 'Đã hủy',
   1: 'Hoàn thành',
-  2: 'Chờ duyệt',
 };
 const VND = new Intl.NumberFormat('vi-VN');
 const columns = [
@@ -31,14 +31,13 @@ const columns = [
     label: 'Trạng thái',
     render: (val) => (<span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${val === 'Hoàn thành'
       ? 'bg-green-100 text-green-700'
-      : val === 'Đã hủy'
-        ? 'bg-red-100 text-red-700'
-        : 'bg-amber-100 text-amber-700'}`}>
+      : 'bg-red-100 text-red-700'}`}>
       {val}
     </span>),
   },
 ];
 export function StockReceipts() {
+  const { can } = usePermission();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState({ type: 'info', message: '' });
@@ -56,12 +55,7 @@ export function StockReceipts() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState(null);
-
-  // Modal gợi ý cập nhật giá bán sau khi approve
-  const [priceChangeOpen, setPriceChangeOpen] = useState(false);
-  const [priceChanges, setPriceChanges] = useState([]);
-  const [priceUpdateValues, setPriceUpdateValues] = useState({});
-  const [priceUpdateSaving, setPriceUpdateSaving] = useState(false);
+  const [cancelModal, setCancelModal] = useState(null); // { row, reason }
 
   const loadAll = async () => {
     setLoading(true);
@@ -69,8 +63,8 @@ export function StockReceipts() {
     try {
       const [receiptRows, supplierRows, productRows] = await Promise.all([
         getImportReceiptsApi(100),
-        getSuppliersApi(),
-        getProductsApi(),
+        can('nhacungcap', 'view') ? getSuppliersApi().catch(() => []) : Promise.resolve([]),
+        can('sanpham', 'view') ? getProductsApi().catch(() => []) : Promise.resolve([]),
       ]);
       setReceipts(receiptRows);
       setSuppliers(supplierRows.filter((x) => Number(x.TT) === 1));
@@ -228,83 +222,26 @@ export function StockReceipts() {
       setDetailLoading(false);
     }
   };
-  const decideReceipt = async (row, action) => {
-    if (Number(row.statusCode) !== 2) {
-      setError('Phiếu này đã được xử lý trước đó.');
-      return;
-    }
-    const reason = action === 'reject'
-      ? window.prompt(`Lý do từ chối phiếu ${row.id} (có thể để trống):`, '') || ''
-      : '';
+  const executeCancelReceipt = async (row, reason) => {
     setError('');
     try {
-      const result = await decideImportReceiptApi(Number(row.mpn), {
-        action,
-        reason: reason.trim() || undefined,
-      });
-
-      if (action === 'approve') {
-        showNotice('Đã duyệt phiếu nhập thành công', 'success');
-
-        // Nếu có thay đổi giá nhập đáng kể, mở modal gợi ý
-        const changes = result?.priceChanges || [];
-        if (changes.length > 0) {
-          const initialValues = {};
-          changes.forEach((c) => {
-            // Gợi ý giá bán mới = giá nhập mới * 1.2 (margin 20%) nếu đang bán dưới giá nhập
-            // Hoặc giữ nguyên giá bán cũ nếu vẫn hợp lý
-            initialValues[c.msp] = c.sellBelowImport
-              ? Math.ceil(c.newImportPrice * 1.2 / 1000) * 1000
-              : c.currentSellPrice;
-          });
-          setPriceChanges(changes);
-          setPriceUpdateValues(initialValues);
-          setPriceChangeOpen(true);
-        }
-      }
-
+      await cancelImportReceiptApi(Number(row.mpn), { reason: reason.trim() });
+      showNotice('Đã hủy phiếu nhập thành công', 'success');
       await loadAll();
       if (detailOpen && detail && Number(detail.MPN) === Number(row.mpn)) {
         const refreshed = await getImportReceiptDetailApi(Number(row.mpn));
         setDetail(refreshed);
       }
-    }
-    catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể cập nhật trạng thái phiếu nhập';
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Không thể hủy phiếu nhập';
       setError(message);
     }
   };
 
-  const handleApplyPriceUpdates = async () => {
-    setPriceUpdateSaving(true);
-    try {
-      const toUpdate = priceChanges.filter((c) => {
-        const newSellPrice = Number(priceUpdateValues[c.msp] || 0);
-        return newSellPrice > 0 && newSellPrice !== c.currentSellPrice;
-      });
-
-      await Promise.all(
-        toUpdate.map(async (c) => {
-          const product = products.find((p) => Number(p.MSP) === Number(c.msp));
-          if (!product) return;
-          await updateProductApi(c.msp, {
-            name: product.TEN,
-            mncc: product.MNCC,
-            sellPrice: Number(priceUpdateValues[c.msp]),
-            brand: product.THUONGHIEU || undefined,
-            status: product.TT,
-          });
-        })
-      );
-
-      setPriceChangeOpen(false);
-      await loadAll();
-      showNotice(`Đã cập nhật giá bán cho ${toUpdate.length} sản phẩm`, 'success');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không thể cập nhật giá bán');
-    } finally {
-      setPriceUpdateSaving(false);
-    }
+  const isWithin24h = (dateStr) => {
+    if (!dateStr) return false;
+    const diff = Date.now() - new Date(dateStr).getTime();
+    return diff <= 24 * 60 * 60 * 1000;
   };
 
   const rowActions = [
@@ -314,20 +251,23 @@ export function StockReceipts() {
       onClick: openDetail,
       className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
     },
-    {
-      key: 'approve',
-      label: 'Duyệt',
-      onClick: (row) => decideReceipt(row, 'approve'),
-      className: 'p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors',
-      hidden: (row) => Number(row.statusCode) !== 2,
-    },
-    {
-      key: 'reject',
-      label: 'Từ chối',
-      onClick: (row) => decideReceipt(row, 'reject'),
-      className: 'p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors',
-      hidden: (row) => Number(row.statusCode) !== 2,
-    },
+    ...(can('phieunhap', 'delete') ? [
+      {
+        key: 'cancel',
+        label: 'Hủy phiếu',
+        render: (row) => (
+          <span title={isWithin24h(row.date) ? 'Hủy phiếu' : 'Đã quá 24h, không thể hủy'}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+            </svg>
+          </span>
+        ),
+        onClick: (row) => setCancelModal({ row, reason: '' }),
+        disabled: (row) => !isWithin24h(row.date),
+        className: 'p-1.5 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors',
+        hidden: (row) => Number(row.statusCode) !== 1,
+      },
+    ] : []),
   ];
   return (<>
     {notice.message ? (
@@ -350,7 +290,7 @@ export function StockReceipts() {
       { key: 'date', minPlaceholder: 'Ngày nhập từ', maxPlaceholder: 'Ngày nhập đến', inputType: 'date' },
       { key: 'productCount', minPlaceholder: 'Số dòng SP từ', maxPlaceholder: 'Số dòng SP đến', inputType: 'number' },
       { key: 'qtyTotal', minPlaceholder: 'Tổng SL từ', maxPlaceholder: 'Tổng SL đến', inputType: 'number' },
-    ]} onAdd={openCreate} addLabel="Tạo phiếu nhập" rowActions={rowActions} emptyState={<div>
+    ]} {...(can('phieunhap', 'create') ? { onAdd: openCreate, addLabel: 'Tạo phiếu nhập' } : {})} rowActions={rowActions} emptyState={<div>
       <p className="font-medium text-gray-500">Chưa có phiếu nhập nào</p>
       <p className="mt-1 text-xs text-gray-400">Tạo phiếu nhập đầu tiên để đồng bộ tồn kho với cơ sở dữ liệu.</p>
     </div>} />
@@ -504,7 +444,7 @@ export function StockReceipts() {
         </div>
 
         {detail.LYDOHUY ? (<div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Lý do từ chối/hủy: {detail.LYDOHUY}
+          Lý do hủy: {detail.LYDOHUY}
         </div>) : null}
 
         <div className="overflow-x-auto rounded-lg border border-gray-100">
@@ -540,75 +480,120 @@ export function StockReceipts() {
       </div>) : (<div className="py-8 text-center text-sm text-gray-500">Không có dữ liệu chi tiết phiếu.</div>)}
     </Modal>
 
-    {/* Modal gợi ý cập nhật giá bán sau khi approve */}
-    <Modal isOpen={priceChangeOpen} onClose={() => setPriceChangeOpen(false)} title="Giá nhập thay đổi — Gợi ý cập nhật giá bán" size="xl">
-      <div className="space-y-4">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Phiếu nhập vừa được duyệt có sản phẩm thay đổi giá nhập đáng kể. Bạn có muốn cập nhật giá bán không?
-        </div>
+    {/* Modal hủy phiếu nhập */}
+    {cancelModal && (() => {
+      const hoursLeft = cancelModal.row.date
+        ? Math.max(0, 24 - (Date.now() - new Date(cancelModal.row.date).getTime()) / 3600000)
+        : 0;
 
-        <div className="overflow-x-auto rounded-lg border border-gray-100">
-          <table className="w-full min-w-[600px]">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-600">Sản phẩm</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá nhập cũ</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá nhập mới</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá bán hiện tại</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-600">Giá bán mới</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-              {priceChanges.map((c) => {
-                const priceUp = c.newImportPrice > c.oldImportPrice;
-                return (
-                  <tr key={c.msp}>
-                    <td className="px-3 py-2">
-                      <p className="font-medium text-gray-900">{c.tenSP}</p>
-                      {c.sellBelowImport ? (
-                        <span className="text-[10px] text-red-600 font-medium">⚠ Giá bán đang thấp hơn giá nhập</span>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-500">{VND.format(c.oldImportPrice)} đ</td>
-                    <td className="px-3 py-2 text-right">
-                      <span className={`font-semibold ${priceUp ? 'text-red-600' : 'text-green-600'}`}>
-                        {priceUp ? '▲' : '▼'} {VND.format(c.newImportPrice)} đ
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-600">{VND.format(c.currentSellPrice)} đ</td>
-                    <td className="px-3 py-2 text-right">
-                      <input
-                        type="number"
-                        min={0}
-                        value={priceUpdateValues[c.msp] || ''}
-                        onChange={(e) => setPriceUpdateValues((prev) => ({
-                          ...prev,
-                          [c.msp]: Number(e.target.value) || 0,
-                        }))}
-                        className="w-36 rounded-lg border border-gray-200 px-2 py-1 text-right text-sm"
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      const canStillCancel = hoursLeft > 0;
 
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={() => setPriceChangeOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
-            Bỏ qua
-          </button>
-          <button
-            type="button"
-            onClick={handleApplyPriceUpdates}
-            disabled={priceUpdateSaving}
-            className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-white hover:bg-gold-600 disabled:opacity-60"
-          >
-            {priceUpdateSaving ? 'Đang lưu...' : 'Cập nhật giá bán'}
-          </button>
+      const hoursLeftStr = hoursLeft >= 1
+        ? `${Math.floor(hoursLeft)} giờ ${Math.round((hoursLeft % 1) * 60)} phút`
+        : `${Math.round(hoursLeft * 60)} phút`;
+
+      const reasonTrimmed = cancelModal.reason.trim();
+
+      return (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setCancelModal(null)}
+          />
+
+          {/* Modal */}
+          <div className="relative mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="px-6 py-4 flex items-center gap-3 border-b">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">
+                  Hủy phiếu nhập
+                </h3>
+                <p className="text-xs text-gray-500">{cancelModal.row.id}</p>
+              </div>
+
+              <button
+                onClick={() => setCancelModal(null)}
+                className="ml-auto text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Time */}
+              {canStillCancel && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                  ⏳ Còn <b>{hoursLeftStr}</b> để hủy phiếu này
+                </div>
+              )}
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1">
+                  Lý do hủy <span className="text-red-500">*</span>
+                </label>
+
+                <textarea
+                  autoFocus
+                  rows={3}
+                  value={cancelModal.reason}
+                  onChange={(e) =>
+                    setCancelModal((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                  className={`w-full rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none transition
+              ${reasonTrimmed
+                      ? 'border-gray-200 focus:ring-2 focus:ring-blue-400/40'
+                      : 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-300/40'
+                    }`}
+                  maxLength={300}
+                />
+
+                <div className="flex justify-between mt-1 text-xs">
+                  <span className={reasonTrimmed ? 'text-gray-400' : 'text-red-500'}>
+                    {reasonTrimmed ? '' : 'Bắt buộc nhập lý do'}
+                  </span>
+                  <span className="text-gray-400">
+                    {cancelModal.reason.length}/300
+                  </span>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setCancelModal(null)}
+                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50"
+                >
+                  Đóng
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!reasonTrimmed) return;
+                    const { row, reason } = cancelModal;
+                    setCancelModal(null);
+                    executeCancelReceipt(row, reason);
+                  }}
+                  disabled={!reasonTrimmed || !canStillCancel}
+                  className="flex-1 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-40"
+                >
+                  Xác nhận hủy
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </Modal>
+      );
+    })()}
   </>);
 }

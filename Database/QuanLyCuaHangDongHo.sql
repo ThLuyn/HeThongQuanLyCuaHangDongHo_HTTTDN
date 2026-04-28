@@ -572,26 +572,26 @@ INSERT INTO `DANHMUCCHUCNANG` (`MCN`, `TEN`, `TT`) VALUES
     ('chucvu', 'Quản lý chức vụ', 1),
     ('calam', 'Quản lý ca làm', 1),
     ('phancalam', 'Phân ca làm việc', 1),
-    ('donxinngh', 'Xin nghỉ', 1),
+    ('donxinngh', 'Quản lý đơn Xin nghỉ', 1),
     ('chamcong', 'Quản lý chấm công', 1),
     ('bangluong', 'Quản lý bảng lương', 1),
-    ('phieunhap', 'Quản lý nhập hàng', 1),
-    ('phieuxuat', 'Quản lý phiếu xuất', 1),
-    ('baohanh', 'Quản lý phiếu bảo hành', 1),
-    ('suachua', 'Quản lý phiếu sửa chữa', 1),
+    ('phieunhap', 'Quản lý nhập kho', 1),
+    ('phieuxuat', 'Quản lý xuất hàng', 1),
+    ('baohanh', 'Quản lý phiếu bảo hành', 0),
+    ('suachua', 'Quản lý phiếu sửa chữa', 0),
     ('vitritrungbay', 'Quản lý vị trí trưng bày', 1),
     ('nhomquyen', 'Quản lý nhóm quyền', 1),
     ('taikhoan', 'Quản lý tài khoản', 1),
-    ('makhuyenmai', 'Quản lý mã khuyến mãi', 1),
-    ('thongke', 'Thống kê & báo cáo', 1);
-    
+    ('makhuyenmai', 'Quản lý mã khuyến mãi', 0),
+    ('thongke', 'Báo cáo & Thống kê', 1);
+
 -- ------------------------------------------------------------
 --  4.2 Nhóm quyền
 -- ------------------------------------------------------------
 INSERT INTO `NHOMQUYEN` (`TEN`, `TT`) VALUES 
 	('Quản lý cửa hàng', 1),
-    ('Nhân viên bán hàng', 1),
-    ('Nhân viên kho', 1),
+    ('Kinh doanh', 1),
+    ('Kho', 1),
     ('Quản lý nhân sự', 1);
     
 -- ------------------------------------------------------------
@@ -629,6 +629,7 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 	(2, 'makhuyenmai', 'view'),
 	(2, 'donxinngh', 'create'), (2, 'donxinngh', 'view'),
 	(2, 'phancalam', 'view'),
+    (2, 'thongke', 'view'), (2, 'thongke', 'export'),
 	(2, 'bangluong', 'view'),
 	(2, 'chamcong', 'view');
 
@@ -4462,41 +4463,41 @@ VALUES
 -- ------------------------------------------------------------
 INSERT INTO `SANPHAM` (`MSP`, `TEN`, `HINHANH`, `MNCC`, `MVT`, `THUONGHIEU`, `NAMSANXUAT`, `GIANHAP`, `GIABAN`, `SOLUONG`, `THOIGIANBAOHANH`, `TT`)
 VALUES
-    (1,  'Citizen Eco-Drive BM7108',     'c1.jpg',           2,  2, 'Citizen',            2024, 3500000,   4500000,   0, 24, 1),
-    (2,  'Citizen Promaster NY0040',     'c2.jpg',           2,  1, 'Citizen',            2024, 8500000,   11500000,  0, 24, 1),
-    (3,  'Citizen NH8390-20E',           'c3.jpg',           2,  1, 'Citizen',            2024, 4200000,   5800000,   0, 24, 1),
-    (4,  'Orient Bambino RA-AC0E',       'o4.jpg',           3,  7, 'Orient',             2024, 3800000,   5200000,   0, 12, 1),
-    (5,  'Orient Mako III RA-AA00',      'o5.jpg',           3,  7, 'Orient',             2024, 5500000,   7500000,   0, 12, 1),
-    (6,  'Orient Sun and Moon',          'o6.jpg',           3,  7, 'Orient',             2024, 7200000,   9800000,   0, 12, 1),
-    (7,  'Seiko 5 Sports SRPD55',        's7.jpg',           4,  6, 'Seiko',              2024, 4800000,   6500000,   0, 12, 1),
-    (8,  'Seiko Presage SPB041',         's8.jpg',           4,  6, 'Seiko',              2024, 12000000,  16500000,  0, 24, 1),
-    (9,  'Seiko Prospex SRPE99',         's9.jpg',           4,  6, 'Seiko',              2024, 8500000,   11200000,  0, 12, 1),
-    (10, 'Seiko 5 SNK809',               's10.jpg',          4,  6, 'Seiko',              2024, 2200000,   3200000,   0, 12, 1),
-    (11, 'Rolex Submariner Date',        'r11.jpg',          5,  1, 'Rolex',              2024, 185000000, 245000000, 0, 48, 1),
-    (12, 'Rolex Datejust 41',            'r12.jpg',          5,  1, 'Rolex',              2024, 165000000, 215000000, 0, 48, 1),
-    (13, 'Rolex Air-King',               'r13.jpg',          5,  1, 'Rolex',              2024, 145000000, 195000000, 0, 48, 1),
-    (14, 'Frederique Constant FC-303',   'f14.jpg',          6,  1, 'Frederique Constant', 2024, 8500000,   12500000,  0, 24, 1),
-    (15, 'Frederique Constant FC-200',   'f15.jpg',          6,  2, 'Frederique Constant', 2024, 9200000,   13800000,  0, 24, 1),
-    (16, 'Fossil Grant FS4736',          'f16.jpg',          7,  2, 'Fossil',             2024, 2500000,   3800000,   0, 12, 1),
-    (17, 'Fossil Neutra FS5380',         'f17.jpg',          7,  2, 'Fossil',             2024, 2200000,   3200000,   0, 12, 1),
-    (18, 'Fossil Hybrid Smartwatch',     'f18.jpg',          7,  4, 'Fossil',             2024, 3800000,   5500000,   0, 12, 1),
-    (19, 'Daniel Wellington Sheffield',  'd19.jpg',          8,  2, 'Daniel Wellington',  2024, 2800000,   4200000,   0, 24, 1),
-    (20, 'Daniel Wellington Petite',     'd20.jpg',          8,  2, 'Daniel Wellington',  2024, 3200000,   4800000,   0, 24, 1),
-    (21, 'Daniel Wellington Black',      'd21.jpg',          8,  2, 'Daniel Wellington',  2024, 2500000,   3800000,   0, 24, 1),
-    (22, 'Casio G-Shock GA-2100',        'c22.jpg',          1,  5, 'Casio',              2024, 2800000,   3900000,   0, 12, 1),
-    (23, 'Casio Edifice EFR-556',        'c23.jpg',          1,  5, 'Casio',              2024, 3200000,   4500000,   0, 12, 1),
-    (24, 'Tissot PRX T137',              't24.jpg',          1,  2, 'Tissot',             2024, 9500000,   13500000,  0, 24, 1),
-    (25, 'Hamilton Khaki Field',         'h25.jpg',          1,  1, 'Hamilton',           2024, 11500000,  16500000,  0, 24, 1),
-    (26, 'Casio G-Shock DW-5600',        'c26.jpg',          1,  3, 'Casio',              2024, 1800000,   2600000,   0, 12, 1),
-    (27, 'Casio AE-1200WH',              'c27.jpg',          1,  3, 'Casio',              2024, 550000,    890000,    0, 12, 1),
-    (28, 'Casio F-91W',                  'c28.jpg',          1,  3, 'Casio',              2024, 200000,    350000,    0, 12, 1),
-    (29, 'Casio A168WG',                 'c29.jpg',          1,  3, 'Casio',              2024, 650000,    950000,    0, 12, 1),
-    (30, 'Casio Baby-G BGD-565',         'c30.jpg',          1,  3, 'Casio',              2024, 1600000,   2100000,   0, 12, 1),
-    (31, 'Casio Baby-G BA-110',          'babyg_ba110.png',  1,  3, 'Casio',              2024, 2150000,   2900000,   0, 12, 1),
-    (32, 'Casio ProTrek PRG-270',        'protrek_prg270.png',1, 3, 'Casio',              2024, 3800000,   5200000,   0, 12, 1),
-    (33, 'SKMEI 1251 Digital',           'skmei_1251.jpg',   9,  3, 'SKMEI',              2024, 150000,    250000,    0, 6,  1),
-    (34, 'SKMEI 1456 Digital',           'skmei_1456.jpg',   9,  3, 'SKMEI',              2024, 180000,    300000,    0, 6,  1),
-    (35, 'Timex Ironman Classic',        'timex_ironman30.jpg',10,3, 'Timex',              2024, 850000,    1350000,   0, 12, 1);
+    (1,  'Citizen Eco-Drive BM7108',     'Citizen_Eco-Drive_BM7108.png',    2,  2, 'Citizen',             2024, 3500000,   4500000,   0, 24, 1),
+    (2,  'Citizen Promaster NY0040',     'Citizen_Promaster_NY0040.png',                    2,  1, 'Citizen',             2024, 8500000,   11500000,  0, 24, 1),
+    (3,  'Citizen NH8390-20E',           'Citizen_NH8390-20E.jpg',    2,  1, 'Citizen',             2024, 4200000,   5800000,   0, 24, 1),
+    (4,  'Orient Bambino RA-AC0E',       'Orient_Bambino_RA-AC0E.png',    3,  7, 'Orient',              2024, 3800000,   5200000,   0, 12, 1),
+    (5,  'Orient Mako III RA-AA00',      'Orient_Mako_III_RA-AA00.png',                    3,  7, 'Orient',              2024, 5500000,   7500000,   0, 12, 1),
+    (6,  'Orient Sun and Moon',          'Orient_Sun_and_Moon.jpg',                    3,  7, 'Orient',              2024, 7200000,   9800000,   0, 12, 1),
+    (7,  'Seiko 5 Sports SRPD55',        'Seiko_5_Sports_SRPD55.jpg',                    4,  6, 'Seiko',               2024, 4800000,   6500000,   0, 12, 1),
+    (8,  'Seiko Presage SPB041',         'Seiko_Presage_SPB041.png',                    4,  6, 'Seiko',               2024, 12000000,  16500000,  0, 24, 1),
+    (9,  'Seiko Prospex SRPE99',         'Seiko_Prospex_SRPE99.png',                    4,  6, 'Seiko',               2024, 8500000,   11200000,  0, 12, 1),
+    (10, 'Seiko 5 SNK809',               'Seiko_5_SNK809.png',                    4,  6, 'Seiko',               2024, 2200000,   3200000,   0, 12, 1),
+    (11, 'Rolex Submariner Date',        'Rolex_Submariner_Date.png',                    5,  1, 'Rolex',               2024, 185000000, 245000000, 0, 48, 1),
+    (12, 'Rolex Datejust 41',            'Rolex_Datejust_41.jpg',                    5,  1, 'Rolex',               2024, 165000000, 215000000, 0, 48, 1),
+    (13, 'Rolex Air-King',               'Rolex_Air_King.jpg',                    5,  1, 'Rolex',               2024, 145000000, 195000000, 0, 48, 1),
+    (14, 'Frederique Constant FC-303',   'Frederique_Constant_FC_303.jpg',        6,  1, 'Frederique Constant', 2024, 8500000,   12500000,  0, 24, 1),
+    (15, 'Frederique Constant FC-200',   'Frederique_Constant_FC_200.jpg',       6,  2, 'Frederique Constant', 2024, 9200000,   13800000,  0, 24, 1),
+    (16, 'Fossil Grant FS4736',          'Fossil_Grant_FS4736.jpg',      7,  2, 'Fossil',              2024, 2500000,   3800000,   0, 12, 1),
+    (17, 'Fossil Neutra FS5380',         'Fossil_Neutra_FS5380.jpg',     7,  2, 'Fossil',              2024, 2200000,   3200000,   0, 12, 1),
+    (18, 'Fossil Hybrid Smartwatch',     'Fossil_Hybrid_Smartwatch.png',     7,  4, 'Fossil',              2024, 3800000,   5500000,   0, 12, 1),
+    (19, 'Daniel Wellington Sheffield',  'Daniel_Wellington_Sheffield.jpg',      8,  2, 'Daniel Wellington',   2024, 2800000,   4200000,   0, 24, 1),
+	(20, 'Daniel Wellington Petite',     'Daniel_Wellington_Petite.jpg',         8,  2, 'Daniel Wellington',   2024, 3200000,   4800000,   0, 24, 1),
+    (21, 'Daniel Wellington Black',      'Daniel_Wellington_Black.png',          8,  2, 'Daniel Wellington',   2024, 2500000,   3800000,   0, 24, 1),
+    (22, 'Casio G-Shock GA-2100',        'Casio_G_Shock_GA_2100.png',     1,  5, 'Casio',               2024, 2800000,   3900000,   0, 12, 1),
+    (23, 'Casio Edifice EFR-556',        'Casio_Edifice_EFR_556.jpg',    1,  5, 'Casio',               2024, 3200000,   4500000,   0, 12, 1),
+    (24, 'Tissot PRX T137',              'Tissot_PRX_T137.png',                    1,  2, 'Tissot',              2024, 9500000,   13500000,  0, 24, 1),
+    (25, 'Hamilton Khaki Field',         'Hamilton_Khaki_Field.png',    1,  1, 'Hamilton',            2024, 11500000,  16500000,  0, 24, 1),
+    (26, 'Casio G-Shock DW-5600',        'Casio_G-Shock_DW_5600.jpg',     1,  3, 'Casio',               2024, 1800000,   2600000,   0, 12, 1),
+    (27, 'Casio AE-1200WH',              'Casio_AE_1200WH.jpg',     1,  3, 'Casio',               2024, 550000,    890000,    0, 12, 1),
+    (28, 'Casio F-91W',                  'Casio_F_91W.jpg',        1,  3, 'Casio',               2024, 200000,    350000,    0, 12, 1),
+    (29, 'Casio A168WG',                 'Casio_A168WG.jpg',       1,  3, 'Casio',               2024, 650000,    950000,    0, 12, 1),
+    (30, 'Casio Baby-G BGD-565',         'Casio_Baby_G_BGD_565.jpg',      1,  3, 'Casio',               2024, 1600000,   2100000,   0, 12, 1),
+    (31, 'Casio Baby-G BA-110',          'Casio_Baby_G_BA_110.png',       1,  3, 'Casio',               2024, 2150000,   2900000,   0, 12, 1),
+    (32, 'Casio ProTrek PRG-270',        'Casio_ProTrek_PRG_270.png',    1,  3, 'Casio',               2024, 3800000,   5200000,   0, 12, 1),
+    (33, 'SKMEI 1251 Digital',           'SKMEI_1251_Digital.jpg',        9,  3, 'SKMEI',               2024, 150000,    250000,    0, 6,  1),
+    (34, 'SKMEI 1456 Digital',           'SKMEI_1456_Digital.png',        9,  3, 'SKMEI',               2024, 180000,    300000,    0, 6,  1),
+    (35, 'Timex Ironman Classic',        'Timex_Ironman_Classic.jpg',   10, 3, 'Timex',               2024, 850000,    1350000,   0, 12, 1);
     
 -- ------------------------------------------------------------
 --  3.17 Phiếu nhập 
@@ -4742,7 +4743,7 @@ VALUES
     ('Quốc Tế Lao Động 2025',    '2025-05-01', 3.0, NULL),
     ('Quốc Khánh 2025',          '2025-09-02', 3.0, NULL),
     ('Tết Dương Lịch',           '2026-01-01', 3.0, NULL),
-    ('Giỗ tổ Hùng Vương',        '2026-04-25', 2.0, NULL),
+    ('Giỗ tổ Hùng Vương (bù)',        '2026-04-27', 2.0, NULL),
     ('Giải phóng miền Nam',      '2026-04-30', 3.0, NULL),
     ('Quốc tế lao động',         '2026-05-01', 3.0, NULL);
     

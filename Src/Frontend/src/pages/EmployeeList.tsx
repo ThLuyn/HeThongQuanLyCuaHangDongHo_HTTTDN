@@ -3,7 +3,9 @@ import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import anhthe from '../assets/anhthe.jpg';
 import { DataTable } from '../components/DataTable';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { Modal } from '../components/Modal';
+import { usePermission } from '../components/PermissionContext';
 import { createEmployeeApi, getEmployeeDetailApi, getEmployeesApi, getPositionSalaryApi, resignEmployeeApi, updateEmployeeApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
 const POSITION_OPTIONS = ['Quản lý cửa hàng', 'Nhân viên bán hàng', 'Nhân viên kho', 'Nhân viên kỹ thuật'];
@@ -71,7 +73,7 @@ function validateEmail(value) {
   return '';
 }
 function isValidCitizenId(value) {
-  return /^\d{9,12}$/.test(value.trim());
+  return /^\d{12}$/.test(value.trim());
 }
 function parseIsoDate(value) {
   if (!value)
@@ -132,8 +134,11 @@ function validateAdultForEmployment(birthDateValue, startDateValue) {
   const birthDate = parseIsoDate(birthDateValue);
   if (!startDate || !birthDate)
     return '';
-  if (getAgeOnDate(birthDate, startDate) < 18)
-    return 'Chưa đủ 18 tuổi.';
+  const age = getAgeOnDate(birthDate, startDate);
+  if (age < 18)
+    return 'Nhân viên chưa đủ 18 tuổi.';
+  if (age > 65)
+    return 'Nhân viên đã quá 65 tuổi.';
   return '';
 }
 function buildLocalEmployeeDetail(emp) {
@@ -227,6 +232,7 @@ const columns = [
   },
 ];
 export function EmployeeList({ currentMnv = 0 }) {
+  const { can } = usePermission();
   const [employees, setEmployees] = useState([]);
   const [positionOptions, setPositionOptions] = useState(POSITION_OPTIONS);
   const [positionProfiles, setPositionProfiles] = useState(POSITION_PROFILE_MAP);
@@ -241,6 +247,7 @@ export function EmployeeList({ currentMnv = 0 }) {
   const [editLoading, setEditLoading] = useState(false);
   const [viewError, setViewError] = useState('');
   const [viewDetail, setViewDetail] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const [notice, setNotice] = useState({
     type: 'success',
@@ -269,6 +276,7 @@ export function EmployeeList({ currentMnv = 0 }) {
   });
   useEffect(() => {
     const loadPositions = async () => {
+      if (!can('chucvu', 'view')) return;
       try {
         const rows = await getPositionSalaryApi();
         const activeRows = (Array.isArray(rows) ? rows : []).filter((row) => Number(row.status) === 1);
@@ -323,7 +331,9 @@ export function EmployeeList({ currentMnv = 0 }) {
           email: row.EMAIL,
           resignedDate: row.NGAYNGHIVIEC || null,
           isLocal: false,
-          status: row.TT === 1 ? 'Đang làm' : 'Đã nghỉ',
+          // Dùng TT_EFFECTIVE thay TT: nhân viên có đơn nghỉ việc đã duyệt
+          // nhưng chưa tới ngày nghỉ chính thức vẫn hiển thị "Đang làm"
+          status: (row.TT_EFFECTIVE ?? row.TT) === 1 ? 'Đang làm' : 'Đã nghỉ',
           mnq: row.MNQ != null ? Number(row.MNQ) : null,
         }));
         setEmployees(sortEmployeesNewestFirst(mapped));
@@ -447,7 +457,9 @@ export function EmployeeList({ currentMnv = 0 }) {
         startDate: toInputDate(detail.ngayVaoLam),
         cccd: detail.cccd || '',
         hometown: detail.queQuan || '',
-        status: Number(detail.trangThai) === 1 ? 'Đang làm' : 'Đã nghỉ',
+        // Dùng TT_EFFECTIVE nếu có: nhân viên có đơn nghỉ việc đã duyệt
+        // nhưng chưa tới ngày nghỉ chính thức vẫn hiển thị "Đang làm"
+        status: Number(detail.TT_EFFECTIVE ?? detail.trangThai) === 1 ? 'Đang làm' : 'Đã nghỉ',
       });
       setModalOpen(true);
     }
@@ -510,7 +522,7 @@ export function EmployeeList({ currentMnv = 0 }) {
       nextFieldErrors.cccd = 'CCCD là bắt buộc.';
     }
     else if (!isValidCitizenId(form.cccd)) {
-      nextFieldErrors.cccd = 'CCCD phải gồm từ 9 đến 12 chữ số.';
+      nextFieldErrors.cccd = 'CCCD phải gồm đúng 12 chữ số.';
     }
     const duplicatedPhone = employees.some((row) => row.id !== editingEmployee?.id && row.phone?.trim() === form.phone.trim());
     if (form.phone.trim() && duplicatedPhone) {
@@ -601,7 +613,7 @@ export function EmployeeList({ currentMnv = 0 }) {
       setIsCreating(false);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể thêm nhân viên';
-      setFormError(message);
+      setNotice({ type: 'error', message });
     }
   };
   const closeEmployeeForm = () => {
@@ -637,6 +649,8 @@ export function EmployeeList({ currentMnv = 0 }) {
       setViewDetail({
         ...detail,
         ngayNghiViec: detail.ngayNghiViec || emp.resignedDate || null,
+        // Dùng TT_EFFECTIVE để hiển thị đúng trạng thái trong modal xem chi tiết
+        trangThai: detail.TT_EFFECTIVE ?? detail.trangThai,
       });
     }
     catch (e) {
@@ -647,15 +661,19 @@ export function EmployeeList({ currentMnv = 0 }) {
       setViewLoading(false);
     }
   };
-  const handleDelete = async (emp) => {
+  const handleDelete = (emp) => {
     const employeeId = Number(emp.id.replace(/\D/g, ''));
     if (employeeId && employeeId === Number(currentMnv)) {
       setError('Không thể cho chính mình nghỉ việc.');
       return;
     }
-    if (!confirm(`Bạn có chắc muốn cho nhân viên này nghỉ việc?`)) {
-      return;
-    }
+    setDeleteConfirm({ emp });
+  };
+  const confirmDelete = async () => {
+    const emp = deleteConfirm?.emp;
+    if (!emp) return;
+    setDeleteConfirm(null);
+    const employeeId = Number(emp.id.replace(/\D/g, ''));
     try {
       setError('');
       if (!employeeId) {
@@ -791,21 +809,24 @@ export function EmployeeList({ currentMnv = 0 }) {
     </div>
   </div>);
   return (<>
-    {notice.message ? (
-      <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg">
-          <p className="leading-relaxed">{notice.message}</p>
-          <button
-            type="button"
-            onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
-            className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
-            aria-label="Đóng thông báo"
-          >
-            ×
-          </button>
-        </div>
+    {notice.message && (
+      <div
+        className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+          notice.type === 'success'
+            ? 'bg-green-500 text-white'
+            : 'bg-red-500 text-white'
+        }`}
+      >
+        <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+        <span>{notice.message}</span>
+        <button
+          onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
+          className="ml-2 opacity-80 hover:opacity-100"
+        >
+          ×
+        </button>
       </div>
-    ) : null}
+    )}
     {error && (<div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
       {error}
     </div>)}
@@ -815,7 +836,7 @@ export function EmployeeList({ currentMnv = 0 }) {
         columns={columns}
         data={employees}
         searchPlaceholder="Tìm kiếm..."
-        onAdd={openAdd}
+        {...(can('nhanvien', 'create') ? { onAdd: openAdd, addLabel: 'Thêm nhân viên' } : {})}
         noHorizontalScroll
         pageSize={5}
         rangeFilterKeys={[
@@ -833,45 +854,32 @@ export function EmployeeList({ currentMnv = 0 }) {
             onClick: handleView,
             className: 'p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors',
           },
-
-          {
+          ...(can('nhanvien', 'update') ? [{
             key: 'edit',
             label: 'Sửa',
             onClick: openEdit,
             className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
-          },
-          {
+          }] : []),
+          ...(can('nhanvien', 'delete') ? [{
             key: 'delete',
             label: 'Xóa',
             onClick: (row) => {
               const rowMnv = Number(String(row.id || '').replace(/\D/g, ''));
               if (rowMnv && rowMnv === Number(currentMnv)) return;
               if (Number(row.mnq) === 1) return;
+              if (row.status === 'Đã nghỉ') return;
               handleDelete(row);
             },
-            className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
-            render: (row) => {
+            disabled: (row) => {
               const rowMnv = Number(String(row.id || '').replace(/\D/g, ''));
               const isSelf = rowMnv && rowMnv === Number(currentMnv);
               const isStoreManager = Number(row.mnq) === 1;
-              const isDisabled = isSelf || isStoreManager;
-              const tooltip = isSelf
-                ? 'Không thể cho chính mình nghỉ việc'
-                : isStoreManager
-                  ? 'Không thể cho Quản lý cửa hàng nghỉ việc'
-                  : 'Cho nghỉ việc';
-              return (
-                <span title={tooltip}
-                  style={{ opacity: isDisabled ? 0.3 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                  </svg>
-                </span>
-              );
+              const isResigned = row.status === 'Đã nghỉ';
+              return isSelf || isStoreManager || isResigned;
             },
-          },
+            className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
+          }] : []),
         ]}
-        addLabel="Thêm nhân viên"
       />
     )}
     {isCreating && (<div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -1018,6 +1026,11 @@ export function EmployeeList({ currentMnv = 0 }) {
       </div>) : (<p className="text-sm text-gray-500">Không có dữ liệu.</p>)}
     </Modal>
 
+    <DeleteConfirmModal
+      deleteConfirm={deleteConfirm}
+      setDeleteConfirm={setDeleteConfirm}
+      confirmDelete={confirmDelete}
+    />
 
   </>);
 }

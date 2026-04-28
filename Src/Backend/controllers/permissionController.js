@@ -217,8 +217,29 @@ async function deletePermissionGroup(req, res, next) {
       return fail(res, "Invalid group id", 400);
     }
 
+    // Không cho xóa nhóm admin (MNQ=1)
+    if (mnq === 1) {
+      return fail(res, "Không thể xóa nhóm quyền Quản lý cửa hàng", 400);
+    }
+
+    // Kiểm tra còn tài khoản đang hoạt động thuộc nhóm này không
+    const activeAccounts = await Permission.listActiveAccountsByGroup(mnq);
+    if (activeAccounts.length > 0) {
+      return fail(
+        res,
+        `Không thể xóa nhóm quyền này vì đang có ${activeAccounts.length} tài khoản hoạt động. Hãy khóa hoặc chuyển nhóm quyền trước.`,
+        400,
+      );
+    }
+
+    // Chuyển tài khoản đã khóa thuộc nhóm này sang MNQ=1 (tạm thời)
+    // Tài khoản vẫn bị khóa nên không đăng nhập được — admin cần gán lại nhóm sau
+    await Permission.reassignLockedAccounts(mnq, 1);
+
+    // Xóa nhóm quyền
     await Permission.deletePermissionGroup(mnq);
-    return success(res, null, "Permission group deactivated");
+
+    return success(res, null, "Đã xóa nhóm quyền. Các tài khoản đã khóa thuộc nhóm này đã được chuyển sang nhóm mặc định.");
   } catch (error) {
     return next(error);
   }

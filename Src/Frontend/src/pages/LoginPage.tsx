@@ -17,10 +17,12 @@ export function LoginPage({ onLogin }) {
       if (!result.ok) {
         if (result.message === 'ACCOUNT_LOCKED') {
           setError('Tài khoản của bạn đã bị khóa.');
-        } else if (result.message === 'Invalid credentials') {
-          setError('Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.');
+        } else if (result.message === 'ACCOUNT_NOT_FOUND') {
+          setError('Tài khoản này chưa tồn tại.');
+        } else if (result.message === 'INVALID_PASSWORD') {
+          setError('Sai mật khẩu. Vui lòng thử lại.');
         } else {
-          setError(result.message || 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.');
+          setError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         }
       }
     }

@@ -13,6 +13,8 @@ const {
 const router = express.Router();
 
 router.post("/auth/login", authController.login);
+router.post("/auth/refresh", authController.refresh);
+router.post("/auth/logout", authController.logout);
 router.get("/auth/me", authenticateToken, authController.me);
 router.patch("/auth/me", authenticateToken, authController.updateMe);
 router.patch(
@@ -191,7 +193,7 @@ router.patch(
     ["admin", "manager"],
     [{ mcn: "phieunhap", actions: ["update"] }],
   ),
-  inventoryController.decideImportReceipt,
+  inventoryController.cancelImportReceipt,
 );
 
 router.post(
@@ -273,7 +275,10 @@ router.delete(
 router.get(
   "/inventory/report",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "thongke", actions: ["view"] }],
+  ),
   inventoryController.getInventoryReport,
 );
 

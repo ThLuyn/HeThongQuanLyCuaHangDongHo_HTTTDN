@@ -1,7 +1,9 @@
 // @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { Modal } from '../components/Modal';
+import { usePermission } from '../components/PermissionContext';
 import { createPositionSalaryApi, getEmployeesApi, getPositionSalaryApi, getPositionWorkHistoryApi, transferEmployeePositionApi, updatePositionSalaryApi } from '../utils/backendApi';
 
 function formatMoney(value) {
@@ -9,12 +11,14 @@ function formatMoney(value) {
 }
 
 export function PositionSalaryManagement() {
+  const { can } = usePermission();
   const [rows, setRows] = useState([]);
   const [historyRows, setHistoryRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -31,6 +35,7 @@ export function PositionSalaryManagement() {
     effectiveDate: '',
     note: '',
   });
+  const [notice, setNotice] = useState({ type: 'success', message: '' });
   const [tab, setTab] = useState<'position' | 'history'>('position');
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const [selectedHistoryRow, setSelectedHistoryRow] = useState(null);
@@ -74,6 +79,7 @@ export function PositionSalaryManagement() {
 
   useEffect(() => {
     const loadEmployees = async () => {
+      if (!can('nhanvien', 'view')) return;
       try {
         const data = await getEmployeesApi();
         setEmployees((data || []).filter((emp) => Number(emp.TT) === 1));
@@ -107,9 +113,8 @@ export function PositionSalaryManagement() {
         label: 'Trạng thái',
         render: (val) => (
           <span
-            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              Number(val) === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-            }`}
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${Number(val) === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+              }`}
           >
             {Number(val) === 1 ? 'Đang áp dụng' : 'Ngưng áp dụng'}
           </span>
@@ -208,6 +213,14 @@ export function PositionSalaryManagement() {
     setEndDateRange({ from: '', to: '' });
   };
 
+  useEffect(() => {
+    if (!notice.message) return;
+    const timer = window.setTimeout(() => {
+      setNotice((prev) => ({ ...prev, message: '' }));
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice.message]);
+
   const openHistoryDetail = (row) => {
     setSelectedHistoryRow(row);
     setHistoryDetailOpen(true);
@@ -239,32 +252,30 @@ export function PositionSalaryManagement() {
     setModalOpen(true);
   };
 
-  const handleSoftDelete = async (row) => {
-    if (!confirm(`Ngưng áp dụng chức vụ?`)) {
-      return;
-    }
+  const handleSoftDelete = (row) => {
+    setDeleteConfirm({ row });
+  };
 
+  const confirmSoftDelete = async () => {
+    const row = deleteConfirm?.row;
+    setDeleteConfirm(null);
+    if (!row) return;
     try {
       await updatePositionSalaryApi(row.id, {
         baseSalary: Number(row.baseSalary || 0),
         commissionRate: Number(row.commissionRate || 0),
         status: 0,
       });
-
       setRows((prev) =>
         prev.map((item) =>
-          item.id === row.id
-            ? {
-                ...item,
-                status: 0,
-              }
-            : item,
+          item.id === row.id ? { ...item, status: 0 } : item,
         ),
       );
       setError('');
+      setNotice({ type: 'success', message: 'Đã ngưng áp dụng chức vụ thành công' });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể ngưng áp dụng chức vụ';
-      setError(message);
+      setNotice({ type: 'error', message });
     }
   };
 
@@ -315,11 +326,11 @@ export function PositionSalaryManagement() {
           prev.map((row) =>
             row.id === editingRow.id
               ? {
-                  ...row,
-                  baseSalary: Number(form.baseSalary),
-                  commissionRate: Number(form.commissionRate),
-                  status: normalizedStatus,
-                }
+                ...row,
+                baseSalary: Number(form.baseSalary),
+                commissionRate: Number(form.commissionRate),
+                status: normalizedStatus,
+              }
               : row,
           ),
         );
@@ -327,9 +338,10 @@ export function PositionSalaryManagement() {
 
       setModalOpen(false);
       setError('');
+      setNotice({ type: 'success', message: isCreating ? 'Thêm chức vụ thành công' : 'Cập nhật chức vụ thành công' });
     } catch (e) {
       const message = e instanceof Error ? e.message : isCreating ? 'Không thể thêm chức vụ' : 'Không thể cập nhật chức vụ';
-      setError(message);
+      setNotice({ type: 'error', message });
     }
   };
 
@@ -405,14 +417,33 @@ export function PositionSalaryManagement() {
       setEmployees((employeeData || []).filter((emp) => Number(emp.TT) === 1));
       setTransferModalOpen(false);
       setError('');
+      setNotice({ type: 'success', message: 'Chuyển công tác thành công' });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể chuyển công tác';
-      setError(message);
+      setNotice({ type: 'error', message });
     }
   };
 
   return (
     <div className="space-y-5">
+      {notice.message && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            notice.type === 'success'
+              ? 'bg-green-500 text-white'
+              : 'bg-red-500 text-white'
+          }`}
+        >
+          <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+          <span>{notice.message}</span>
+          <button
+            onClick={() => setNotice((prev) => ({ ...prev, message: '' }))}
+            className="ml-2 opacity-80 hover:opacity-100"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* Tabs */}
       <div className="flex gap-2 border-b mb-4">
         <button
@@ -430,25 +461,28 @@ export function PositionSalaryManagement() {
           title="Danh sách chức vụ"
           columns={columns}
           data={rows}
-          onAdd={openAdd}
-          addLabel="Thêm chức vụ"
+          {...(can('chucvu', 'create') ? { onAdd: openAdd, addLabel: 'Thêm chức vụ' } : {})}
           searchPlaceholder="Tìm kiếm..."
           noHorizontalScroll
           pageSize={5}
           emptyState={loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu'}
           rowActions={[
-            {
+            ...(can('chucvu', 'update') ? [{
               key: 'edit',
               label: 'Sửa',
               onClick: openEdit,
               className: 'p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors',
-            },
-            {
+            }] : []),
+            ...(can('chucvu', 'delete') ? [{
               key: 'delete',
               label: 'Ngưng áp dụng',
-              onClick: handleSoftDelete,
+              onClick: (row) => {
+                if (Number(row.status) === 0) return;
+                handleSoftDelete(row);
+              },
+              disabled: (row) => Number(row.status) === 0,
               className: 'p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors',
-            },
+            }] : []),
           ]}
         />
       )}
@@ -460,8 +494,7 @@ export function PositionSalaryManagement() {
           data={filteredHistoryTableData}
           defaultSortBy="effectiveDate"
           defaultSortDirection="desc"
-          onAdd={openTransferModal}
-          addLabel="Chuyển công tác"
+          {...(can('chucvu', 'update') ? { onAdd: openTransferModal, addLabel: 'Chuyển công tác' } : {})}
           searchPlaceholder="Tìm kiếm..."
           advancedFilterKeys={['employeeSearchText', 'newPositionName', 'note']}
           externalHasActiveFilters={hasExternalHistoryDateFilters}
@@ -719,6 +752,12 @@ export function PositionSalaryManagement() {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmModal
+        deleteConfirm={deleteConfirm}
+        setDeleteConfirm={setDeleteConfirm}
+        confirmDelete={confirmSoftDelete}
+      />
     </div>
   );
 }

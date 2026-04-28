@@ -18,8 +18,26 @@ dotenv.config();
 const app = express();
 const port = Number(process.env.PORT) || 5000;
 
+// Danh sách origin được phép — thêm domain production vào đây khi deploy
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Cho phép request không có origin (Postman, curl, server-to-server)
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true, // bắt buộc để httpOnly cookie hoạt động
+  }),
+);
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -45,6 +63,7 @@ app.use("/api/hr", hrRoutes);
 app.use("/api/sales", salesRoutes);
 
 const { authenticateToken } = require("./middlewares/authMiddleware");
+app.get("/api/notifications", authenticateToken, notificationController.getNotifications);
 app.get("/api/notifications/stream", authenticateToken, notificationController.streamNotifications);
 app.use(notFoundHandler);
 app.use(errorHandler);

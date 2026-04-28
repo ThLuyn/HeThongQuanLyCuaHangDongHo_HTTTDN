@@ -86,6 +86,13 @@ const menuItems = [
                 id: 'sales-report',
                 label: 'Báo cáo & Thống kê',
             },
+            // watch-categories chỉ hiện ở đây với sales (không phải warehouse)
+            // warehouse đã có trong group 'warehouse' rồi
+            {
+                id: 'watch-categories',
+                label: 'Sản phẩm',
+                salesOnly: true,
+            },
         ],
     },
     {
@@ -104,8 +111,11 @@ const menuItems = [
         ],
     },
 ];
-export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages = [], onLogout, currentMnq = 0 }) {
+export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages = [], onLogout, currentMnq = 0, currentRole = '' }) {
     const allowedSet = new Set(allowedPages);
+    const mnq = Number(currentMnq);
+    const isSalesGroup = mnq === 2;
+    const isWarehouseGroup = mnq === 3;
     const [expandedSections, setExpandedSections] = useState([
         'personal-work',
         'hr',
@@ -125,76 +135,84 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
     };
     const visibleMenuItems = menuItems
         .map((item) => {
-        // Ẩn Tổng quan với các nhóm quyền không phải MNQ=1
-        if (item.id === 'dashboard' && Number(currentMnq) !== 1)
-            return null;
-        if (!item.children)
-            return item;
-        const visibleChildren = item.children.filter((child) => allowedSet.has(child.id));
-        if (visibleChildren.length === 0)
-            return null;
-        return {
-            ...item,
-            children: visibleChildren,
-        };
-    })
+            // Ẩn Tổng quan với các nhóm quyền không phải MNQ=1
+            if (item.id === 'dashboard' && mnq !== 1)
+                return null;
+            // Ẩn Quản lý kho với nhóm Kinh doanh (MNQ=2)
+            if (item.id === 'warehouse' && isSalesGroup)
+                return null;
+            // Ẩn Quản lý kinh doanh với nhóm Kho (MNQ=3)
+            if (item.id === 'business' && isWarehouseGroup)
+                return null;
+            if (!item.children)
+                return item;
+            const visibleChildren = item.children
+                .filter((child) => !child.salesOnly || isSalesGroup)
+                .filter((child) => allowedSet.has(child.id));
+            if (visibleChildren.length === 0)
+                return null;
+            return {
+                ...item,
+                children: visibleChildren,
+            };
+        })
         .filter(Boolean);
     return (<div className={`bg-dark-700 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'w-[250px]' : 'w-0'}`}>
-      {/* Brand Header */}
-      <div className="h-16 flex items-center px-4 gap-3 border-b border-white/5 flex-shrink-0">
-        <button onClick={onToggle} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-500 transition-colors" aria-label="Đóng/Mở sidebar">
-          <MenuIcon className="w-5 h-5"/>
-        </button>
-        <div className="flex items-center gap-2">
-          <img src={logo} alt="Golden Time logo" className="w-5 h-5 rounded-full object-cover"/>
-          <h1 className="text-lg font-bold text-white tracking-wide whitespace-nowrap">
-            GOLDEN TIME
-          </h1>
+        {/* Brand Header */}
+        <div className="h-16 flex items-center px-4 gap-3 border-b border-white/5 flex-shrink-0">
+            <button onClick={onToggle} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-500 transition-colors" aria-label="Đóng/Mở sidebar">
+                <MenuIcon className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+                <img src={logo} alt="Golden Time logo" className="w-5 h-5 rounded-full object-cover" />
+                <h1 className="text-lg font-bold text-white tracking-wide whitespace-nowrap">
+                    GOLDEN TIME
+                </h1>
+            </div>
         </div>
-      </div>
 
-      {/* Menu */}
-      <nav className="flex-1 overflow-y-auto sidebar-scroll py-3 px-3">
-                {visibleMenuItems.map((item) => {
-            const isActive = item.id === activePage ||
-                (item.id === 'dashboard' && activePage === 'dashboard');
-            const isExpanded = expandedSections.includes(item.id);
-            const hasActiveChild = isChildActive(item);
-            if (!item.children) {
-                return (<button key={item.id} onClick={() => onNavigate(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-1 ${isActive ? 'bg-gold-500/15 text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
-                <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-gold-400' : ''}`}/>
-                <span className="whitespace-nowrap">{item.label}</span>
-              </button>);
-            }
-            return (<div key={item.id} className="mb-1">
-              <button onClick={() => toggleSection(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${hasActiveChild ? 'text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
-                <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${hasActiveChild ? 'text-gold-400' : ''}`}/>
-                <span className="flex-1 text-left whitespace-nowrap">
-                  {item.label}
-                </span>
-                {isExpanded ? (<ChevronUpIcon className="w-4 h-4 flex-shrink-0"/>) : (<ChevronDownIcon className="w-4 h-4 flex-shrink-0"/>)}
-              </button>
-              {isExpanded && (<div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-4">
-                  {item.children.map((child) => {
-                        const childActive = child.id === activePage;
-                        return (<button key={child.id} onClick={() => onNavigate(child.id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 ${childActive ? 'text-gold-400 bg-gold-500/10 font-medium' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
-                        <span className="whitespace-nowrap">{child.label}</span>
-                      </button>);
-                    })}
-                </div>)}
-            </div>);
-        })}
-      </nav>
+        {/* Menu */}
+        <nav className="flex-1 overflow-y-auto sidebar-scroll py-3 px-3">
+            {visibleMenuItems.map((item) => {
+                const isActive = item.id === activePage ||
+                    (item.id === 'dashboard' && activePage === 'dashboard');
+                const isExpanded = expandedSections.includes(item.id);
+                const hasActiveChild = isChildActive(item);
+                if (!item.children) {
+                    return (<button key={item.id} onClick={() => onNavigate(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-1 ${isActive ? 'bg-gold-500/15 text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
+                        <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-gold-400' : ''}`} />
+                        <span className="whitespace-nowrap">{item.label}</span>
+                    </button>);
+                }
+                return (<div key={item.id} className="mb-1">
+                    <button onClick={() => toggleSection(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${hasActiveChild ? 'text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
+                        <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${hasActiveChild ? 'text-gold-400' : ''}`} />
+                        <span className="flex-1 text-left whitespace-nowrap">
+                            {item.label}
+                        </span>
+                        {isExpanded ? (<ChevronUpIcon className="w-4 h-4 flex-shrink-0" />) : (<ChevronDownIcon className="w-4 h-4 flex-shrink-0" />)}
+                    </button>
+                    {isExpanded && (<div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-4">
+                        {item.children.map((child) => {
+                            const childActive = child.id === activePage;
+                            return (<button key={child.id} onClick={() => onNavigate(child.id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 ${childActive ? 'text-gold-400 bg-gold-500/10 font-medium' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                                <span className="whitespace-nowrap">{child.label}</span>
+                            </button>);
+                        })}
+                    </div>)}
+                </div>);
+            })}
+        </nav>
 
-      {/* Logout Button */}
-      <div className="px-3 py-3 border-t border-white/5 flex-shrink-0">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-        >
-          <LogOutIcon className="w-4 h-4 flex-shrink-0" />
-          <span className="whitespace-nowrap">Đăng xuất</span>
-        </button>
-      </div>
+        {/* Logout Button */}
+        <div className="px-3 py-3 border-t border-white/5 flex-shrink-0">
+            <button
+                onClick={onLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+            >
+                <LogOutIcon className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Đăng xuất</span>
+            </button>
+        </div>
     </div>);
 }

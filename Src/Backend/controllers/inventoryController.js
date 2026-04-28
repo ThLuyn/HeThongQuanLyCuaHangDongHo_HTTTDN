@@ -181,78 +181,24 @@ async function getImportReceiptDetail(req, res, next) {
   }
 }
 
-async function decideImportReceipt(req, res, next) {
+async function cancelImportReceipt(req, res, next) {
   try {
     const receiptId = Number(req.params.id);
-    const action = String(req.body?.action || "")
-      .trim()
-      .toLowerCase();
     const reason = String(req.body?.reason || "").trim();
 
     if (!Number.isInteger(receiptId) || receiptId <= 0) {
       return fail(res, "Import receipt id is invalid", 400);
     }
 
-    if (!["approve", "reject"].includes(action)) {
-      return fail(res, "action must be approve or reject", 400);
+    if (!reason) {
+      return fail(res, "reason is required", 400);
     }
 
     await withTransaction((connection) =>
-      Order.decideImportReceipt(connection, receiptId, action, reason),
+      Order.cancelImportReceipt(connection, receiptId, reason),
     );
 
-    // Nếu approve: kiểm tra xem có sản phẩm nào thay đổi giá nhập không
-    // để FE hiển thị gợi ý cập nhật giá bán
-    let priceChanges = [];
-    if (action === "approve") {
-      try {
-        const detail = await Order.getImportReceiptDetail(receiptId);
-        if (detail?.ITEMS?.length) {
-          const changes = await Promise.all(
-            detail.ITEMS.map(async (item) => {
-              const product = await Product.findById(item.MSP);
-              if (!product) return null;
-
-              const newImportPrice = Number(item.TIENNHAP || 0);
-              const currentSellPrice = Number(product.GIABAN || 0);
-
-              // Chỉ cảnh báo khi giá nhập mới cao hơn giá bán hiện tại
-              // hoặc khi giá nhập tăng đáng kể (>5%)
-              const oldImportPrice = Number(product.GIANHAP || 0);
-              const priceIncreased =
-                oldImportPrice > 0 &&
-                newImportPrice > oldImportPrice &&
-                Math.abs(newImportPrice - oldImportPrice) / oldImportPrice >
-                  0.05;
-              const sellBelowImport = newImportPrice > currentSellPrice;
-
-              if (priceIncreased || sellBelowImport) {
-                return {
-                  msp: item.MSP,
-                  tenSP: item.TENSP,
-                  oldImportPrice,
-                  newImportPrice,
-                  currentSellPrice,
-                  sellBelowImport,
-                  priceIncreased,
-                };
-              }
-              return null;
-            }),
-          );
-          priceChanges = changes.filter(Boolean);
-        }
-      } catch {
-        // Không để lỗi kiểm tra giá chặn response chính
-        priceChanges = [];
-      }
-    }
-
-    return success(
-      res,
-      { priceChanges },
-      "Import receipt status updated",
-    );
+    return success(res, null, "Import receipt canceled");
   } catch (error) {
     if (error?.statusCode === 404) {
       return fail(res, error.message, 404);
@@ -328,7 +274,7 @@ async function createProduct(req, res, next) {
       );
 
       if (initialStock > 0) {
-        const bootstrapImportReceiptId = await Order.createImportReceipt(
+        await Order.createImportReceipt(
           connection,
           {
             mnv: creatorId,
@@ -343,14 +289,6 @@ async function createProduct(req, res, next) {
               },
             ],
           },
-        );
-
-        // Auto-approve initial stock receipt to reduce setup steps for new products.
-        await Order.decideImportReceipt(
-          connection,
-          Number(bootstrapImportReceiptId),
-          "approve",
-          null,
         );
       }
 
@@ -535,7 +473,7 @@ module.exports = {
   createImportReceipt,
   getImportReceipts,
   getImportReceiptDetail,
-  decideImportReceipt,
+  cancelImportReceipt,
   getProductImportHistory,
   createProduct,
   updateProduct,

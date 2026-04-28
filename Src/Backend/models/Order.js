@@ -5,34 +5,11 @@ async function createImportReceipt(connection, payload) {
   const headerMncc = Number(payload.mncc);
   const headerTotal = Number(payload.total);
 
-  // Pending receipts (TT=2) must not change stock.
-  // Snapshot current stock for all involved products and restore right after detail insert.
-  const productIds = Array.from(
-    new Set(
-      payload.items
-        .map((item) => Number(item.msp))
-        .filter((id) => Number.isInteger(id) && id > 0),
-    ),
-  );
-  const stockBeforeMap = new Map();
-  for (const msp of productIds) {
-    const [stockRows] = await connection.execute(
-      `
-        SELECT SOLUONG
-        FROM SANPHAM
-        WHERE MSP = ?
-        LIMIT 1
-        FOR UPDATE
-      `,
-      [msp],
-    );
-    stockBeforeMap.set(msp, Number(stockRows?.[0]?.SOLUONG || 0));
-  }
-
+  // Tạo phiếu nhập với TT=1 (Hoàn thành) ngay — không qua bước chờ duyệt.
   const [headerResult] = await connection.execute(
     `
       INSERT INTO PHIEUNHAP (MNV, MNCC, TIEN, TT)
-      VALUES (?, ?, ?, 2)
+      VALUES (?, ?, ?, 1)
     `,
     [headerMnv, headerMncc, headerTotal],
   );
@@ -52,16 +29,16 @@ async function createImportReceipt(connection, payload) {
       `,
       [receiptId, msp, sl, tienNhap, hinhThuc],
     );
-  }
 
-  for (const [msp, originalStock] of stockBeforeMap.entries()) {
+    // Cộng tồn kho và cập nhật giá nhập mới nhất ngay khi tạo phiếu.
     await connection.execute(
       `
         UPDATE SANPHAM
-        SET SOLUONG = ?
+        SET SOLUONG = SOLUONG + ?,
+            GIANHAP = ?
         WHERE MSP = ?
       `,
-      [originalStock, msp],
+      [sl, tienNhap, msp],
     );
   }
 
@@ -123,11 +100,8 @@ async function getImportReceiptDetail(receiptId) {
   };
 }
 
-async function decideImportReceipt(connection, receiptId, action, reason) {
+async function cancelImportReceipt(connection, receiptId, reason) {
   const parsedId = Number(receiptId);
-  const normalizedAction = String(action || "")
-    .trim()
-    .toLowerCase();
 
   const [rows] = await connection.execute(
     `
@@ -147,63 +121,41 @@ async function decideImportReceipt(connection, receiptId, action, reason) {
     throw error;
   }
 
-  if (Number(receipt.TT) !== 2) {
-    const error = new Error(
-      "Only pending receipts can be approved or rejected",
-    );
+  if (Number(receipt.TT) !== 1) {
+    const error = new Error("Only completed receipts can be canceled");
     error.statusCode = 400;
     throw error;
   }
 
-  if (normalizedAction === "approve") {
-    const [items] = await connection.execute(
-      `
-        SELECT MSP, SL, TIENNHAP
-        FROM CTPHIEUNHAP
-        WHERE MPN = ?
-      `,
-      [parsedId],
-    );
+  // Hoàn trả tồn kho khi hủy phiếu nhập.
+  const [items] = await connection.execute(
+    `
+      SELECT MSP, SL
+      FROM CTPHIEUNHAP
+      WHERE MPN = ?
+    `,
+    [parsedId],
+  );
 
-    for (const item of items) {
-      await connection.execute(
-        `
-          UPDATE SANPHAM
-          SET SOLUONG = SOLUONG + ?,
-              GIANHAP = ?
-          WHERE MSP = ?
-        `,
-        [Number(item.SL), Number(item.TIENNHAP || 0), Number(item.MSP)],
-      );
-    }
-
+  for (const item of items) {
     await connection.execute(
       `
-        UPDATE PHIEUNHAP
-        SET TT = 1, LYDOHUY = NULL
-        WHERE MPN = ?
+        UPDATE SANPHAM
+        SET SOLUONG = GREATEST(0, SOLUONG - ?)
+        WHERE MSP = ?
       `,
-      [parsedId],
+      [Number(item.SL), Number(item.MSP)],
     );
-
-    return;
   }
 
-  if (normalizedAction === "reject") {
-    await connection.execute(
-      `
-        UPDATE PHIEUNHAP
-        SET TT = 0, LYDOHUY = ?
-        WHERE MPN = ?
-      `,
-      [reason || null, parsedId],
-    );
-    return;
-  }
-
-  const error = new Error("action must be approve or reject");
-  error.statusCode = 400;
-  throw error;
+  await connection.execute(
+    `
+      UPDATE PHIEUNHAP
+      SET TT = 0, LYDOHUY = ?
+      WHERE MPN = ?
+    `,
+    [reason || null, parsedId],
+  );
 }
 
 async function createExportReceipt(connection, payload) {
@@ -655,7 +607,7 @@ async function getSalesReportByDateRange(startDate, endDate) {
 module.exports = {
   createImportReceipt,
   getImportReceiptDetail,
-  decideImportReceipt,
+  cancelImportReceipt,
   createExportReceipt,
   listExportReceipts,
   getExportReceiptDetail,

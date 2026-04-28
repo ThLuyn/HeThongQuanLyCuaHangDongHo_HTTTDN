@@ -102,7 +102,7 @@ export function buildInventoryReportDocument(reportData, reportMonth, reportYear
 <html lang="vi">
   <head>
     <meta charset="utf-8" />
-    <title>Báo cáo thống kê biến động kho hàng</title>
+    <title>Thống kê sản phẩm</title>
     <style>
       body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
       h1 { text-align: center; font-size: 20px; margin: 0 0 12px 0; letter-spacing: .3px; }
@@ -123,7 +123,7 @@ export function buildInventoryReportDocument(reportData, reportMonth, reportYear
     </style>
   </head>
   <body>
-    <h1>BÁO CÁO THỐNG KÊ BIẾN ĐỘNG KHO HÀNG</h1>
+    <h1>THỐNG KÊ SẢN PHẨM</h1>
     <div class="meta">
       <p><strong>Thời gian báo cáo:</strong> ${escapeHtml(periodLabel)}</p>
       <p><strong>Ngày lập báo cáo:</strong> ${escapeHtml(createdAtLabel)}</p>

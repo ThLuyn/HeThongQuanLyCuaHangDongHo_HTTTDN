@@ -137,6 +137,31 @@ async function deletePermissionGroup(mnq) {
   );
 }
 
+
+async function listActiveAccountsByGroup(mnq) {
+  return query(
+    `
+      SELECT tk.MNV, tk.TDN
+      FROM   TAIKHOAN tk
+      WHERE  tk.MNQ       = ?
+        AND  tk.TRANGTHAI = 1
+    `,
+    [Number(mnq)],
+  );
+}
+
+async function reassignLockedAccounts(mnq, targetMnq) {
+  await query(
+    `
+      UPDATE TAIKHOAN
+      SET    MNQ = ?
+      WHERE  MNQ       = ?
+        AND  TRANGTHAI = 0
+    `,
+    [Number(targetMnq), Number(mnq)],
+  );
+}
+
 module.exports = {
   listPermissionGroups,
   listRoleGroups,
@@ -146,4 +171,6 @@ module.exports = {
   updatePermissionGroup,
   countAccountsByGroup,
   deletePermissionGroup,
+  listActiveAccountsByGroup,
+  reassignLockedAccounts,
 };

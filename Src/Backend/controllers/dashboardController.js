@@ -1,4 +1,5 @@
 const { query } = require("../config/db");
+const Notification = require("../models/Notification");
 const { success } = require("../utils/response");
 
 function toNumber(value) {
@@ -169,101 +170,8 @@ async function getOverview(req, res, next) {
 
 async function getHeaderNotifications(req, res, next) {
   try {
-    const currentRole = String(req.user?.role || "").toLowerCase();
-    const currentMnv = Number(req.user?.mnv || 0);
-    const canSeeAdminNotifications = ["admin", "manager", "hr"].includes(
-      currentRole,
-    );
-    const attendanceDate = getVietnamDateString();
-
-    const [leaveRows, lowStockRows, myAttendanceRows] = await Promise.all([
-      canSeeAdminNotifications
-        ? query(
-            `
-              SELECT
-                dxn.MDN,
-                nv.HOTEN,
-                dxn.NGAYTAO
-              FROM DONXINNGH dxn
-              INNER JOIN NHANVIEN nv ON nv.MNV = dxn.MNV
-              WHERE dxn.TRANGTHAI = 0
-              ORDER BY dxn.NGAYTAO DESC, dxn.MDN DESC
-              LIMIT 5
-            `,
-          )
-        : Promise.resolve([]),
-      canSeeAdminNotifications
-        ? query(
-            `
-              SELECT
-                MSP,
-                TEN,
-                SOLUONG
-              FROM SANPHAM
-              WHERE TT = 1 AND SOLUONG <= 3
-              ORDER BY SOLUONG ASC, MSP ASC
-              LIMIT 5
-            `,
-          )
-        : Promise.resolve([]),
-      currentMnv
-        ? query(
-            `
-              SELECT
-                COUNT(*) AS TOTAL_SHIFT,
-                SUM(CASE WHEN GIO_CHECKIN IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_IN,
-                SUM(CASE WHEN GIO_CHECKIN IS NOT NULL AND GIO_CHECKOUT IS NOT NULL THEN 1 ELSE 0 END) AS CHECKED_OUT
-              FROM PHANCALAM
-              WHERE MNV = ?
-                AND NGAY = ?
-            `,
-            [currentMnv, attendanceDate],
-          )
-        : Promise.resolve([]),
-    ]);
-
-    const leaveNotifications = leaveRows.map((row) => ({
-      id: `LEAVE-${row.MDN}`,
-      text: `Nhân viên ${row.HOTEN} đã gửi đơn xin nghỉ`,
-      time: row.NGAYTAO || null,
-      unread: true,
-    }));
-
-    const lowStockNotifications = lowStockRows.map((row) => ({
-      id: `LOWSTOCK-${row.MSP}`,
-      text: `Sản phẩm ${row.TEN} tồn kho thấp (${Number(row.SOLUONG || 0)})`,
-      time: null,
-      unread: true,
-    }));
-
-    const attendanceSummary = myAttendanceRows?.[0] || {};
-    const totalShift = Number(attendanceSummary.TOTAL_SHIFT || 0);
-    const checkedIn = Number(attendanceSummary.CHECKED_IN || 0);
-    const checkedOut = Number(attendanceSummary.CHECKED_OUT || 0);
-    const attendanceNotifications = [];
-
-    if (totalShift > 0 && checkedIn === 0) {
-      attendanceNotifications.push({
-        id: `ATTENDANCE-CHECKIN-${attendanceDate}`,
-        text: "Bạn có ca làm hôm nay. Nhấn để check-in",
-        time: null,
-        unread: true,
-      });
-    } else if (checkedIn > checkedOut) {
-      attendanceNotifications.push({
-        id: `ATTENDANCE-CHECKOUT-${attendanceDate}`,
-        text: "Bạn đang trong ca làm. Nhấn để check-out",
-        time: null,
-        unread: true,
-      });
-    }
-
-    const notifications = [
-      ...attendanceNotifications,
-      ...leaveNotifications,
-      ...lowStockNotifications,
-    ].slice(0, 10);
-
+    const mnq = Number(req.user?.mnq || 0);
+    const notifications = await Notification.getNotificationsForUser(mnq);
     return success(res, notifications, "Header notifications loaded");
   } catch (error) {
     return next(error);
