@@ -1,7 +1,24 @@
 // @ts-nocheck
-import { BarChart3Icon, ChevronDownIcon, ChevronUpIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PackageIcon, SettingsIcon, UserIcon, UsersIcon } from 'lucide-react';
-import { useState } from 'react';
+import { BarChart3Icon, BriefcaseBusinessIcon, CalendarCheckIcon, ChartNoAxesColumnIcon, ClipboardListIcon, FileText, LayoutDashboardIcon, LogOutIcon, MenuIcon, PackageIcon, PackagePlusIcon, SettingsIcon, ShieldCheckIcon, ShoppingCart, TruckIcon, UserCogIcon, UserIcon, UsersIcon, WalletIcon } from 'lucide-react';
 import logo from '../assets/LOGO.png';
+const pageIcons = {
+    dashboard: LayoutDashboardIcon,
+    'my-attendance': CalendarCheckIcon,
+    'my-leave-requests': FileText,
+    'my-salary': WalletIcon,
+    employees: UsersIcon,
+    'position-salary': BriefcaseBusinessIcon,
+    'leave-operations': ClipboardListIcon,
+    'daily-attendance': CalendarCheckIcon,
+    'salary-leave': WalletIcon,
+    'watch-categories': PackageIcon,
+    suppliers: TruckIcon,
+    'stock-receipts': PackagePlusIcon,
+    'export-receipts': ShoppingCart,
+    'sales-report': ChartNoAxesColumnIcon,
+    'permission-management': ShieldCheckIcon,
+    'user-management': UserCogIcon,
+};
 const menuItems = [
     {
         id: 'dashboard',
@@ -116,54 +133,35 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
     const mnq = Number(currentMnq);
     const isSalesGroup = mnq === 2;
     const isWarehouseGroup = mnq === 3;
-    const [expandedSections, setExpandedSections] = useState([
-        'personal-work',
-        'hr',
-        'warehouse',
-        'business',
-        'system',
-    ]);
-    const toggleSection = (sectionId) => {
-        setExpandedSections((prev) => prev.includes(sectionId)
-            ? prev.filter((id) => id !== sectionId)
-            : [...prev, sectionId]);
-    };
-    const isChildActive = (item) => {
-        if (!item.children)
-            return false;
-        return item.children.some((child) => child.id === activePage);
-    };
     const visibleMenuItems = menuItems
-        .map((item) => {
+        .flatMap((item) => {
             // Ẩn Tổng quan với các nhóm quyền không phải MNQ=1
             if (item.id === 'dashboard' && mnq !== 1)
-                return null;
+                return [];
             // Ẩn Quản lý kho với nhóm Kinh doanh (MNQ=2)
             if (item.id === 'warehouse' && isSalesGroup)
-                return null;
+                return [];
             // Ẩn Quản lý kinh doanh với nhóm Kho (MNQ=3)
             if (item.id === 'business' && isWarehouseGroup)
-                return null;
+                return [];
             if (!item.children)
-                return item;
-            const visibleChildren = item.children
+                return [item];
+            return item.children
                 .filter((child) => !child.salesOnly || isSalesGroup)
-                .filter((child) => allowedSet.has(child.id));
-            if (visibleChildren.length === 0)
-                return null;
-            return {
-                ...item,
-                children: visibleChildren,
-            };
+                .filter((child) => allowedSet.has(child.id))
+                .map((child) => ({
+                    ...child,
+                    icon: pageIcons[child.id] || item.icon,
+                }));
         })
         .filter(Boolean);
-    return (<div className={`bg-dark-700 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'w-[250px]' : 'w-0'}`}>
+    return (<div className={`bg-dark-700 border-r border-white/5 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'w-[300px]' : 'w-0'}`}>
         {/* Brand Header */}
         <div className="h-16 flex items-center px-4 gap-3 border-b border-white/5 flex-shrink-0">
             <button onClick={onToggle} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-500 transition-colors" aria-label="Đóng/Mở sidebar">
                 <MenuIcon className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
                 <img src={logo} alt="Golden Time logo" className="w-5 h-5 rounded-full object-cover" />
                 <h1 className="text-lg font-bold text-white tracking-wide whitespace-nowrap">
                     GOLDEN TIME
@@ -176,31 +174,10 @@ export function Sidebar({ activePage, onNavigate, isOpen, onToggle, allowedPages
             {visibleMenuItems.map((item) => {
                 const isActive = item.id === activePage ||
                     (item.id === 'dashboard' && activePage === 'dashboard');
-                const isExpanded = expandedSections.includes(item.id);
-                const hasActiveChild = isChildActive(item);
-                if (!item.children) {
-                    return (<button key={item.id} onClick={() => onNavigate(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-1 ${isActive ? 'bg-gold-500/15 text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
-                        <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-gold-400' : ''}`} />
-                        <span className="whitespace-nowrap">{item.label}</span>
-                    </button>);
-                }
-                return (<div key={item.id} className="mb-1">
-                    <button onClick={() => toggleSection(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${hasActiveChild ? 'text-gold-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
-                        <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${hasActiveChild ? 'text-gold-400' : ''}`} />
-                        <span className="flex-1 text-left whitespace-nowrap">
-                            {item.label}
-                        </span>
-                        {isExpanded ? (<ChevronUpIcon className="w-4 h-4 flex-shrink-0" />) : (<ChevronDownIcon className="w-4 h-4 flex-shrink-0" />)}
-                    </button>
-                    {isExpanded && (<div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-4">
-                        {item.children.map((child) => {
-                            const childActive = child.id === activePage;
-                            return (<button key={child.id} onClick={() => onNavigate(child.id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 ${childActive ? 'text-gold-400 bg-gold-500/10 font-medium' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
-                                <span className="whitespace-nowrap">{child.label}</span>
-                            </button>);
-                        })}
-                    </div>)}
-                </div>);
+                return (<button key={item.id} onClick={() => onNavigate(item.id)} className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-1 ${isActive ? 'bg-gold-500 text-dark-900 shadow-lg shadow-gold-500/15' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
+                    <item.icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-dark-900' : ''}`} />
+                    <span className="min-w-0 flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+                </button>);
             })}
         </nav>
 
