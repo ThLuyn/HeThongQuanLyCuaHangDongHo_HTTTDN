@@ -371,14 +371,6 @@ export function App() {
 
     // ─── Navigation handlers ──────────────────────────────────────────────────
     const handleIconNavigate = (iconId) => {
-        if (canAccessPage(iconId)) {
-            if (iconId !== 'watch-categories' && iconId !== 'stock-receipts') {
-                setWatchCategoryLowStockOnly(false);
-                setTargetLowStockProductId(null);
-            }
-            setActivePage(iconId);
-            return;
-        }
         const groupPagesMap = {
             dashboard: ['dashboard'],
             'personal-work': ['my-attendance', 'my-leave-requests', 'my-salary', 'profile', 'change-password'],
