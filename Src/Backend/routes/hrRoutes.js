@@ -12,29 +12,29 @@ router.use(authenticateToken);
 
 router.get(
   "/employees",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getEmployees,
 );
 router.post(
   "/employees",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.createEmployee,
 );
 router.get(
   "/employees/:id",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getEmployeeDetail,
 );
 
 router.put(
   "/employees/:id",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.updateEmployee,
 );
 
 router.get(
   "/leave-requests",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getLeaveRequests,
 );
 router.get(
@@ -56,7 +56,7 @@ router.post(
 );
 router.patch(
   "/leave-requests/:id",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.approveLeave,
 );
 router.get(
@@ -79,27 +79,27 @@ router.get(
 
 router.get(
   "/salary",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.calculateSalary,
 );
 router.get(
   "/attendance/today",
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions([], []),
   hrController.getTodayAttendance,
 );
 router.post(
   "/attendance/today",
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions([], []),
   hrController.saveTodayAttendance,
 );
 router.get(
   "/attendance/shifts",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getShiftAssignments,
 );
 router.post(
   "/attendance/shifts",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.saveShiftAssignments,
 );
 router.get(
@@ -128,73 +128,73 @@ router.post(
 );
 router.patch(
   "/employees/:id/resign",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.resignEmployee,
 );
 
 router.get(
   "/positions",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getPositions,
 );
 
 router.get(
   "/positions/history",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getPositionWorkHistory,
 );
 
 router.post(
   "/positions",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.createPosition,
 );
 
 router.put(
   "/positions/:id",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.updatePosition,
 );
 
 router.post(
   "/salary/:mbl/finalize",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.finalizeSalary,
 );
 
 router.put(
   "/salary/:mbl",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.updateSalary,
 );
 
 router.post(
   "/positions/transfer",
-  authorizeRoles("admin", "manager", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.transferEmployeePosition,
 );
 
 router.get(
   "/holidays",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.getHolidays,
 );
 
 router.post(
   "/holidays",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.createHoliday,
 );
 
 router.put(
   "/holidays/:id",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.updateHoliday,
 );
 
 router.delete(
   "/holidays/:id",
-  authorizeRoles("admin", "hr"),
+  authorizeRolesOrPermissions([], []),
   hrController.deleteHoliday,
 );
 

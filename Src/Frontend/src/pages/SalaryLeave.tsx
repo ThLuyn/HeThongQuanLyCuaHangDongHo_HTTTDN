@@ -568,9 +568,8 @@ export function SalaryLeave() {
     <div className="space-y-4">
       {notice.message && (
         <div
-          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
-            notice.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-          }`}
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${notice.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`}
         >
           <span>{notice.type === 'success' ? '✓' : '✕'}</span>
           <span>{notice.message}</span>

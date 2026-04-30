@@ -18,7 +18,10 @@ async function verifyPasswordAndMigrateIfNeeded(user, plainPassword) {
   if (!isPasswordValid) return false;
 
   // Migrate mật khẩu plaintext cũ sang bcrypt
-  const nextHashedPassword = await bcrypt.hash(plainPassword, BCRYPT_SALT_ROUNDS);
+  const nextHashedPassword = await bcrypt.hash(
+    plainPassword,
+    BCRYPT_SALT_ROUNDS,
+  );
   await User.updatePasswordById(user.MNV, nextHashedPassword).catch(() => null);
   return true;
 }
@@ -38,7 +41,7 @@ function normalizeRole(mnq) {
 async function getUserPermissionsByGroup(mnq) {
   const rows = await User.listPermissionsByGroup(mnq);
   return rows.map((row) => ({
-    mcn:      String(row.MCN      || "").toLowerCase(),
+    mcn: String(row.MCN || "").toLowerCase(),
     hanhDong: String(row.HANHDONG || "").toLowerCase(),
   }));
 }
@@ -62,13 +65,16 @@ async function login(req, res, next) {
       return fail(res, "ACCOUNT_LOCKED", 401);
     }
 
-    const isPasswordValid = await verifyPasswordAndMigrateIfNeeded(user, password);
+    const isPasswordValid = await verifyPasswordAndMigrateIfNeeded(
+      user,
+      password,
+    );
     if (!isPasswordValid) {
       return fail(res, "INVALID_PASSWORD", 401);
     }
 
     // role chỉ phụ thuộc MNQ — không phụ thuộc tên nhóm hay bộ phận
-    const role        = normalizeRole(user.MNQ);
+    const role = normalizeRole(user.MNQ);
     const permissions = await getUserPermissionsByGroup(user.MNQ);
 
     const accessToken = jwt.sign(
@@ -80,7 +86,9 @@ async function login(req, res, next) {
     // Tạo refreshToken (dài hạn hơn, lưu trong httpOnly cookie)
     const refreshToken = jwt.sign(
       { mnv: user.MNV, username: user.TDN, mnq: user.MNQ },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "dev-refresh-secret",
+      process.env.JWT_REFRESH_SECRET ||
+        process.env.JWT_SECRET ||
+        "dev-refresh-secret",
       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" },
     );
 
@@ -97,15 +105,15 @@ async function login(req, res, next) {
       {
         accessToken,
         user: {
-          mnv:        user.MNV,
-          username:   user.TDN,
-          fullName:   user.HOTEN,
-          hinhAnh:    user.HINHANH || null,
-          role,                          // "admin" | "staff"
-          mnq:        user.MNQ,
-          groupName:  user.TENNHOMQUYEN,
+          mnv: user.MNV,
+          username: user.TDN,
+          fullName: user.HOTEN,
+          hinhAnh: user.HINHANH || null,
+          role, // "admin" | "staff"
+          mnq: user.MNQ,
+          groupName: user.TENNHOMQUYEN,
           department: user.BOPHAN,
-          permissions,                   // ← quyền thực tế từ CTQUYEN
+          permissions, // ← quyền thực tế từ CTQUYEN
         },
       },
       "Login successful",
@@ -120,9 +128,9 @@ async function login(req, res, next) {
 // ─────────────────────────────────────────────
 async function changePassword(req, res, next) {
   try {
-    const username        = String(req.user?.username || "").trim();
+    const username = String(req.user?.username || "").trim();
     const currentPassword = String(req.body?.currentPassword || "");
-    const newPassword     = String(req.body?.newPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
 
     if (!username) {
       return fail(res, "Invalid user", 401);
@@ -134,7 +142,11 @@ async function changePassword(req, res, next) {
       return fail(res, "New password must be at least 6 characters", 400);
     }
     if (currentPassword === newPassword) {
-      return fail(res, "New password must be different from current password", 400);
+      return fail(
+        res,
+        "New password must be different from current password",
+        400,
+      );
     }
 
     const user = await User.findByUsername(username);
@@ -142,7 +154,10 @@ async function changePassword(req, res, next) {
       return fail(res, "User not found or inactive", 404);
     }
 
-    const isCurrentPasswordValid = await verifyPasswordAndMigrateIfNeeded(user, currentPassword);
+    const isCurrentPasswordValid = await verifyPasswordAndMigrateIfNeeded(
+      user,
+      currentPassword,
+    );
     if (!isCurrentPasswordValid) {
       return fail(res, "Current password is incorrect", 400);
     }
@@ -184,40 +199,52 @@ async function me(req, res, next) {
           TENCHUCVU: null,
           LUONGCOBAN: 0,
         };
-
-        const permissions = await getUserPermissionsByGroup(mock.MNQ).catch(() => []);
-
+        // Lấy quyền thực tế từ CTQUYEN (nếu có)
+        let permissions = [];
+        try {
+          permissions = await User.listPermissionsByGroup(mock.MNQ);
+          permissions = Array.isArray(permissions)
+            ? permissions.map((row) => ({
+                mcn: String(row.MCN || "").toLowerCase(),
+                hanhDong: String(row.HANHDONG || "").toLowerCase(),
+              }))
+            : [];
+        } catch (e) {}
         return success(
           res,
           {
-            mnv:        mock.MNV,
-            username:   mock.TDN,
-            fullName:   mock.HOTEN,
-            mnq:        mock.MNQ,
-            role:       normalizeRole(mock.MNQ),
-            groupName:  mock.TENNHOMQUYEN,
+            mnv: mock.MNV,
+            username: mock.TDN,
+            fullName: mock.HOTEN,
+            mnq: mock.MNQ,
+            role: normalizeRole(mock.MNQ),
+            groupName: mock.TENNHOMQUYEN,
             department: mock.BOPHAN,
             permissions,
-            ngaySinh:   mock.NGAYSINH,
-            gioiTinh:   Number(mock.GIOITINH),
+            ngaySinh: mock.NGAYSINH,
+            gioiTinh: Number(mock.GIOITINH),
             soDienThoai: mock.SDT,
-            email:      mock.EMAIL,
-            trangThai:  Number(mock.TT),
-            queQuan:    null,
-            diaChi:     null,
-            hinhAnh:    mock.HINHANH,
-            chucVu:     mock.TENCHUCVU,
+            email: mock.EMAIL,
+            trangThai: Number(mock.TT),
+            queQuan: null,
+            diaChi: null,
+            hinhAnh: mock.HINHANH,
+            chucVu: mock.TENCHUCVU,
             ngayVaoLam: mock.NGAYVAOLAM,
-            cccd:       mock.CCCD,
-            boPhan:     mock.BOPHAN,
+            cccd: mock.CCCD,
+            boPhan: mock.BOPHAN,
             trangThaiLamViec: Number(mock.TT ?? 1),
             luongCoBan: Number(mock.LUONGCOBAN || 0),
             soTaiKhoanNganHang: null,
             tenNganHang: null,
             maSoThueCaNhan: null,
             khauTruBaoHiem: {
-              bhxhRate: 0.08, bhytRate: 0.015, bhtnRate: 0.01,
-              bhxhAmount: 0,  bhytAmount: 0,   bhtnAmount: 0,
+              bhxhRate: 0.08,
+              bhytRate: 0.015,
+              bhtnRate: 0.01,
+              bhxhAmount: 0,
+              bhytAmount: 0,
+              bhtnAmount: 0,
             },
           },
           "Profile loaded (dev fallback)",
@@ -231,31 +258,31 @@ async function me(req, res, next) {
     return success(
       res,
       {
-        mnv:        profile.MNV,
-        username:   profile.TDN,
-        fullName:   profile.HOTEN,
-        mnq:        profile.MNQ,
-        role:       normalizeRole(profile.MNQ),
-        groupName:  profile.TENNHOMQUYEN,
+        mnv: profile.MNV,
+        username: profile.TDN,
+        fullName: profile.HOTEN,
+        mnq: profile.MNQ,
+        role: normalizeRole(profile.MNQ),
+        groupName: profile.TENNHOMQUYEN,
         department: profile.BOPHAN,
         permissions,
-        ngaySinh:   profile.NGAYSINH,
-        gioiTinh:   Number(profile.GIOITINH),
+        ngaySinh: profile.NGAYSINH,
+        gioiTinh: Number(profile.GIOITINH),
         soDienThoai: profile.SDT,
-        email:      profile.EMAIL,
-        trangThai:  Number(profile.TT),
-        queQuan:    profile.QUEQUAN     || null,
-        diaChi:     profile.DIACHI      || null,
-        hinhAnh:    profile.HINHANH     || null,
-        chucVu:     profile.TENCHUCVU   || null,
-        ngayVaoLam: profile.NGAYVAOLAM  || null,
-        cccd:       profile.CCCD        || null,
-        boPhan:     profile.BOPHAN      || null,
+        email: profile.EMAIL,
+        trangThai: Number(profile.TT),
+        queQuan: profile.QUEQUAN || null,
+        diaChi: profile.DIACHI || null,
+        hinhAnh: profile.HINHANH || null,
+        chucVu: profile.TENCHUCVU || null,
+        ngayVaoLam: profile.NGAYVAOLAM || null,
+        cccd: profile.CCCD || null,
+        boPhan: profile.BOPHAN || null,
         trangThaiLamViec: Number(profile.TT ?? 1),
         luongCoBan: Number(profile.LUONGCOBAN || 0),
         soTaiKhoanNganHang: profile.SOTAIKHOANNGANHANG || null,
-        tenNganHang:        profile.TENNGANHANG        || null,
-        maSoThueCaNhan:     profile.CCCD               || null,
+        tenNganHang: profile.TENNGANHANG || null,
+        maSoThueCaNhan: profile.CCCD || null,
         khauTruBaoHiem: {
           bhxhRate: 0.08,
           bhytRate: 0.015,
@@ -287,35 +314,68 @@ async function updateMe(req, res, next) {
       return fail(res, "User not found", 404);
     }
 
-    const fullName   = String(req.body.fullName   ?? currentProfile.HOTEN).trim();
-    const gender     = Number(req.body.gioiTinh   ?? currentProfile.GIOITINH);
-    const birthDate  = String(req.body.ngaySinh   ?? currentProfile.NGAYSINH ?? "").trim();
-    const phone      = String(req.body.soDienThoai ?? currentProfile.SDT).trim();
-    const email      = String(req.body.email       ?? currentProfile.EMAIL).trim();
-    const status     = Number(req.body.trangThai   ?? currentProfile.TT);
-    const queQuan    = String(req.body.queQuan     ?? currentProfile.QUEQUAN ?? "").trim();
-    const diaChi     = String(req.body.diaChi      ?? currentProfile.DIACHI  ?? "").trim();
-    const hinhAnh    = String(req.body.hinhAnh     ?? currentProfile.HINHANH ?? "").trim();
-    const ngayVaoLam = String(req.body.ngayVaoLam  ?? currentProfile.NGAYVAOLAM ?? "").trim();
-    const cccd       = String(req.body.cccd        ?? currentProfile.CCCD ?? "").trim();
-    const boPhan     = String(req.body.boPhan      ?? currentProfile.BOPHAN ?? "").trim();
-    const trangThaiLamViec      = Number(req.body.trangThaiLamViec      ?? currentProfile.TT ?? 1);
-    const soTaiKhoanNganHang    = String(req.body.soTaiKhoanNganHang    ?? currentProfile.SOTAIKHOANNGANHANG ?? "").trim();
-    const tenNganHang           = String(req.body.tenNganHang           ?? currentProfile.TENNGANHANG ?? "").trim();
+    const fullName = String(req.body.fullName ?? currentProfile.HOTEN).trim();
+    const gender = Number(req.body.gioiTinh ?? currentProfile.GIOITINH);
+    const birthDate = String(
+      req.body.ngaySinh ?? currentProfile.NGAYSINH ?? "",
+    ).trim();
+    const phone = String(req.body.soDienThoai ?? currentProfile.SDT).trim();
+    const email = String(req.body.email ?? currentProfile.EMAIL).trim();
+    const status = Number(req.body.trangThai ?? currentProfile.TT);
+    const queQuan = String(
+      req.body.queQuan ?? currentProfile.QUEQUAN ?? "",
+    ).trim();
+    const diaChi = String(
+      req.body.diaChi ?? currentProfile.DIACHI ?? "",
+    ).trim();
+    const hinhAnh = String(
+      req.body.hinhAnh ?? currentProfile.HINHANH ?? "",
+    ).trim();
+    const ngayVaoLam = String(
+      req.body.ngayVaoLam ?? currentProfile.NGAYVAOLAM ?? "",
+    ).trim();
+    const cccd = String(req.body.cccd ?? currentProfile.CCCD ?? "").trim();
+    const boPhan = String(
+      req.body.boPhan ?? currentProfile.BOPHAN ?? "",
+    ).trim();
+    const trangThaiLamViec = Number(
+      req.body.trangThaiLamViec ?? currentProfile.TT ?? 1,
+    );
+    const soTaiKhoanNganHang = String(
+      req.body.soTaiKhoanNganHang ?? currentProfile.SOTAIKHOANNGANHANG ?? "",
+    ).trim();
+    const tenNganHang = String(
+      req.body.tenNganHang ?? currentProfile.TENNGANHANG ?? "",
+    ).trim();
 
-    if (!fullName)                  return fail(res, "fullName is required", 400);
-    if (![0, 1].includes(gender))   return fail(res, "gioiTinh must be 0 or 1", 400);
-    if (!birthDate)                 return fail(res, "ngaySinh is required", 400);
-    if (!phone)                     return fail(res, "soDienThoai is required", 400);
-    if (!email || !email.includes("@")) return fail(res, "A valid email is required", 400);
-    if (![0, 1].includes(status))   return fail(res, "trangThai must be 0 or 1", 400);
-    if (![0, 1, 2].includes(trangThaiLamViec)) return fail(res, "trangThaiLamViec must be 0, 1 or 2", 400);
+    if (!fullName) return fail(res, "fullName is required", 400);
+    if (![0, 1].includes(gender))
+      return fail(res, "gioiTinh must be 0 or 1", 400);
+    if (!birthDate) return fail(res, "ngaySinh is required", 400);
+    if (!phone) return fail(res, "soDienThoai is required", 400);
+    if (!email || !email.includes("@"))
+      return fail(res, "A valid email is required", 400);
+    if (![0, 1].includes(status))
+      return fail(res, "trangThai must be 0 or 1", 400);
+    if (![0, 1, 2].includes(trangThaiLamViec))
+      return fail(res, "trangThaiLamViec must be 0, 1 or 2", 400);
 
     await User.updateProfileById(currentMnv, {
-      fullName, gioiTinh: gender, ngaySinh: birthDate,
-      soDienThoai: phone, email, trangThai: status,
-      queQuan, diaChi, hinhAnh, ngayVaoLam, cccd, boPhan,
-      trangThaiLamViec, soTaiKhoanNganHang, tenNganHang,
+      fullName,
+      gioiTinh: gender,
+      ngaySinh: birthDate,
+      soDienThoai: phone,
+      email,
+      trangThai: status,
+      queQuan,
+      diaChi,
+      hinhAnh,
+      ngayVaoLam,
+      cccd,
+      boPhan,
+      trangThaiLamViec,
+      soTaiKhoanNganHang,
+      tenNganHang,
     });
 
     return success(res, null, "Profile updated");
@@ -347,7 +407,9 @@ async function refresh(req, res, next) {
     try {
       payload = jwt.verify(
         refreshToken,
-        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "dev-refresh-secret",
+        process.env.JWT_REFRESH_SECRET ||
+          process.env.JWT_SECRET ||
+          "dev-refresh-secret",
       );
     } catch {
       res.clearCookie("refreshToken", { httpOnly: true, sameSite: "strict" });
@@ -373,7 +435,9 @@ async function refresh(req, res, next) {
     // Xoay refreshToken mới (refresh token rotation — bảo mật hơn)
     const newRefreshToken = jwt.sign(
       { mnv: user.MNV, username: user.TDN, mnq: user.MNQ },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "dev-refresh-secret",
+      process.env.JWT_REFRESH_SECRET ||
+        process.env.JWT_SECRET ||
+        "dev-refresh-secret",
       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" },
     );
 

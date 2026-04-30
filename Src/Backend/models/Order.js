@@ -1,5 +1,6 @@
 const { query } = require("../config/db");
 
+// ...existing code...
 async function createImportReceipt(connection, payload) {
   const headerMnv = Number(payload.mnv);
   const headerMncc = Number(payload.mncc);
@@ -22,6 +23,13 @@ async function createImportReceipt(connection, payload) {
     const tienNhap = Number(item.tienNhap);
     const hinhThuc = Number(item.hinhThuc || 0);
 
+    // Khóa hàng trước để biết SOLUONG hiện tại (tránh race/kiểm tra trigger)
+    const [beforeRows] = await connection.execute(
+      "SELECT SOLUONG FROM SANPHAM WHERE MSP = ? FOR UPDATE",
+      [msp],
+    );
+    const prevStock = Number(beforeRows[0]?.SOLUONG || 0);
+
     await connection.execute(
       `
         INSERT INTO CTPHIEUNHAP (MPN, MSP, SL, TIENNHAP, HINHTHUC)
@@ -30,20 +38,41 @@ async function createImportReceipt(connection, payload) {
       [receiptId, msp, sl, tienNhap, hinhThuc],
     );
 
-    // Cộng tồn kho và cập nhật giá nhập mới nhất ngay khi tạo phiếu.
-    await connection.execute(
-      `
-        UPDATE SANPHAM
-        SET SOLUONG = SOLUONG + ?,
-            GIANHAP = ?
-        WHERE MSP = ?
-      `,
-      [sl, tienNhap, msp],
+    // Kiểm tra sau khi insert: nếu trigger DB đã cập nhật SOLUONG thì không cộng nữa
+    const [afterRows] = await connection.execute(
+      "SELECT SOLUONG FROM SANPHAM WHERE MSP = ?",
+      [msp],
     );
+    const currentStock = Number(afterRows[0]?.SOLUONG || 0);
+    const delta = currentStock - prevStock;
+
+    if (delta === 0) {
+      // Trường hợp DB không có trigger tự cộng: thực hiện cộng ở app
+      await connection.execute(
+        `
+          UPDATE SANPHAM
+          SET SOLUONG = SOLUONG + ?,
+              GIANHAP = ?
+          WHERE MSP = ?
+        `,
+        [sl, tienNhap, msp],
+      );
+    } else {
+      // Trigger đã cập nhật SOLUONG — chỉ cập nhật giá nhập
+      await connection.execute(
+        `
+          UPDATE SANPHAM
+          SET GIANHAP = ?
+          WHERE MSP = ?
+        `,
+        [tienNhap, msp],
+      );
+    }
   }
 
   return receiptId;
 }
+// ...existing code...
 
 async function getImportReceiptDetail(receiptId) {
   const parsedId = Number(receiptId);

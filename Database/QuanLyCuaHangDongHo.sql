@@ -572,7 +572,7 @@ INSERT INTO `DANHMUCCHUCNANG` (`MCN`, `TEN`, `TT`) VALUES
     ('chucvu', 'Quản lý chức vụ', 1),
     ('calam', 'Quản lý ca làm', 1),
     ('phancalam', 'Phân ca làm việc', 1),
-    ('donxinngh', 'Quản lý đơn Xin nghỉ', 1),
+    ('donxinngh', 'Quản lý đơn xin nghỉ', 1),
     ('chamcong', 'Quản lý chấm công', 1),
     ('bangluong', 'Quản lý bảng lương', 1),
     ('phieunhap', 'Quản lý nhập kho', 1),
@@ -606,7 +606,7 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 	(1, 'chucvu', 'create'), (1, 'chucvu', 'view'), (1, 'chucvu', 'update'), (1, 'chucvu', 'delete'),
 	(1, 'calam', 'create'), (1, 'calam', 'view'), (1, 'calam', 'update'), (1, 'calam', 'delete'),
 	(1, 'phancalam', 'create'), (1, 'phancalam', 'view'), (1, 'phancalam', 'update'), (1, 'phancalam', 'delete'),
-	(1, 'donxinngh', 'view'), (1, 'donxinngh', 'approve'),
+	(1, 'donxinngh', 'view'), (1, 'donxinngh', 'approve'), (1, 'donxinngh', 'update'), 
 	(1, 'chamcong', 'create'), (1, 'chamcong', 'view'), (1, 'chamcong', 'update'), (1, 'chamcong', 'export'),
 	(1, 'bangluong', 'create'), (1, 'bangluong', 'view'), (1, 'bangluong', 'update'), (1, 'bangluong', 'export'),
 	(1, 'phieunhap', 'create'), (1, 'phieunhap', 'view'), (1, 'phieunhap', 'cancel'), (1, 'phieunhap', 'export'),
@@ -648,9 +648,10 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
 	(4, 'nhanvien', 'create'), (4, 'nhanvien', 'view'), (4, 'nhanvien', 'update'), (4, 'nhanvien', 'delete'),
 	(4, 'chucvu', 'create'), (4, 'chucvu', 'view'), (4, 'chucvu', 'update'), (4, 'chucvu', 'delete'),
-	(4, 'donxinngh', 'view'), (4, 'donxinngh', 'approve'), (4, 'donxinngh', 'create'),
-	(4, 'bangluong', 'create'), (4, 'bangluong', 'view'), (4, 'bangluong', 'update'), (4, 'bangluong', 'export'),
-	(4, 'chamcong', 'view'),
+	(4, 'donxinngh', 'view'), (4, 'donxinngh', 'approve'), (4, 'donxinngh', 'create'), (4, 'donxinngh', 'update'),
+	(4, 'bangluong', 'create'), (4, 'bangluong', 'view'), (4, 'bangluong', 'update'), (4, 'bangluong', 'export'), (4, 'bangluong', 'delete'),
+	(4, 'chamcong', 'create'), (4, 'chamcong', 'view'), (4, 'chamcong', 'update'), (4, 'chamcong', 'export'),
+    (4, 'calam', 'create'), (4, 'calam', 'view'), (4, 'calam', 'update'), (4, 'calam', 'delete'),
 	(4, 'phancalam', 'create'), (4, 'phancalam', 'view'), (4, 'phancalam', 'update'), (4, 'phancalam', 'delete');
     
 -- ------------------------------------------------------------

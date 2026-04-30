@@ -3,8 +3,8 @@ import { CalendarDaysIcon, ClockIcon, RefreshCcwIcon, TrophyIcon } from 'lucide-
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
-import { decideLeaveRequestApi, getLeaveRequestsApi } from '../utils/backendApi';
 import { usePermission } from '../components/PermissionContext';
+import { decideLeaveRequestApi, getLeaveRequestsApi } from '../utils/backendApi';
 
 const LEAVE_TYPE_LABEL = {
   0: 'Phép năm',
@@ -334,23 +334,23 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       onClick: (row) => openDetail(row, 'view'),
       className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
     },
-    ...(can('donxinngh', 'update') ? [{
+    ...((can('donxinngh', 'update') || can('donxinngh', 'approve')) ? [{
       key: 'edit',
       label: 'Chỉnh sửa',
       onClick: (row) => openDetail(row, 'edit'),
       className: 'p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors',
     }] : []),
+    // Đã bỏ nút Xóa đơn nghỉ theo yêu cầu
   ];
 
   return (
     <div className="space-y-5">
       {notice.message && (
         <div
-          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
-            notice.type === 'success'
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${notice.type === 'success'
               ? 'bg-green-500 text-white'
               : 'bg-red-500 text-white'
-          }`}
+            }`}
         >
           <span>{notice.type === 'success' ? '✓' : '✕'}</span>
           <span>{notice.message}</span>
@@ -578,7 +578,7 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
               >
                 Đóng
               </button>
-              {detailMode === 'edit' && Number(selectedRequest.statusCode) === 0 ? (
+              {detailMode === 'edit' && Number(selectedRequest.statusCode) === 0 && (can('donxinngh', 'approve') || can('donxinngh', 'update')) ? (
                 <>
                   <button
                     type="button"

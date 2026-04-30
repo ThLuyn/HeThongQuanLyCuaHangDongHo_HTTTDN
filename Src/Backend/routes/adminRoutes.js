@@ -129,14 +129,20 @@ router.get(
 router.post(
   "/inventory/products",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "sanpham", actions: ["create"] }],
+  ),
   inventoryController.createProduct,
 );
 
 router.post(
   "/inventory/products/upload-image",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "sanpham", actions: ["create"] }],
+  ),
   inventoryController.uploadProductImageMiddleware,
   inventoryController.uploadProductImage,
 );
@@ -155,14 +161,20 @@ router.get(
 router.put(
   "/inventory/products/:id",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "sanpham", actions: ["update"] }],
+  ),
   inventoryController.updateProduct,
 );
 
 router.delete(
   "/inventory/products/:id",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "sanpham", actions: ["delete"] }],
+  ),
   inventoryController.deleteProduct,
 );
 
@@ -223,21 +235,30 @@ router.get(
 router.post(
   "/inventory/suppliers",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "nhacungcap", actions: ["create"] }],
+  ),
   inventoryController.createSupplier,
 );
 
 router.put(
   "/inventory/suppliers/:id",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "nhacungcap", actions: ["update"] }],
+  ),
   inventoryController.updateSupplier,
 );
 
 router.delete(
   "/inventory/suppliers/:id",
   authenticateToken,
-  authorizeRoles("admin", "manager"),
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "nhacungcap", actions: ["delete"] }],
+  ),
   inventoryController.deleteSupplier,
 );
 
