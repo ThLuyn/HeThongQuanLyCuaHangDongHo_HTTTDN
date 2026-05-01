@@ -792,6 +792,26 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
   };
 }
 
+async function getLatestPayrollPeriod() {
+  const rows = await query(
+    `
+      SELECT NAM, THANG
+      FROM BANGLUONG
+      ORDER BY NAM DESC, THANG DESC
+      LIMIT 1
+    `,
+  );
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+
+  return {
+    year: Number(rows[0].NAM),
+    month: Number(rows[0].THANG),
+  };
+}
+
 async function listHolidays(year) {
   const hasYear = Number.isInteger(Number(year));
   return query(
@@ -1891,6 +1911,7 @@ module.exports = {
   approveLeaveRequest,
   getPayrollByMonth,
   getPayrollByMonthAndEmployee,
+  getLatestPayrollPeriod,
   listHolidays,
   findHolidayById,
   hasFinalizedPayrollByDate,

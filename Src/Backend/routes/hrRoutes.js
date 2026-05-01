@@ -79,8 +79,13 @@ router.get(
 
 router.get(
   "/salary",
-  authorizeRolesOrPermissions([], []),
+  authorizeRolesOrPermissions([], [{ mcn: "bangluong", actions: ["view"] }]),
   hrController.calculateSalary,
+);
+router.get(
+  "/salary/latest-period",
+  authorizeRolesOrPermissions([], [{ mcn: "bangluong", actions: ["view"] }]),
+  hrController.getLatestPayrollPeriod,
 );
 router.get(
   "/attendance/today",
@@ -158,13 +163,13 @@ router.put(
 
 router.post(
   "/salary/:mbl/finalize",
-  authorizeRolesOrPermissions([], []),
+  authorizeRolesOrPermissions([], [{ mcn: "bangluong", actions: ["update"] }]),
   hrController.finalizeSalary,
 );
 
 router.put(
   "/salary/:mbl",
-  authorizeRolesOrPermissions([], []),
+  authorizeRolesOrPermissions([], [{ mcn: "bangluong", actions: ["update"] }]),
   hrController.updateSalary,
 );
 

@@ -21,6 +21,74 @@ import { getProductImageSrc } from '../utils/productImage';
 
 const VND = new Intl.NumberFormat('vi-VN');
 
+// --- Tạo HTML hóa đơn & download ---
+const buildInvoiceHTML = ({ receiptId, date, customerName, employeeName, paymentMethod, items, total }) => {
+    const paymentLabel = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Thẻ ngân hàng' }[paymentMethod] || paymentMethod;
+    const rows = items.map((line) => `
+    <tr>
+      <td>${line.msp}</td>
+      <td>${line.name}</td>
+      <td style="text-align:right">${line.qty}</td>
+      <td style="text-align:right">${VND.format(line.price)} đ</td>
+      <td style="text-align:right"><strong>${VND.format(line.qty * line.price)} đ</strong></td>
+    </tr>`).join('');
+
+    return `<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"/><title>Hóa đơn ${receiptId}</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:13px;color:#111;margin:32px}
+  h2{text-align:center;margin-bottom:4px;font-size:22px;letter-spacing:2px}
+  .subtitle{text-align:center;color:#555;margin-bottom:20px;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+  .divider{border:none;border-top:1px dashed #ccc;margin:16px 0}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:20px}
+  .info-grid span{color:#888;font-size:12px}
+  .info-grid strong{display:block;font-size:13px;color:#111}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  th{background:#f3f4f6;padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:7px 8px;border-bottom:1px solid #f0f0f0;font-size:13px}
+  .total-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;text-align:right;margin-top:8px}
+  .total-box .label{font-size:12px;color:#666;margin-bottom:2px}
+  .total-box .amount{font-size:20px;font-weight:bold;color:#dc2626}
+  .payment-method{font-size:12px;color:#555;margin-top:4px}
+  .footer{text-align:center;margin-top:32px;color:#aaa;font-size:12px;border-top:1px dashed #e5e7eb;padding-top:16px}
+  @media print{body{margin:16px}}
+</style>
+</head><body>
+<h2>⏱ GOLDEN TIME</h2>
+<div class="subtitle">Hóa đơn bán hàng</div>
+<hr class="divider"/>
+<div class="info-grid">
+  <div><span>Mã phiếu</span><strong>${receiptId}</strong></div>
+  <div><span>Ngày bán</span><strong>${date}</strong></div>
+  <div><span>Khách hàng</span><strong>${customerName}</strong></div>
+  <div><span>Nhân viên</span><strong>${employeeName}</strong></div>
+</div>
+<table>
+  <thead><tr><th>Mã SP</th><th>Tên sản phẩm</th><th style="text-align:right">SL</th><th style="text-align:right">Đơn giá</th><th style="text-align:right">Thành tiền</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<div class="total-box">
+  <div class="label">Tổng cộng</div>
+  <div class="amount">${VND.format(total)} đ</div>
+  <div class="payment-method">Thanh toán: ${paymentLabel}</div>
+</div>
+<div class="footer">Cảm ơn quý khách đã mua hàng tại Golden Time!<br/>Hẹn gặp lại 🕐</div>
+</body></html>`;
+};
+
+const downloadBill = (billData) => {
+    const html = buildInvoiceHTML(billData);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `HoaDon_${billData.receiptId}_${new Date().toISOString().slice(0,10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
 // --- Components nhỏ để code sạch hơn ---
 
 const ProductCard = ({ product, inCart, addToCart, isMaxed }) => {
@@ -198,9 +266,19 @@ export function POSPage({ onBack }) {
     const handlePayment = async () => {
         if (cart.length === 0) return;
         setSaving(true);
+
+        // Lưu dữ liệu bill trước khi reset cart
+        const session = loadAuthSession();
+        const selectedCustomer = customers.find(c => Number(c.MKH) === Number(mkh));
+        const billSnapshot = {
+            cart: [...cart],
+            customerName: selectedCustomer?.HOTEN || `KH #${mkh}`,
+            employeeName: session?.hoten || session?.mnv || '-',
+            paymentMethod,
+        };
+
         try {
-            const session = loadAuthSession();
-            await createExportReceiptApi({
+            const result = await createExportReceiptApi({
                 mnv: session?.mnv,
                 mkh: Number(mkh),
                 items: cart.map(c => ({
@@ -210,10 +288,28 @@ export function POSPage({ onBack }) {
                 })),
             });
 
+            // Tạo dữ liệu bill và download
+            const mpx = result?.MPX ?? result?.mpx ?? result?.id ?? Date.now();
+            const receiptId = `PXK${String(mpx).padStart(4, '0')}`;
+            downloadBill({
+                receiptId,
+                date: new Date().toLocaleString('vi-VN'),
+                customerName: billSnapshot.customerName,
+                employeeName: billSnapshot.employeeName,
+                paymentMethod: billSnapshot.paymentMethod,
+                items: billSnapshot.cart.map(c => ({
+                    msp: c.product.MSP,
+                    name: c.product.TEN,
+                    qty: c.qty,
+                    price: Number(c.product.GIABAN),
+                })),
+                total: billSnapshot.cart.reduce((sum, c) => sum + c.qty * Number(c.product.GIABAN), 0),
+            });
+
             // Reset state
             setCart([]);
             setToast('Thanh toán hoàn tất!');
-            setTimeout(() => setToast(''), 3000);
+            setTimeout(() => setToast(''), 3500);
 
             // Refresh stock
             const updated = await getSaleProductsApi();

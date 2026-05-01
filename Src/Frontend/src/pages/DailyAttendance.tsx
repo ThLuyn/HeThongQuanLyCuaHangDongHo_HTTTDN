@@ -40,8 +40,19 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   const { can } = usePermission();
   const currentSession = loadAuthSession()
   const currentRole = String(currentSession?.role || '').toLowerCase()
-  const isAdminOrHr = ['admin', 'hr'].includes(currentRole)
   const isStaffMode = viewMode === 'self' || (viewMode !== 'manage' && currentRole === 'staff')
+  const canViewManagedAttendance =
+    can('chamcong', 'view') ||
+    can('chamcong', 'create') ||
+    can('chamcong', 'update') ||
+    can('phancalam', 'view') ||
+    can('phancalam', 'create') ||
+    can('phancalam', 'update') ||
+    can('phancalam', 'delete')
+  const canEditShiftAssignments =
+    can('phancalam', 'create') ||
+    can('phancalam', 'update') ||
+    can('chamcong', 'update')
   const [tab, setTab] = useState<'attendance' | 'shift'>('attendance')
 
   // ── Modal ──────────────────────────────────────────────────────────────────
@@ -765,16 +776,16 @@ export function DailyAttendance({ viewMode = 'auto' }) {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ADMIN / HR CHECK
+  // MANAGE VIEW PERMISSION CHECK
   // ══════════════════════════════════════════════════════════════════════════
-  if (!isAdminOrHr) {
+  if (!canViewManagedAttendance) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="rounded-full bg-gray-100 p-4 mb-4">
           <AlertCircleIcon className="h-8 w-8 text-gray-400" />
         </div>
         <p className="text-base font-semibold text-gray-600">Không có quyền truy cập</p>
-        <p className="mt-1 text-sm text-gray-400">Trang này chỉ dành cho tài khoản Admin và HR.</p>
+        <p className="mt-1 text-sm text-gray-400">Tài khoản cần quyền xem chấm công hoặc phân ca.</p>
       </div>
     )
   }
@@ -1072,7 +1083,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <RefreshCcwIcon className="h-4 w-4" />Làm mới
               </button>
-              {can('chamcong', 'update') && (
+              {canEditShiftAssignments && (
               <button type="button" onClick={handleShiftSave} disabled={shiftSaving || shiftLoading}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
                 <SaveIcon className="h-4 w-4" />{shiftSaving ? 'Đang lưu...' : 'Lưu'}
@@ -1150,9 +1161,7 @@ export function DailyAttendance({ viewMode = 'auto' }) {
                                 type="checkbox"
                                 checked={checked}
                                 onChange={e => handleShiftToggle(emp.mnv, shift.mca, e.target.checked)}
-                                disabled={shiftSaving || shiftLoading}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                disabled={shiftSaving || shiftLoading || !can('chamcong', 'update')}
+                                disabled={shiftSaving || shiftLoading || !canEditShiftAssignments}
                                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                               />
                             </td>

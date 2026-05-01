@@ -40,8 +40,8 @@ export function StockReceipts() {
   const { can } = usePermission();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState({ type: 'info', message: '' });
-  const showNotice = (message, type = 'info') => {
+  const [notice, setNotice] = useState({ type: 'success', message: '' });
+  const showNotice = (message, type = 'success') => {
     if (!message) return;
     setNotice({ type, message: String(message) });
   };
@@ -83,7 +83,7 @@ export function StockReceipts() {
   }, []);
   useEffect(() => {
     if (!notice.message) return;
-    const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 5000);
+    const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 8000);
     return () => window.clearTimeout(timer);
   }, [notice.message]);
   const viewRows = useMemo(() => {
@@ -195,11 +195,11 @@ export function StockReceipts() {
       });
       closeCreate();
       await loadAll();
-      // showNotice('Tạo phiếu nhập kho thành công', 'success');
+      showNotice('Tạo phiếu nhập kho thành công', 'success');
     }
     catch (e) {
-      // const message = e instanceof Error ? e.message : 'Không thể tạo phiếu nhập kho';
-      // setError(message);
+      const message = e instanceof Error ? e.message : 'Không thể tạo phiếu nhập kho';
+      showNotice(message, 'error');
     }
     finally {
       setSaving(false);
@@ -223,18 +223,17 @@ export function StockReceipts() {
     }
   };
   const executeCancelReceipt = async (row, reason) => {
-    setError('');
     try {
       await cancelImportReceiptApi(Number(row.mpn), { reason: reason.trim() });
-      showNotice('Đã hủy phiếu nhập thành công', 'success');
       await loadAll();
       if (detailOpen && detail && Number(detail.MPN) === Number(row.mpn)) {
         const refreshed = await getImportReceiptDetailApi(Number(row.mpn));
         setDetail(refreshed);
       }
+      showNotice('Đã hủy phiếu nhập thành công', 'success');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể hủy phiếu nhập';
-      setError(message);
+      showNotice(message, 'error');
     }
   };
 
@@ -270,14 +269,6 @@ export function StockReceipts() {
     ] : []),
   ];
   return (<>
-    {notice.message ? (
-      <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
-        <div className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
-          <p className="leading-relaxed">{notice.message}</p>
-          <button type="button" onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5" aria-label="Đóng thông báo">×</button>
-        </div>
-      </div>
-    ) : null}
     {error && (<div className="mb-3 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
       {error}
     </div>)}
@@ -595,5 +586,17 @@ export function StockReceipts() {
         </div>
       );
     })()}
+    {/* Toast thông báo */}
+    {notice.message && (
+      <div
+        className={`fixed bottom-5 right-5 z-[90] flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+          notice.type === 'success' ? 'bg-green-500 text-white' : notice.type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+        }`}
+      >
+        <span>{notice.type === 'success' ? '✓' : notice.type === 'error' ? '✕' : 'ℹ'}</span>
+        <span>{notice.message}</span>
+        <button onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="ml-2 opacity-80 hover:opacity-100">×</button>
+      </div>
+    )}
   </>);
 }

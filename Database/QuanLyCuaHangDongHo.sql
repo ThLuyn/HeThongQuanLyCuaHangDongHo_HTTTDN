@@ -609,7 +609,7 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 	(1, 'donxinngh', 'view'), (1, 'donxinngh', 'approve'), (1, 'donxinngh', 'update'), 
 	(1, 'chamcong', 'create'), (1, 'chamcong', 'view'), (1, 'chamcong', 'update'), (1, 'chamcong', 'export'),
 	(1, 'bangluong', 'create'), (1, 'bangluong', 'view'), (1, 'bangluong', 'update'), (1, 'bangluong', 'export'),
-	(1, 'phieunhap', 'create'), (1, 'phieunhap', 'view'), (1, 'phieunhap', 'cancel'), (1, 'phieunhap', 'export'),
+	(1, 'phieunhap', 'create'), (1, 'phieunhap', 'view'), (1, 'phieunhap', 'cancel'), (1, 'phieunhap', 'export'), (1, 'phieunhap', 'delete'),
 	(1, 'phieuxuat', 'create'), (1, 'phieuxuat', 'view'), (1, 'phieuxuat', 'cancel'), (1, 'phieuxuat', 'export'),
 	(1, 'baohanh', 'view'), (1, 'baohanh', 'update'), (1, 'baohanh', 'export'),
 	(1, 'suachua', 'create'), (1, 'suachua', 'view'), (1, 'suachua', 'update'), (1, 'suachua', 'delete'), (1, 'suachua', 'export'),
@@ -629,20 +629,16 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 	(2, 'makhuyenmai', 'view'),
 	(2, 'donxinngh', 'create'), (2, 'donxinngh', 'view'),
 	(2, 'phancalam', 'view'),
-    (2, 'thongke', 'view'), (2, 'thongke', 'export'),
-	(2, 'bangluong', 'view'),
-	(2, 'chamcong', 'view');
+    (2, 'thongke', 'view'), (2, 'thongke', 'export');
 
 -- Nhân viên kho (MNQ = 3): hạn chế
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
 	(3, 'sanpham', 'create'), (3, 'sanpham', 'view'), (3, 'sanpham', 'update'), (3, 'sanpham', 'delete'),
 	(3, 'nhacungcap', 'create'), (3, 'nhacungcap', 'view'), (3, 'nhacungcap', 'update'), (3, 'nhacungcap', 'delete'),
-	(3, 'phieunhap', 'create'), (3, 'phieunhap', 'view'), (3, 'phieunhap', 'cancel'), (3, 'phieunhap', 'export'),
+	(3, 'phieunhap', 'create'), (3, 'phieunhap', 'view'), (3, 'phieunhap', 'cancel'), (3, 'phieunhap', 'export'), (3, 'phieunhap', 'delete'),
 	(3, 'vitritrungbay', 'create'), (3, 'vitritrungbay', 'view'), (3, 'vitritrungbay', 'update'), (3, 'vitritrungbay', 'delete'),
 	(3, 'thongke', 'view'),
-    (3, 'chamcong', 'view'),
-	(3, 'donxinngh', 'create'), (3, 'donxinngh', 'view'),
-	(3, 'bangluong', 'view');
+	(3, 'donxinngh', 'create'), (3, 'donxinngh', 'view');
     
 -- Quản lý nhân sự (MNQ = 4): hạn chế
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 

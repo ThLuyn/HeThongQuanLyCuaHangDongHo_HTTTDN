@@ -89,7 +89,17 @@ export function ExportReceipts() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState('');
+  const [notice, setNotice] = useState({ type: 'success', message: '' });
+  const showNotice = (message, type = 'success') => {
+    if (!message) return;
+    setNotice({ type, message: String(message) });
+  };
+
+  useEffect(() => {
+    if (!notice.message) return;
+    const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice.message]);
 
   const [receipts, setReceipts] = useState([]);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -149,15 +159,15 @@ export function ExportReceipts() {
     setError('');
     try {
       await cancelExportReceiptApi(Number(row.mpx), reason.trim());
-      setToast('Đã hủy phiếu xuất thành công');
-      setTimeout(() => setToast(''), 3500);
+      showNotice('Đã hủy phiếu xuất thành công', 'success');
+      setTimeout(() => {}, 0);
       await loadReceipts();
       if (detailOpen && detail && Number(detail.MPX) === Number(row.mpx)) {
         const refreshed = await getExportReceiptDetailApi(Number(row.mpx));
         setDetail(refreshed);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không thể hủy phiếu xuất');
+      showNotice(e instanceof Error ? e.message : 'Không thể hủy phiếu xuất', 'error');
     }
   };
 
@@ -210,10 +220,15 @@ export function ExportReceipts() {
   // ── Render danh sách phiếu xuất ──
   return (
     <>
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center justify-between gap-4 rounded-xl border border-green-300 bg-green-50 px-5 py-3 text-sm font-medium text-green-800 shadow-lg">
-          <span>{toast}</span>
-          <button onClick={() => setToast('')} className="text-green-400 hover:text-green-600 font-bold text-base leading-none">×</button>
+      {notice.message && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            notice.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+          <span>{notice.message}</span>
+          <button onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="ml-2 opacity-80 hover:opacity-100">×</button>
         </div>
       )}
 

@@ -686,6 +686,11 @@ export async function getSalaryApi(month: number, year: number): Promise<SalaryR
   return response.data.records
 }
 
+export async function getLatestPayrollPeriodApi(): Promise<{ month: number; year: number } | null> {
+  const response = await apiRequest<ApiEnvelope<{ month: number; year: number } | null>>('/api/hr/salary/latest-period')
+  return response.data ?? null
+}
+
 export async function updateSalaryApi(mbl: number, payload: {
   khauTruKhac?: number
 }): Promise<void> {

@@ -10,6 +10,7 @@ import {
   deleteHolidayMultiplierApi,
   finalizeSalaryApi,
   getHolidayMultipliersApi,
+  getLatestPayrollPeriodApi,
   getSalaryApi,
   getViolationPenaltiesApi,
   updateHolidayMultiplierApi,
@@ -104,6 +105,7 @@ export function SalaryLeave() {
   const [showYearlyStats, setShowYearlyStats] = useState(false);
   const [yearlyStats, setYearlyStats] = useState(null);
   const [yearlyStatsLoading, setYearlyStatsLoading] = useState(false);
+  const [resolvedInitialPeriod, setResolvedInitialPeriod] = useState(false);
 
   const selectedMonth = Number(month);
   const selectedYear = Number(year);
@@ -187,6 +189,28 @@ export function SalaryLeave() {
   }, [notice.message]);
 
   useEffect(() => {
+    const resolveInitialPeriod = async () => {
+      try {
+        const latest = await getLatestPayrollPeriodApi();
+        if (latest?.month && latest?.year) {
+          setMonth(String(latest.month));
+          setYear(String(latest.year));
+        }
+      } catch (_e) {
+        // Fallback to current month/year when latest period API is unavailable.
+      } finally {
+        setResolvedInitialPeriod(true);
+      }
+    };
+
+    resolveInitialPeriod();
+  }, []);
+
+  useEffect(() => {
+    if (!resolvedInitialPeriod) {
+      return;
+    }
+
     const loadSalary = async () => {
       if (!Number.isInteger(selectedMonth) || !Number.isInteger(selectedYear)) {
         return;
@@ -210,7 +234,7 @@ export function SalaryLeave() {
     };
 
     loadSalary();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, resolvedInitialPeriod]);
 
   // Reset yearly stats cache khi đổi năm, tự reload nếu đang xem tab năm
   useEffect(() => {

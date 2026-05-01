@@ -169,12 +169,12 @@ export function App() {
             case 'position-salary':
                 return hasAnyPermission('chucvu', ['create', 'update', 'delete']);
             case 'salary-leave':
-                return hasAnyPermission('bangluong', ['create', 'update', 'export']);
+                return hasAnyPermission('bangluong', ['view', 'create', 'update', 'export']);
             case 'leave-operations':
                 return hasAnyPermission('donxinngh', ['approve', 'update']);
             case 'daily-attendance':
-                return hasAnyPermission('phancalam', ['create', 'update', 'delete']) ||
-                    hasAnyPermission('chamcong', ['create', 'update']);
+                return hasAnyPermission('phancalam', ['view', 'create', 'update', 'delete']) ||
+                    hasAnyPermission('chamcong', ['view', 'create', 'update']);
             case 'watch-categories':    return hasPermission('sanpham',    'view');
             case 'suppliers':           return hasPermission('nhacungcap', 'view');
             case 'stock-receipts':      return hasPermission('phieunhap',  'view');

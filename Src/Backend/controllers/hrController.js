@@ -359,6 +359,19 @@ async function calculateSalary(req, res, next) {
   }
 }
 
+async function getLatestPayrollPeriod(req, res, next) {
+  try {
+    const latest = await Employee.getLatestPayrollPeriod();
+    return success(
+      res,
+      latest,
+      "Latest payroll period loaded",
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function calculateMySalary(req, res, next) {
   try {
     const now = new Date();
@@ -1326,6 +1339,7 @@ module.exports = {
   createMyLeaveRequest,
   approveLeave,
   calculateSalary,
+  getLatestPayrollPeriod,
   calculateMySalary,
   updateSalary,
   finalizeSalary,
