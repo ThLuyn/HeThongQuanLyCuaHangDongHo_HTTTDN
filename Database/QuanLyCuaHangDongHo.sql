@@ -623,12 +623,8 @@ INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES
 INSERT INTO `CTQUYEN` (`MNQ`, `MCN`, `HANHDONG`) VALUES 
 	(2, 'sanpham', 'view'),
 	(2, 'khachhang', 'create'), (2, 'khachhang', 'view'), (2, 'khachhang', 'update'),
-	(2, 'phieuxuat', 'create'), (2, 'phieuxuat', 'view'), (2, 'phieuxuat', 'cancel'),
-	(2, 'baohanh', 'view'), (2, 'baohanh', 'create'),
-	(2, 'suachua', 'create'), (2, 'suachua', 'view'),
-	(2, 'makhuyenmai', 'view'),
+	(2, 'phieuxuat', 'create'), (2, 'phieuxuat', 'view'), (2, 'phieuxuat', 'cancel'), (2, 'phieuxuat', 'delete'),
 	(2, 'donxinngh', 'create'), (2, 'donxinngh', 'view'),
-	(2, 'phancalam', 'view'),
     (2, 'thongke', 'view'), (2, 'thongke', 'export');
 
 -- Nhân viên kho (MNQ = 3): hạn chế

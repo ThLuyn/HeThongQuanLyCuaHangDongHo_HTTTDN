@@ -357,18 +357,25 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
       showNotice('Năm sản xuất không được là năm tương lai.', 'error');
       return;
     }
-    const payload = {
+    // Chẹ kiểm tra giá bán vs giá nhập khi chỉnh sửra (vì khi thêm mới không cho nhập giá)
+    if (editing && Number(form.sellPrice || 0) < Number(form.importPrice || 0)) {
+      showNotice('Giá bán phải lớn hơn hoặc bằng giá nhập.', 'error');
+      return;
+    }
+    const basePayload = {
       name: form.name.trim(),
       image: form.image.trim() || undefined,
       mncc: Number(form.supplierId),
       brand: form.brand.trim() || undefined,
       displayPosition: form.displayPosition.trim() || undefined,
-      importPrice: Number(form.importPrice || 0),
-      sellPrice: Number(form.sellPrice || 0),
-      stock: Number(form.stock || 0),
       productionYear: form.productionYear || null,
       status: form.status === 'Hoạt động' ? 1 : 0,
     };
+    // Khi chỉnh sửra: chỉ gửi giá bán (không gửi giá nhập và số lượng)
+    // Khi thêm mới: gửi giá nhập=0, giá bán=0, số lượng=0 (sẽ được cập nhật qua phiếu nhập)
+    const payload = editing
+      ? { ...basePayload, sellPrice: Number(form.sellPrice || 0) }
+      : { ...basePayload, importPrice: 0, sellPrice: 0, stock: 0 };
     try {
       if (editing) {
         await updateProductApi(editing.msp, payload);
@@ -960,6 +967,72 @@ export function WatchCategories({ lowStockOnly = false, targetLowStockProductId 
             <option value="Tạm ẩn">Tạm ẩn</option>
           </select>
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Giá nhập
+            </label>
+            <input
+              type="text"
+              readOnly
+              disabled
+              value={formatMoney(form.importPrice ?? 0)}
+              className="w-full px-3 py-2 text-sm border border-gray-100 rounded-lg text-right bg-gray-50 text-gray-400 cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán</label>
+            {editing ? (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.sellPrice ?? 0}
+                  onChange={(e) => setForm((prev) => ({ ...prev, sellPrice: Math.floor(Math.abs(Number(e.target.value) || 0)) }))}
+                  onKeyDown={(e) => { if (['.', ',', '-', 'e'].includes(e.key)) e.preventDefault(); }}
+                  className={'w-full px-3 py-2 text-sm rounded-lg text-right border ' + (isSellPriceLowerThanImport ? 'border-red-300 bg-red-50/40' : 'border-gray-200')}
+                />
+                {isSellPriceLowerThanImport ? (<p className="mt-1 text-xs text-amber-600">Cảnh báo: Giá bán đang nhỏ hơn giá nhập.</p>) : null}
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={formatMoney(form.sellPrice ?? 0)}
+                  className="w-full px-3 py-2 text-sm border border-gray-100 rounded-lg text-right bg-gray-50 text-gray-400 cursor-not-allowed"
+                />
+              </>
+            )}
+          </div>
+        </div>
+        {!editing && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng ban đầu</label>
+            <input
+              type="text"
+              readOnly
+              disabled
+              value="0"
+              className="w-full px-3 py-2 text-sm border border-gray-100 rounded-lg text-right bg-gray-50 text-gray-400 cursor-not-allowed"
+            />
+          </div>
+        )}
+        {editing && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Số lượng tồn kho
+            </label>
+            <input
+              type="text"
+              readOnly
+              disabled
+              value={form.stock ?? 0}
+              className="w-full px-3 py-2 text-sm border border-gray-100 rounded-lg text-right bg-gray-50 text-gray-400 cursor-not-allowed"
+            />
+          </div>
+        )}
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
             Hủy
