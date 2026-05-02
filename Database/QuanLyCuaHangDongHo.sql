@@ -5236,3 +5236,217 @@ ORDER BY vp.NAM,
     vp.THANG,
     nv.MNV;
 COMMIT;
+
+-- ============================================================
+-- BỔ SUNG DỮ LIỆU BẢNG LƯƠNG: 07/04/2026 - 02/05/2026
+-- Căn cứ: doanh thu từ PHIEUXUAT (TT=1) trong tháng tương ứng
+-- Quy tắc: bỏ Chủ Nhật, nhân viên còn hoạt động (TT=1)
+-- MBL tiếp theo sau 157 (không theo MNV để tránh trùng khóa UNIQUE uq_nv_thang_nam)
+-- ============================================================
+USE QuanLyCuaHangDongHo;
+
+-- ============================================================
+-- BƯỚC 1: THÊM PHIẾU XUẤT MỚI (T4 & T5/2026)
+-- Đây là căn cứ để tính DOANH_SO và HOA_HONG trong bảng lương
+-- ============================================================
+INSERT INTO `PHIEUXUAT` (`MPX`, `MNV`, `MKH`, `TIEN`, `TG`, `TT`) VALUES
+    (110, 2, 15, 21300000, '2026-04-18 10:30:00', 1),  -- NV2 bán T4/2026
+    (111, 6, 16, 17500000, '2026-04-22 14:00:00', 1),  -- NV6 bán T4/2026
+    (112, 8, 17, 14200000, '2026-04-25 16:30:00', 1),  -- NV8 bán T4/2026
+    (113, 2, 18, 6800000,  '2026-05-02 10:00:00', 1),  -- NV2 bán T5/2026
+    (114, 5, 19, 4500000,  '2026-05-02 14:30:00', 1);  -- NV5 bán T5/2026
+
+INSERT INTO `CTPHIEUXUAT` (`MPX`, `MSP`, `MKM`, `SL`, `TIENXUAT`) VALUES
+    -- MPX=110: NV2 bán ngày 18/04/2026
+    (110, 9,  NULL, 1, 11200000),   -- Seiko Prospex SRPE99
+    (110, 22, NULL, 2, 3900000),    -- Casio G-Shock GA-2100
+    (110, 28, NULL, 2, 350000),     -- Casio F-91W
+    -- MPX=111: NV6 bán ngày 22/04/2026
+    (111, 7,  NULL, 1, 6500000),    -- Seiko 5 Sports SRPD55
+    (111, 19, NULL, 2, 4200000),    -- Daniel Wellington Sheffield
+    (111, 10, NULL, 1, 3200000),    -- Seiko 5 SNK809
+    -- MPX=112: NV8 bán ngày 25/04/2026
+    (112, 14, NULL, 1, 12500000),   -- Frederique Constant FC-303
+    (112, 26, NULL, 1, 2600000),    -- Casio G-Shock DW-5600
+    -- MPX=113: NV2 bán ngày 02/05/2026
+    (113, 23, NULL, 1, 4500000),    -- Casio Edifice EFR-556
+    (113, 17, NULL, 1, 3200000),    -- Fossil Neutra FS5380
+    -- MPX=114: NV5 bán ngày 02/05/2026
+    (114, 16, NULL, 1, 3800000),    -- Fossil Grant FS4736
+    (114, 27, NULL, 1, 890000);     -- Casio AE-1200WH
+
+-- ============================================================
+-- BƯỚC 2: CẬP NHẬT BẢNG LƯƠNG T4/2026 (hoàn chỉnh tháng 4)
+-- Cộng thêm 21 ngày làm (07-30/04) vào 5 ngày đã có (01-06/04)
+-- = 26 ngày công tổng T4/2026
+-- Doanh thu: từ PHIEUXUAT TT=1 trong tháng 4/2026 theo MNV
+-- Công thức: (LUONGCOBAN/26) * NGAYCONG + HOA_HONG - BHXH - BHYT - BHTN
+-- ============================================================
+
+-- NV1: MBL=28, T4/2026 - 26 ngày công
+-- Doanh số cửa hàng: MPX=108(14.750.000) + MPX=109(4.850.000) + MPX=110(21.300.000) + MPX=111(17.500.000) + MPX=112(14.200.000) = 72.600.000đ
+-- HOA_HONG = 72.600.000 * 1% = 726.000đ
+-- LUONGTHUCLANH = (15.000.000/26)*26 + 726.000 - 1.200.000 - 225.000 - 150.000 = 14.151.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 72600000.00,
+    TY_LE_HOA_HONG = 1.0,
+    HOA_HONG       = 726000.00,
+    BHXH           = 1200000.00,
+    BHYT           = 225000.00,
+    BHTN           = 150000.00,
+    LUONGTHUCLANH  = 14151000.00,
+    TT             = 2
+WHERE MBL = 28;
+
+-- NV2: MBL=55, T4/2026 - 26 ngày công
+-- Doanh số: MPX=108(14.750.000) + MPX=110(21.300.000) = 36.050.000đ
+-- HOA_HONG = 36.050.000 * 2% = 721.000đ
+-- LUONGTHUCLANH = 7.000.000 + 721.000 - 560.000 - 105.000 - 70.000 = 6.986.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 36050000.00,
+    TY_LE_HOA_HONG = 2.0,
+    HOA_HONG       = 721000.00,
+    BHXH           = 560000.00,
+    BHYT           = 105000.00,
+    BHTN           = 70000.00,
+    LUONGTHUCLANH  = 6986000.00,
+    TT             = 2
+WHERE MBL = 55;
+
+-- NV3: MBL=82, T4/2026 - 26 ngày công, không hoa hồng (bộ phận Kho)
+-- LUONGTHUCLANH = 8.000.000 - 640.000 - 120.000 - 80.000 = 7.160.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 0.00,
+    TY_LE_HOA_HONG = 0.0,
+    HOA_HONG       = 0.00,
+    BHXH           = 640000.00,
+    BHYT           = 120000.00,
+    BHTN           = 80000.00,
+    LUONGTHUCLANH  = 7160000.00,
+    TT             = 2
+WHERE MBL = 82;
+
+-- NV5: MBL=108, T4/2026 - 26 ngày công
+-- Doanh số: MPX=109(4.850.000đ)
+-- HOA_HONG = 4.850.000 * 2% = 97.000đ
+-- LUONGTHUCLANH = 7.000.000 + 97.000 - 735.000 = 6.362.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 4850000.00,
+    TY_LE_HOA_HONG = 2.0,
+    HOA_HONG       = 97000.00,
+    BHXH           = 560000.00,
+    BHYT           = 105000.00,
+    BHTN           = 70000.00,
+    LUONGTHUCLANH  = 6362000.00,
+    TT             = 2
+WHERE MBL = 108;
+
+-- NV7: MBL=145, T4/2026 - 26 ngày công, không hoa hồng (bộ phận Kho)
+-- LUONGTHUCLANH = 8.000.000 - 640.000 - 120.000 - 80.000 = 7.160.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 0.00,
+    TY_LE_HOA_HONG = 0.0,
+    HOA_HONG       = 0.00,
+    BHXH           = 640000.00,
+    BHYT           = 120000.00,
+    BHTN           = 80000.00,
+    LUONGTHUCLANH  = 7160000.00,
+    TT             = 2
+WHERE MBL = 145;
+
+-- NV8: MBL=157, T4/2026 - 26 ngày công
+-- Doanh số: MPX=112(14.200.000đ)
+-- HOA_HONG = 14.200.000 * 2% = 284.000đ
+-- LUONGTHUCLANH = 7.000.000 + 284.000 - 735.000 = 6.549.000đ
+UPDATE `BANGLUONG` SET
+    NGAYCONG       = 26.0,
+    DOANH_SO       = 14200000.00,
+    TY_LE_HOA_HONG = 2.0,
+    HOA_HONG       = 284000.00,
+    BHXH           = 560000.00,
+    BHYT           = 105000.00,
+    BHTN           = 70000.00,
+    LUONGTHUCLANH  = 6549000.00,
+    TT             = 2
+WHERE MBL = 157;
+
+-- ============================================================
+-- BƯỚC 3: THÊM BẢNG LƯƠNG T4/2026 CHO NV6 (chưa có bản ghi)
+-- MBL=158 (tiếp theo sau MBL=157)
+-- Doanh thu: MPX=111(17.500.000đ)
+-- HOA_HONG = 17.500.000 * 2% = 350.000đ
+-- LUONGTHUCLANH = 7.000.000 + 350.000 - 560.000 - 105.000 - 70.000 = 6.615.000đ
+-- ============================================================
+INSERT INTO `BANGLUONG` (`MBL`, `MNV`, `THANG`, `NAM`, `LUONGCOBAN`, `NGAYCONG`,
+    `DOANH_SO`, `TY_LE_HOA_HONG`, `HOA_HONG`, `BHXH`, `BHYT`, `BHTN`,
+    `KHAUTRU_KHAC`, `LUONGTHUCLANH`, `TT`)
+VALUES
+    (158, 6, 4, 2026, 7000000, 26.0, 17500000.00, 2.0, 350000.00, 560000.00, 105000.00, 70000.00, 0, 6615000.00, 2);
+
+-- ============================================================
+-- BƯỚC 4: THÊM BẢNG LƯƠNG T5/2026 (tạm tính - TT=1)
+-- Chỉ 2 ngày làm (01-02/05/2026): 01/05 là Thứ 6, 02/05 là Thứ 7 → đều làm
+-- BHXH/BHYT/BHTN tính đầy đủ như bình thường (lương âm thì kệ)
+-- MBL bắt đầu từ 159
+-- ============================================================
+-- Công thức: (LUONGCOBAN/26) * 2 + HOA_HONG - BHXH - BHYT - BHTN
+-- NV1: 1.153.846,15 + 113.000 - 1.200.000 - 225.000 - 150.000 = -308.153,85đ
+-- NV2: 538.461,54   + 136.000 - 560.000   - 105.000 - 70.000  =  -60.538,46đ
+-- NV3: 615.384,62   + 0       - 640.000   - 120.000 - 80.000  = -224.615,38đ
+-- NV5: 538.461,54   + 90.000  - 560.000   - 105.000 - 70.000  = -106.538,46đ
+-- NV6: 538.461,54   + 0       - 560.000   - 105.000 - 70.000  = -196.538,46đ
+-- NV7: 615.384,62   + 0       - 640.000   - 120.000 - 80.000  = -224.615,38đ
+-- NV8: 538.461,54   + 0       - 560.000   - 105.000 - 70.000  = -196.538,46đ
+INSERT INTO `BANGLUONG` (`MBL`, `MNV`, `THANG`, `NAM`, `LUONGCOBAN`, `NGAYCONG`,
+    `DOANH_SO`, `TY_LE_HOA_HONG`, `HOA_HONG`, `BHXH`, `BHYT`, `BHTN`,
+    `KHAUTRU_KHAC`, `LUONGTHUCLANH`, `TT`)
+VALUES
+    -- NV1: doanh số cửa hàng = MPX=113(6.800.000) + MPX=114(4.500.000) = 11.300.000đ
+    (159, 1, 5, 2026, 15000000, 2.0, 11300000.00, 1.0, 113000.00,  1200000.00, 225000.00, 150000.00, 0, -308153.85, 1),
+    -- NV2: doanh số = MPX=113(6.800.000đ)
+    (160, 2, 5, 2026, 7000000,  2.0, 6800000.00,  2.0, 136000.00,  560000.00,  105000.00, 70000.00,  0, -60538.46,  1),
+    -- NV3: không hoa hồng
+    (161, 3, 5, 2026, 8000000,  2.0, 0.00,         0.0, 0.00,       640000.00,  120000.00, 80000.00,  0, -224615.38, 1),
+    -- NV5: doanh số = MPX=114(4.500.000đ)
+    (162, 5, 5, 2026, 7000000,  2.0, 4500000.00,  2.0, 90000.00,   560000.00,  105000.00, 70000.00,  0, -106538.46, 1),
+    -- NV6: không có đơn T5
+    (163, 6, 5, 2026, 7000000,  2.0, 0.00,         2.0, 0.00,       560000.00,  105000.00, 70000.00,  0, -196538.46, 1),
+    -- NV7: không hoa hồng
+    (164, 7, 5, 2026, 8000000,  2.0, 0.00,         0.0, 0.00,       640000.00,  120000.00, 80000.00,  0, -224615.38, 1),
+    -- NV8: không có đơn T5
+    (165, 8, 5, 2026, 7000000,  2.0, 0.00,         2.0, 0.00,       560000.00,  105000.00, 70000.00,  0, -196538.46, 1);
+
+-- ============================================================
+-- BƯỚC 5: CẬP NHẬT BẢNG CHẤM CÔNG T4/2026 (26 ngày công)
+-- Và THÊM bảng chấm công T5/2026 (2 ngày công, tạm tính)
+-- ============================================================
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 1 AND THANG = 4 AND NAM = 2026;
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 2 AND THANG = 4 AND NAM = 2026;
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 3 AND THANG = 4 AND NAM = 2026;
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 5 AND THANG = 4 AND NAM = 2026;
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 7 AND THANG = 4 AND NAM = 2026;
+UPDATE `BANGCHAMCONG` SET NGAYCONG = 26.0, TT = 2 WHERE MNV = 8 AND THANG = 4 AND NAM = 2026;
+
+-- NV6 chưa có bản ghi BANGCHAMCONG T4/2026
+INSERT INTO `BANGCHAMCONG` (`MNV`, `THANG`, `NAM`, `NGAYCONG`, `NGAYNGHI_PHEP`, `NGAYNGHI_KP`, `TT`)
+VALUES (6, 4, 2026, 26.0, 0, 0, 2);
+
+-- THÊM BẢNG CHẤM CÔNG T5/2026 (tạm tính - TT=1, 2 ngày công)
+INSERT INTO `BANGCHAMCONG` (`MNV`, `THANG`, `NAM`, `NGAYCONG`, `NGAYNGHI_PHEP`, `NGAYNGHI_KP`, `TT`)
+VALUES
+    (1, 5, 2026, 2.0, 0, 0, 1),
+    (2, 5, 2026, 2.0, 0, 0, 1),
+    (3, 5, 2026, 2.0, 0, 0, 1),
+    (5, 5, 2026, 2.0, 0, 0, 1),
+    (6, 5, 2026, 2.0, 0, 0, 1),
+    (7, 5, 2026, 2.0, 0, 0, 1),
+    (8, 5, 2026, 2.0, 0, 0, 1);
+
+-- ============================================================
+-- HOÀN THÀNH: Bảng lương đã được bổ sung đến ngày 02/05/2026
+-- ============================================================
