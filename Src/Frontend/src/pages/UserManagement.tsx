@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Eye, Lock, Unlock } from 'lucide-react';
+import { Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
@@ -63,6 +63,8 @@ export function UserManagement({ currentUsername = '' }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [form, setForm] = useState({
     mnv: '',
     username: '',
@@ -109,6 +111,8 @@ export function UserManagement({ currentUsername = '' }) {
 
   const openAdd = () => {
     setEditing(null);
+    setShowPassword(false);
+    setShowNewPassword(false);
     setForm({
       mnv: employees[0]?.mnv ? String(employees[0].mnv) : '',
       username: '',
@@ -121,6 +125,8 @@ export function UserManagement({ currentUsername = '' }) {
   };
   const openEdit = (u) => {
     setEditing(u);
+    setShowPassword(false);
+    setShowNewPassword(false);
     setForm({
       mnv: String(u.mnv),
       username: u.username,
@@ -290,18 +296,28 @@ export function UserManagement({ currentUsername = '' }) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Mật khẩu *
           </label>
-          <input type="password" value={form.password} onChange={(e) => setForm({
-            ...form,
-            password: e.target.value,
-          })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+          <div className="relative">
+            <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={(e) => setForm({
+              ...form,
+              password: e.target.value,
+            })} className="w-full px-3 py-2 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+            <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </div>) : (<div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Mật khẩu mới (để trống nếu không đổi)
           </label>
-          <input type="password" value={form.newPassword} onChange={(e) => setForm({
-            ...form,
-            newPassword: e.target.value,
-          })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+          <div className="relative">
+            <input type={showNewPassword ? 'text' : 'password'} value={form.newPassword} onChange={(e) => setForm({
+              ...form,
+              newPassword: e.target.value,
+            })} className="w-full px-3 py-2 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400/50" />
+            <button type="button" onClick={() => setShowNewPassword((v) => !v)} className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600">
+              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </div>)}
 
         <div>

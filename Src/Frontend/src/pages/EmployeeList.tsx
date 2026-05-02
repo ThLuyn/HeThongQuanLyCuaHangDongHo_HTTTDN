@@ -8,58 +8,10 @@ import { Modal } from '../components/Modal';
 import { usePermission } from '../components/PermissionContext';
 import { createEmployeeApi, getEmployeeDetailApi, getEmployeesApi, getPositionSalaryApi, resignEmployeeApi, updateEmployeeApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
-const POSITION_OPTIONS = ['Quản lý cửa hàng', 'Nhân viên bán hàng', 'Nhân viên kho', 'Nhân viên kỹ thuật'];
-const POSITION_PROFILE_MAP = {
-  'Quản lý cửa hàng': {
-    groupName: 'Quản lý',
-    department: 'Quản lý',
-    baseSalary: 15000000,
-    commissionRate: 1,
-  },
-  'Nhân viên bán hàng': {
-    groupName: 'Nhân viên',
-    department: 'Kinh doanh',
-    baseSalary: 7000000,
-    commissionRate: 2,
-  },
-  'Nhân viên kho': {
-    groupName: 'Nhân viên',
-    department: 'Kho',
-    baseSalary: 8000000,
-    commissionRate: 0,
-  },
-  'Nhân viên kỹ thuật': {
-    groupName: 'Nhân viên',
-    department: 'Kỹ thuật',
-    baseSalary: 10000000,
-    commissionRate: 0,
-  },
-  'Quản lý': {
-    groupName: 'Quản lý',
-    department: 'Quản lý',
-    baseSalary: 15000000,
-    commissionRate: 3,
-  },
-  'Kế toán': {
-    groupName: 'Nhân sự',
-    department: 'Kế toán',
-    baseSalary: 10000000,
-    commissionRate: 0,
-  },
-  'Bảo vệ': {
-    groupName: 'Nhân viên',
-    department: 'An ninh',
-    baseSalary: 7000000,
-    commissionRate: 0,
-  },
-};
+const POSITION_OPTIONS = ['Quản lý cửa hàng', 'Nhân viên bán hàng', 'Nhân viên kho'];
+const POSITION_SALARY_MAP: Record<string, { baseSalary: number; commissionRate: number }> = {};
 function getPositionProfile(position) {
-  return POSITION_PROFILE_MAP[position] || {
-    groupName: 'Nhân viên',
-    department: 'Chưa phân công',
-    baseSalary: 0,
-    commissionRate: 0,
-  };
+  return POSITION_SALARY_MAP[position] || { baseSalary: 0, commissionRate: 0 };
 }
 function isValidPhoneNumber(phone) {
   return /^\d{10}$/.test(phone.trim());
@@ -146,7 +98,6 @@ function buildLocalEmployeeDetail(emp) {
     mnv: Number(String(emp.id || '').replace(/\D/g, '')) || 0,
     username: null,
     fullName: emp.name || 'Chưa cập nhật',
-    groupName: emp.groupName || null,
     chucVu: emp.position || 'Chưa cập nhật',
     gioiTinh: Number(emp.gender) === 0 ? 0 : 1,
     ngaySinh: emp.birthDate || null,
@@ -159,7 +110,6 @@ function buildLocalEmployeeDetail(emp) {
     hinhAnh: null,
     ngayVaoLam: emp.startDate || null,
     cccd: emp.cccd || null,
-    boPhan: emp.department || null,
     ngayNghiViec: emp.resignedDate || null,
     soTaiKhoanNganHang: null,
     tenNganHang: null,
@@ -235,7 +185,7 @@ export function EmployeeList({ currentMnv = 0 }) {
   const { can } = usePermission();
   const [employees, setEmployees] = useState([]);
   const [positionOptions, setPositionOptions] = useState(POSITION_OPTIONS);
-  const [positionProfiles, setPositionProfiles] = useState(POSITION_PROFILE_MAP);
+  const [positionProfiles, setPositionProfiles] = useState(POSITION_SALARY_MAP);
   const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -263,8 +213,6 @@ export function EmployeeList({ currentMnv = 0 }) {
     gender: 1,
     birthDate: '',
     position: '',
-    groupName: '',
-    department: '',
     baseSalary: 0,
     commissionRate: 0,
     phone: '',
@@ -290,10 +238,7 @@ export function EmployeeList({ currentMnv = 0 }) {
           if (!name) {
             return acc;
           }
-          const fallback = getPositionProfile(name);
           acc[name] = {
-            groupName: fallback.groupName,
-            department: fallback.department,
             baseSalary: Number(row.baseSalary || 0),
             commissionRate: Number(row.commissionRate || 0),
           };
@@ -323,7 +268,6 @@ export function EmployeeList({ currentMnv = 0 }) {
         setError('');
         const rows = await getEmployeesApi();
         const mapped = rows.map((row) => ({
-          ...resolvePositionProfile(row.TENCHUCVU),
           id: `NV${String(row.MNV).padStart(3, '0')}`,
           name: row.HOTEN,
           position: row.TENCHUCVU,
@@ -420,8 +364,6 @@ export function EmployeeList({ currentMnv = 0 }) {
         ...positionProfile,
         gender: emp.gender ?? 1,
         birthDate: emp.birthDate || '',
-        groupName: emp.groupName || positionProfile.groupName,
-        department: emp.department || positionProfile.department,
         baseSalary: Number(emp.baseSalary ?? positionProfile.baseSalary),
         commissionRate: Number(emp.commissionRate ?? positionProfile.commissionRate),
         startDate: emp.startDate || '',
@@ -448,8 +390,6 @@ export function EmployeeList({ currentMnv = 0 }) {
         gender: Number(detail.gioiTinh) === 0 ? 0 : 1,
         birthDate: toInputDate(detail.ngaySinh),
         position: resolvedPosition,
-        groupName: detail.groupName || positionProfile.groupName,
-        department: detail.boPhan || positionProfile.department,
         baseSalary: Number(detail.luongCoBan ?? positionProfile.baseSalary),
         commissionRate: Number(detail.tyLeHoaHong ?? positionProfile.commissionRate),
         phone: detail.soDienThoai || emp.phone || '',
@@ -557,7 +497,6 @@ export function EmployeeList({ currentMnv = 0 }) {
           hometown: form.hometown.trim(),
           startDate: form.startDate,
           citizenId: form.cccd.trim(),
-          department: String(form.department || '').trim(),
         });
         setEmployees((prev) =>
           prev.map((e) =>
@@ -589,7 +528,6 @@ export function EmployeeList({ currentMnv = 0 }) {
         hometown: form.hometown.trim(),
         startDate: form.startDate,
         citizenId: form.cccd.trim(),
-        department: String(form.department || '').trim(),
       });
       const newId = `NV${String(result.id).padStart(3, '0')}`;
       const positionProfile = resolvePositionProfile(form.position);
@@ -747,14 +685,6 @@ export function EmployeeList({ currentMnv = 0 }) {
           {fieldErrors.position && <p className="mt-1 text-xs text-red-600">{fieldErrors.position}</p>}
         </>
       )}
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm quyền</label>
-      <input value={form.groupName || ''} disabled className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600" />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Bộ phận</label>
-      <input value={form.department || ''} disabled className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600" />
     </div>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">Lương cơ bản</label>
@@ -964,16 +894,8 @@ export function EmployeeList({ currentMnv = 0 }) {
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gold-700">Thông tin nghiệp vụ</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                      <p className="text-xs text-gray-500">Nhóm quyền</p>
-                      <p className="font-semibold">{viewDetail.groupName || 'Chưa cập nhật'}</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
                       <p className="text-xs text-gray-500">Chức vụ</p>
                       <p className="font-semibold">{viewDetail.chucVu || 'Chưa cập nhật'}</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
-                      <p className="text-xs text-gray-500">Bộ phận</p>
-                      <p className="font-semibold">{viewDetail.boPhan || 'Chưa cập nhật'}</p>
                     </div>
                     <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 break-words">
                       <p className="text-xs text-gray-500">Ngày vào làm</p>

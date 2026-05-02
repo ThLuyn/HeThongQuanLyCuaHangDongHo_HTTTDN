@@ -52,8 +52,11 @@ function totalDays(startStr, endStr) {
 export function MyLeaveRequests() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [notice, setNotice] = useState({ type: 'success', message: '' });
+  const showNotice = (message, type = 'success') => {
+    if (!message) return;
+    setNotice({ type, message: String(message) });
+  };
   const [formExpanded, setFormExpanded] = useState(true);
   const [rows, setRows] = useState([]);
   const [tableResetSignal, setTableResetSignal] = useState(0);
@@ -70,13 +73,12 @@ export function MyLeaveRequests() {
 
   const loadMyRequests = async () => {
     setLoading(true);
-    setError('');
     try {
       const data = await getMyLeaveRequestsApi();
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể tải đơn nghỉ của tôi';
-      setError(message);
+      showNotice(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -91,10 +93,10 @@ export function MyLeaveRequests() {
   }, []);
 
   useEffect(() => {
-    if (!success) return;
-    const timer = window.setTimeout(() => setSuccess(''), 5000);
+    if (!notice.message) return;
+    const timer = window.setTimeout(() => setNotice((prev) => ({ ...prev, message: '' })), 8000);
     return () => window.clearTimeout(timer);
-  }, [success]);
+  }, [notice.message]);
 
   const tableRows = useMemo(
     () =>
@@ -172,52 +174,51 @@ export function MyLeaveRequests() {
     const reason = String(form.reason || '').trim();
 
     if (![0, 1, 2, 3].includes(type)) {
-      setError('Loại nghỉ không hợp lệ');
+      showNotice('Loại nghỉ không hợp lệ', 'error');
       return;
     }
 
     if (!startDate) {
-      setError('Vui lòng chọn ngày bắt đầu');
+      showNotice('Vui lòng chọn ngày bắt đầu', 'error');
       return;
     }
 
     if (isSunday(startDate)) {
-      setError('Ngày bắt đầu không được là Chủ nhật (cửa hàng không làm việc)');
+      showNotice('Ngày bắt đầu không được là Chủ nhật (cửa hàng không làm việc)', 'error');
       return;
     }
 
     if (type === 3) {
       if (!resignationDate) {
-        setError('Vui lòng chọn ngày nghỉ việc chính thức');
+        showNotice('Vui lòng chọn ngày nghỉ việc chính thức', 'error');
         return;
       }
       if (isSunday(resignationDate)) {
-        setError('Ngày nghỉ việc không được là Chủ nhật (cửa hàng không làm việc)');
+        showNotice('Ngày nghỉ việc không được là Chủ nhật (cửa hàng không làm việc)', 'error');
         return;
       }
     } else {
       if (!endDate) {
-        setError('Vui lòng chọn ngày kết thúc');
+        showNotice('Vui lòng chọn ngày kết thúc', 'error');
         return;
       }
       if (isSunday(endDate)) {
-        setError('Ngày kết thúc không được là Chủ nhật (cửa hàng không làm việc)');
+        showNotice('Ngày kết thúc không được là Chủ nhật (cửa hàng không làm việc)', 'error');
         return;
       }
     }
 
     if (!reason) {
-      setError('Vui lòng nhập lý do');
+      showNotice('Vui lòng nhập lý do', 'error');
       return;
     }
 
     if ([0, 2].includes(type) && evidenceFile && evidenceFile.size > 8 * 1024 * 1024) {
-      setError('Minh chứng tối đa 8MB');
+      showNotice('Minh chứng tối đa 8MB', 'error');
       return;
     }
 
     setSaving(true);
-    setError('');
     try {
       await createMyLeaveRequestApi({
         type,
@@ -228,7 +229,6 @@ export function MyLeaveRequests() {
         evidenceFile: [0, 2].includes(type) ? evidenceFile : null,
       });
 
-      setSuccess('Nộp đơn thành công');
       setForm({
         type: 0,
         startDate: '',
@@ -238,9 +238,10 @@ export function MyLeaveRequests() {
       });
       setEvidenceFile(null);
       await loadMyRequests();
+      showNotice('Nộp đơn thành công', 'success');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể nộp đơn';
-      setError(message);
+      showNotice(message, 'error');
     } finally {
       setSaving(false);
     }
@@ -248,38 +249,17 @@ export function MyLeaveRequests() {
 
   return (
     <div className="space-y-5">
-      {/* Toast notifications - góc trên bên phải */}
-      {error ? (
-        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
-          <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-lg">
-            <p className="leading-relaxed">{error}</p>
-            <button
-              type="button"
-              onClick={() => setError('')}
-              className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
-              aria-label="Đóng thông báo"
-            >
-              ×
-            </button>
-          </div>
+      {notice.message && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            notice.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          <span>{notice.type === 'success' ? '✓' : '✕'}</span>
+          <span>{notice.message}</span>
+          <button onClick={() => setNotice((prev) => ({ ...prev, message: '' }))} className="ml-2 opacity-80 hover:opacity-100">×</button>
         </div>
-      ) : null}
-
-      {success ? (
-        <div className="fixed right-4 top-4 z-[70] w-[min(92vw,420px)]">
-          <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg">
-            <p className="leading-relaxed">{success}</p>
-            <button
-              type="button"
-              onClick={() => setSuccess('')}
-              className="rounded-md px-2 py-0.5 text-sm font-semibold leading-none hover:bg-black/5"
-              aria-label="Đóng thông báo"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      ) : null}
+      )}
 
       <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">

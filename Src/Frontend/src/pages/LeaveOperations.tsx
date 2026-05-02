@@ -61,6 +61,10 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
   const [decisionNote, setDecisionNote] = useState('');
   const [savingDecision, setSavingDecision] = useState(false);
   const [notice, setNotice] = useState({ type: 'success', message: '' });
+  const showNotice = (message, type = 'success') => {
+    if (!message) return;
+    setNotice({ type, message: String(message) });
+  };
   const [tableResetSignal, setTableResetSignal] = useState(0);
   const [pinnedLeaveId, setPinnedLeaveId] = useState(null);
 
@@ -296,10 +300,10 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       setDetailOpen(false);
       setSelectedRequest(null);
       await loadRequests();
-      setNotice({ type: 'success', message: Number(status) === 1 ? 'Đã duyệt đơn nghỉ thành công' : 'Đã từ chối đơn nghỉ' });
+      showNotice(Number(status) === 1 ? 'Đã duyệt đơn nghỉ thành công' : 'Đã từ chối đơn nghỉ', 'success');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể cập nhật trạng thái đơn nghỉ';
-      setNotice({ type: 'error', message });
+      showNotice(message, 'error');
     } finally {
       setSavingDecision(false);
     }
@@ -318,10 +322,10 @@ export function LeaveOperations({ targetLeaveId = null, onConsumeTargetLeave = n
       setDetailOpen(false);
       setSelectedRequest(null);
       await loadRequests();
-      setNotice({ type: 'success', message: 'Đã lưu ghi chú duyệt thành công' });
+      showNotice('Đã lưu ghi chú duyệt thành công', 'success');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Không thể lưu ghi chú duyệt';
-      setNotice({ type: 'error', message });
+      showNotice(message, 'error');
     } finally {
       setSavingDecision(false);
     }
