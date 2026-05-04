@@ -13,6 +13,7 @@ const pageIcons = {
     'salary-leave': WalletIcon,
     'watch-categories': PackageIcon,
     suppliers: TruckIcon,
+    customers: UsersIcon,
     'stock-receipts': PackagePlusIcon,
     'export-receipts': ShoppingCart,
     'sales-report': ChartNoAxesColumnIcon,
@@ -98,6 +99,10 @@ const menuItems = [
             {
                 id: 'export-receipts',
                 label: 'Xuất hàng',
+            },
+            {
+                id: 'customers',
+                label: 'Khách hàng',
             },
             {
                 id: 'sales-report',

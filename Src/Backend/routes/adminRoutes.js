@@ -263,6 +263,46 @@ router.delete(
 );
 
 router.get(
+  "/customers",
+  authenticateToken,
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "khachhang", actions: ["view"] }],
+  ),
+  inventoryController.getCustomersAdmin,
+);
+
+router.post(
+  "/customers",
+  authenticateToken,
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "khachhang", actions: ["create"] }],
+  ),
+  inventoryController.createCustomer,
+);
+
+router.put(
+  "/customers/:id",
+  authenticateToken,
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "khachhang", actions: ["update"] }],
+  ),
+  inventoryController.updateCustomer,
+);
+
+router.delete(
+  "/customers/:id",
+  authenticateToken,
+  authorizeRolesOrPermissions(
+    ["admin", "manager"],
+    [{ mcn: "khachhang", actions: ["delete"] }],
+  ),
+  inventoryController.deleteCustomer,
+);
+
+router.get(
   "/inventory/display-locations",
   authenticateToken,
   authorizeRolesOrPermissions(

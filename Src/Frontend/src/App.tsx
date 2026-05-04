@@ -1,10 +1,11 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react';
-import { PermissionProvider } from './components/PermissionContext';
 import { Header } from './components/Header';
 import { IconBar } from './components/IconBar';
+import { PermissionProvider } from './components/PermissionContext';
 import { Sidebar } from './components/Sidebar';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { Customers } from './pages/Customers';
 import { DailyAttendance } from './pages/DailyAttendance';
 import { Dashboard } from './pages/Dashboard';
 import { EmployeeList } from './pages/EmployeeList';
@@ -22,8 +23,8 @@ import { StockReceipts } from './pages/StockReceipts';
 import { Suppliers } from './pages/Suppliers';
 import { UserManagement } from './pages/UserManagement';
 import { WatchCategories } from './pages/WatchCategories';
-import { clearAuthSession, loadAuthSession, saveAuthSession } from './utils/authStorage';
 import { refreshSilently, setAccessToken } from './utils/apiClient';
+import { clearAuthSession, loadAuthSession, saveAuthSession } from './utils/authStorage';
 import { changeMyPasswordApi, getMyProfileApi, loginApi } from './utils/backendApi';
 
 const ACTIVE_PAGE_STORAGE_KEY = 'watch_store_active_page';
@@ -41,6 +42,7 @@ const pageTitles = {
     'position-salary': 'Chức vụ và Lương',
     'watch-categories': 'Sản phẩm',
     suppliers: 'Nhà cung cấp',
+    customers: 'Khách hàng',
     'stock-receipts': 'Nhập kho',
     'export-receipts': 'Xuất hàng',
     'sales-report': 'Báo cáo doanh số',
@@ -175,13 +177,14 @@ export function App() {
             case 'daily-attendance':
                 return hasAnyPermission('phancalam', ['view', 'create', 'update', 'delete']) ||
                     hasAnyPermission('chamcong', ['view', 'create', 'update']);
-            case 'watch-categories':    return hasPermission('sanpham',    'view');
-            case 'suppliers':           return hasPermission('nhacungcap', 'view');
-            case 'stock-receipts':      return hasPermission('phieunhap',  'view');
-            case 'export-receipts':     return hasPermission('phieuxuat',  'view');
-            case 'sales-report':        return hasPermission('thongke',    'view');
+            case 'watch-categories': return hasPermission('sanpham', 'view');
+            case 'suppliers': return hasPermission('nhacungcap', 'view');
+            case 'customers': return hasPermission('khachhang', 'view');
+            case 'stock-receipts': return hasPermission('phieunhap', 'view');
+            case 'export-receipts': return hasPermission('phieuxuat', 'view');
+            case 'sales-report': return hasPermission('thongke', 'view');
             case 'permission-management': return hasPermission('nhomquyen', 'view');
-            case 'user-management':     return hasPermission('taikhoan',   'view');
+            case 'user-management': return hasPermission('taikhoan', 'view');
             case 'backup-restore':
                 return hasPermission('thongke', 'export') || hasPermission('thongke', 'view');
             default: return false;
@@ -202,6 +205,7 @@ export function App() {
         'my-leave-requests',
         'watch-categories',
         'suppliers',
+        'customers',
         'stock-receipts',
         'export-receipts',
         'sales-report',
@@ -253,7 +257,7 @@ export function App() {
                 try {
                     const profile = await getMyProfileApi();
                     resolvedMnq = Number(profile.mnq) || 0;
-                } catch (_) {}
+                } catch (_) { }
             }
             setCurrentMnq(resolvedMnq);
             const session = loadAuthSession();
@@ -364,7 +368,7 @@ export function App() {
                 setCurrentRole(profile.role || '');
                 setCurrentDepartment(profile.department || '');
                 setCurrentPermissions(profile.permissions || []);
-            } catch (_) {}
+            } catch (_) { }
         };
         syncCurrentProfile();
     }, [isAuthenticated]);
@@ -431,8 +435,8 @@ export function App() {
             const targetPage = canAccessPage('leave-operations')
                 ? 'leave-operations'
                 : canAccessPage('my-leave-requests')
-                ? 'my-leave-requests'
-                : null;
+                    ? 'my-leave-requests'
+                    : null;
             if (!targetPage) return;
             setTargetLeaveId(sourceId > 0 ? sourceId : null);
             setTargetLowStockProductId(null);
@@ -501,6 +505,8 @@ export function App() {
                 );
             case 'suppliers':
                 return <Suppliers />;
+            case 'customers':
+                return <Customers />;
             case 'stock-receipts':
                 return <StockReceipts />;
             case 'export-receipts':

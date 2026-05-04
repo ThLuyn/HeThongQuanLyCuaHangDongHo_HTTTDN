@@ -4,6 +4,7 @@ const path = require("path");
 const multer = require("multer");
 const Product = require("../models/Product");
 const Supplier = require("../models/Supplier");
+const Customer = require("../models/Customer");
 const DisplayLocation = require("../models/DisplayLocation");
 const Order = require("../models/Order");
 const { success, fail } = require("../utils/response");
@@ -222,11 +223,7 @@ async function getProductImportHistory(req, res, next) {
       Product.getWAC(productId),
     ]);
 
-    return success(
-      res,
-      { history, wac },
-      "Import history loaded",
-    );
+    return success(res, { history, wac }, "Import history loaded");
   } catch (error) {
     return next(error);
   }
@@ -274,22 +271,19 @@ async function createProduct(req, res, next) {
       );
 
       if (initialStock > 0) {
-        await Order.createImportReceipt(
-          connection,
-          {
-            mnv: creatorId,
-            mncc: Number(mncc),
-            total: initialStock * normalizedImportPrice,
-            items: [
-              {
-                msp: createdProductId,
-                sl: initialStock,
-                tienNhap: normalizedImportPrice,
-                hinhThuc: 0,
-              },
-            ],
-          },
-        );
+        await Order.createImportReceipt(connection, {
+          mnv: creatorId,
+          mncc: Number(mncc),
+          total: initialStock * normalizedImportPrice,
+          items: [
+            {
+              msp: createdProductId,
+              sl: initialStock,
+              tienNhap: normalizedImportPrice,
+              hinhThuc: 0,
+            },
+          ],
+        });
       }
 
       return createdProductId;
@@ -379,6 +373,56 @@ async function deleteSupplier(req, res, next) {
   try {
     await Supplier.softDeleteSupplier(req.params.id);
     return success(res, null, "Supplier removed");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getCustomersAdmin(req, res, next) {
+  try {
+    const customers = await Customer.listAll();
+    return success(res, customers, "Customers loaded");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function createCustomer(req, res, next) {
+  try {
+    if (!req.body.name) {
+      return fail(res, "name is required", 400);
+    }
+
+    const customerId = await withTransaction((connection) =>
+      Customer.createCustomer(req.body, connection),
+    );
+
+    return success(res, { customerId }, "Customer created", 201);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function updateCustomer(req, res, next) {
+  try {
+    if (!req.body.name) {
+      return fail(res, "name is required", 400);
+    }
+
+    await withTransaction((connection) =>
+      Customer.updateCustomer(req.params.id, req.body, connection),
+    );
+
+    return success(res, null, "Customer updated");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function deleteCustomer(req, res, next) {
+  try {
+    await Customer.softDeleteCustomer(req.params.id);
+    return success(res, null, "Customer removed");
   } catch (error) {
     return next(error);
   }
@@ -482,6 +526,10 @@ module.exports = {
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  getCustomersAdmin,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
   getDisplayLocations,
   createDisplayLocation,
   updateDisplayLocation,

@@ -310,6 +310,16 @@ export type SupplierItem = {
   THUONGHIEU_CUNG_CAP?: string | null
 }
 
+export type AdminCustomerItem = {
+  MKH: number
+  HOTEN: string
+  NGAYTHAMGIA: string
+  DIACHI: string | null
+  SDT: string | null
+  EMAIL: string | null
+  TT: number
+}
+
 export type DisplayLocationItem = {
   MVT: number
   TEN: string
@@ -1021,6 +1031,49 @@ export async function updateSupplierApi(
 
 export async function deleteSupplierApi(id: number): Promise<void> {
   await apiRequest<ApiEnvelope<null>>(`/api/admin/inventory/suppliers/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getAdminCustomersApi(): Promise<AdminCustomerItem[]> {
+  const response = await apiRequest<ApiEnvelope<AdminCustomerItem[]>>('/api/admin/customers')
+  return response.data
+}
+
+export async function createCustomerApi(payload: {
+  name: string
+  joinDate: string
+  phone?: string
+  email?: string
+  address?: string
+  status?: number
+}): Promise<{ customerId: number }> {
+  const response = await apiRequest<ApiEnvelope<{ customerId: number }>>('/api/admin/customers', {
+    method: 'POST',
+    body: payload,
+  })
+  return response.data
+}
+
+export async function updateCustomerApi(
+  id: number,
+  payload: {
+    name: string
+    joinDate: string
+    phone?: string
+    email?: string
+    address?: string
+    status?: number
+  },
+): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/customers/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deleteCustomerApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/admin/customers/${id}`, {
     method: 'DELETE',
   })
 }
