@@ -13,13 +13,102 @@ function toMoney(value) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function toVnd(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) {
+    return 0;
+  }
+  return Math.ceil(n);
+}
+
+function computeInsuranceDeduction(baseSalary) {
+  const insuranceBase = Number(baseSalary || 0);
+  if (!Number.isFinite(insuranceBase) || insuranceBase <= 0) {
+    return {
+      insuranceBase: 0,
+      bhxh: 0,
+      bhyt: 0,
+      bhtn: 0,
+    };
+  }
+  // Theo FE hiện tại: BHXH 8%, BHYT 1.5%, BHTN 1%
+  return {
+    insuranceBase,
+    bhxh: toVnd(insuranceBase * 0.08),
+    bhyt: toVnd(insuranceBase * 0.015),
+    bhtn: toVnd(insuranceBase * 0.01),
+  };
+}
+
 function toDateOnly(value) {
-  const text = String(value || "").slice(0, 10);
-  if (!text) {
+  const ymd = toYmd(value);
+  if (!ymd) {
     return null;
   }
-  const date = new Date(`${text}T00:00:00`);
+  const date = new Date(`${ymd}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toYmd(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return null;
+    }
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  const text = String(value).trim();
+  const head = text.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    return head;
+  }
+
+  // Fallback: parse rồi format lại
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function allocateByRatio(total, ratio) {
+  const safeTotal = Number(total || 0);
+  const safeRatio = Number(ratio || 0);
+  if (!Number.isFinite(safeTotal) || safeTotal <= 0) {
+    return 0;
+  }
+  if (!Number.isFinite(safeRatio) || safeRatio <= 0) {
+    return 0;
+  }
+  return toMoney(safeTotal * safeRatio);
+}
+
+function buildEffectiveBaseSalary(oldBaseSalary, newBaseSalary, phase1Days, phase2Days) {
+  const oldBase = Number(oldBaseSalary || 0);
+  const newBase = Number(newBaseSalary || 0);
+  const d1 = Number(phase1Days || 0);
+  const d2 = Number(phase2Days || 0);
+  const totalDays = d1 + d2;
+  if (!Number.isFinite(oldBase) || !Number.isFinite(newBase) || oldBase <= 0 || newBase <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(totalDays) || totalDays <= 0) {
+    return null;
+  }
+
+  // Weighted average base salary for the month so that:
+  //   (effectiveBase / 26) * (d1 + d2) == (oldBase/26)*d1 + (newBase/26)*d2
+  return toMoney((oldBase * d1 + newBase * d2) / totalDays);
 }
 
 function countNonSundayDaysInRange(startDate, endDate) {
@@ -257,6 +346,44 @@ async function listMyLeaveRequests(mnv) {
   });
 }
 
+async function findMyLeaveRequestById(id, mnv) {
+  const rows = await query(
+    `
+      SELECT
+        dxn.MDN,
+        dxn.MNV,
+        dxn.LOAI,
+        dxn.NGAYNGHI,
+        dxn.NGAYKETTHUC,
+        dxn.NGAY_NGHIVIEC,
+        dxn.LYDO,
+        dxn.MINHCHUNG,
+        dxn.TRANGTHAI,
+        dxn.NGAYTAO,
+        dxn.GHICHU
+      FROM DONXINNGH dxn
+      WHERE dxn.MDN = ?
+        AND dxn.MNV = ?
+      LIMIT 1
+    `,
+    [Number(id), Number(mnv)],
+  );
+
+  return rows[0] || null;
+}
+
+async function deleteMyLeaveRequest(id, mnv) {
+  return query(
+    `
+      DELETE FROM DONXINNGH
+      WHERE MDN = ?
+        AND MNV = ?
+        AND TRANGTHAI = 0
+    `,
+    [Number(id), Number(mnv)],
+  );
+}
+
 async function hasLeaveOverlap(mnv, startDate, endDate) {
   const rows = await query(
     `
@@ -391,7 +518,7 @@ async function getPayrollByMonth(month, year) {
   const monthNum = Number(month);
   const yearNum = Number(year);
   const monthStart = `${yearNum}-${String(monthNum).padStart(2, "0")}-01`;
-  const monthEnd = new Date(yearNum, monthNum, 0).toISOString().slice(0, 10);
+  const monthEnd = toYmd(new Date(yearNum, monthNum, 0));
 
   const payrollRows = await query(
     `
@@ -465,6 +592,9 @@ async function getPayrollByMonth(month, year) {
     personalRevenueRows,
     annualLeaveRows,
     unpaidLeaveRows,
+    positionTransferSalaryRows,
+    positionTransferWorkSplitRows,
+    positionTransferHolidaySplitRows,
   ] = await Promise.all([
     query(
       `
@@ -511,6 +641,99 @@ async function getPayrollByMonth(month, year) {
       `,
       [monthEnd, monthStart],
     ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          pick.NGAY_HIEULUC,
+          cv_cu.LUONGCOBAN AS LUONGCOBAN_CU,
+          cv_moi.LUONGCOBAN AS LUONGCOBAN_MOI
+        FROM (
+          SELECT ls1.MNV, ls1.MCV_CU, ls1.MCV_MOI, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV IN (SELECT MNV FROM BANGLUONG WHERE THANG = ? AND NAM = ?)
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN CHUCVU cv_cu ON cv_cu.MCV = pick.MCV_CU
+        LEFT JOIN CHUCVU cv_moi ON cv_moi.MCV = pick.MCV_MOI
+      `,
+      [monthStart, monthEnd, monthNum, yearNum],
+    ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          COUNT(DISTINCT CASE WHEN p.NGAY < pick.NGAY_HIEULUC THEN p.NGAY END) AS NGAYCONG_GD1,
+          COUNT(DISTINCT CASE WHEN p.NGAY >= pick.NGAY_HIEULUC THEN p.NGAY END) AS NGAYCONG_GD2
+        FROM (
+          SELECT ls1.MNV, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV IN (SELECT MNV FROM BANGLUONG WHERE THANG = ? AND NAM = ?)
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN PHANCALAM p
+          ON p.MNV = pick.MNV
+          AND p.TT = 2
+          AND DAYOFWEEK(p.NGAY) <> 1
+          AND p.NGAY BETWEEN ? AND ?
+        GROUP BY pick.MNV
+      `,
+      [monthStart, monthEnd, monthNum, yearNum, monthStart, monthEnd],
+    ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          SUM(
+            CASE
+              WHEN hd.NGAY IS NOT NULL AND hd.NGAY < pick.NGAY_HIEULUC
+                THEN GREATEST(COALESCE(hd.HESO_LUONG, 1) - 1, 0)
+              ELSE 0
+            END
+          ) AS NGAYCONG_LE_THEM_GD1,
+          SUM(
+            CASE
+              WHEN hd.NGAY IS NOT NULL AND hd.NGAY >= pick.NGAY_HIEULUC
+                THEN GREATEST(COALESCE(hd.HESO_LUONG, 1) - 1, 0)
+              ELSE 0
+            END
+          ) AS NGAYCONG_LE_THEM_GD2
+        FROM (
+          SELECT ls1.MNV, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV IN (SELECT MNV FROM BANGLUONG WHERE THANG = ? AND NAM = ?)
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN (
+          SELECT DISTINCT p.MNV, p.NGAY, nl.HESO_LUONG
+          FROM PHANCALAM p
+          INNER JOIN NGAYLE nl ON nl.NGAY = p.NGAY
+          WHERE p.TT = 2
+            AND DAYOFWEEK(p.NGAY) <> 1
+            AND p.NGAY BETWEEN ? AND ?
+        ) hd ON hd.MNV = pick.MNV
+        GROUP BY pick.MNV
+      `,
+      [monthStart, monthEnd, monthNum, yearNum, monthStart, monthEnd],
+    ),
   ]);
 
   const totalRevenue = Number(totalRevenueRows[0]?.TONG_DOANH_SO || 0);
@@ -541,12 +764,41 @@ async function getPayrollByMonth(month, year) {
     return acc;
   }, new Map());
 
+  const positionTransferSalaryMap = new Map(
+    (Array.isArray(positionTransferSalaryRows) ? positionTransferSalaryRows : []).map((r) => [
+      Number(r.MNV),
+      {
+        effectiveDate: toYmd(r.NGAY_HIEULUC),
+        oldBaseSalary: Number(r.LUONGCOBAN_CU || 0),
+        newBaseSalary: Number(r.LUONGCOBAN_MOI || 0),
+      },
+    ]),
+  );
+  const positionTransferWorkSplitMap = new Map(
+    (Array.isArray(positionTransferWorkSplitRows) ? positionTransferWorkSplitRows : []).map((r) => [
+      Number(r.MNV),
+      {
+        phase1: Number(r.NGAYCONG_GD1 || 0),
+        phase2: Number(r.NGAYCONG_GD2 || 0),
+      },
+    ]),
+  );
+  const positionTransferHolidaySplitMap = new Map(
+    (Array.isArray(positionTransferHolidaySplitRows) ? positionTransferHolidaySplitRows : []).map((r) => [
+      Number(r.MNV),
+      {
+        phase1: Number(r.NGAYCONG_LE_THEM_GD1 || 0),
+        phase2: Number(r.NGAYCONG_LE_THEM_GD2 || 0),
+      },
+    ]),
+  );
+
   return payrollRows.map((row) => {
     const revenue = isManagerLikeRole(row.TENNHOMQUYEN)
       ? totalRevenue
       : Number(personalRevenueMap.get(Number(row.MNV)) || 0);
     const commissionRate = Number(row.TY_LE_HOA_HONG || 0);
-    const commission = toMoney(revenue * (commissionRate / 100));
+    const commission = toVnd(revenue * (commissionRate / 100));
     const workDaysRawBeforeLeave = Number(
       row.NGAYCONG_THUCTE ?? row.NGAYCONG_LUU ?? 0,
     );
@@ -566,18 +818,117 @@ async function getPayrollByMonth(month, year) {
     const workDaysConverted = toMoney(workDaysRaw + holidayExtraDays);
     const leaveUsed = Number(annualLeaveMap.get(Number(row.MNV)) || 0);
     const leaveRemaining = Math.max(0, 12 - leaveUsed);
-    const deduction =
-      Number(row.BHXH || 0) +
-      Number(row.BHYT || 0) +
-      Number(row.BHTN || 0) +
-      Number(row.KHAUTRU_KHAC || 0);
-    const salaryByDays = toMoney(
-      (Number(row.LUONGCOBAN || 0) / 26) * workDaysConverted,
-    );
-    const takeHome = toMoney(salaryByDays + commission - deduction);
+    const khauTruKhac = Number(row.KHAUTRU_KHAC || 0);
+    const payrollBreakdown = {
+      hasTransferSplit: false,
+      effectiveDate: null,
+      gd1: null,
+      gd2: null,
+      tienLuongCoBanTong: null,
+    };
+
+    const baseSalaryInsurance = Number(row.LUONGCOBAN || 0);
+    let computedBaseSalary = baseSalaryInsurance;
+    let salaryByDays = toVnd((computedBaseSalary / 26) * workDaysConverted);
+
+    const transferSalary = positionTransferSalaryMap.get(Number(row.MNV)) || null;
+    // ✅ Khấu trừ BH tính theo lương cơ bản chức vụ mới (nếu có chuyển chức vụ trong tháng)
+    const insuranceBaseForDeduction = transferSalary?.newBaseSalary > 0
+      ? transferSalary.newBaseSalary
+      : baseSalaryInsurance;
+    const insurance = computeInsuranceDeduction(insuranceBaseForDeduction);
+    const bhxh = insurance.bhxh;
+    const bhyt = insurance.bhyt;
+    const bhtn = insurance.bhtn;
+    const deduction = toVnd(bhxh + bhyt + bhtn + khauTruKhac);
+    if (transferSalary) {
+      const split =
+        positionTransferWorkSplitMap.get(Number(row.MNV)) ||
+        { phase1: 0, phase2: 0 };
+      const holidaySplit = positionTransferHolidaySplitMap.get(Number(row.MNV)) || null;
+      const phase1Raw = Math.max(0, Number(split.phase1 || 0));
+      const phase2Raw = Math.max(0, Number(split.phase2 || 0));
+      const totalRaw = phase1Raw + phase2Raw;
+
+      if (totalRaw > 0 && transferSalary.oldBaseSalary > 0 && transferSalary.newBaseSalary > 0) {
+        const ratio1 = phase1Raw / totalRaw;
+        const unpaid1 = allocateByRatio(unpaidLeaveDays, ratio1);
+        const unpaid2 = Math.max(0, toMoney(unpaidLeaveDays - unpaid1));
+
+        const phase1WorkRaw = Math.max(0, toMoney(phase1Raw - unpaid1));
+        const phase2WorkRaw = Math.max(0, toMoney(phase2Raw - unpaid2));
+
+        const holiday1 = holidaySplit
+          ? Number(holidaySplit.phase1 || 0)
+          : allocateByRatio(holidayExtraDays, ratio1);
+        const holiday2 = holidaySplit
+          ? Number(holidaySplit.phase2 || 0)
+          : Math.max(0, toMoney(holidayExtraDays - holiday1));
+
+        const phase1Converted = toMoney(phase1WorkRaw + holiday1);
+        const phase2Converted = toMoney(phase2WorkRaw + holiday2);
+
+        const gd1From = monthStart;
+        const eff = transferSalary.effectiveDate;
+        const gd1To = eff
+          ? new Date(new Date(eff).getTime() - 24 * 60 * 60 * 1000)
+              .toISOString()
+              .slice(0, 10)
+          : null;
+        const gd2From = eff;
+        const gd2To = monthEnd;
+
+        const tienLuongGd1 = toVnd((transferSalary.oldBaseSalary / 26) * phase1Converted);
+        const tienLuongGd2 = toVnd((transferSalary.newBaseSalary / 26) * phase2Converted);
+        salaryByDays = toVnd(tienLuongGd1 + tienLuongGd2);
+
+        payrollBreakdown.hasTransferSplit = true;
+        payrollBreakdown.effectiveDate = eff;
+        payrollBreakdown.gd1 = {
+          from: gd1From,
+          to: gd1To,
+          luongCoBan: transferSalary.oldBaseSalary,
+          ngayCong: phase1Converted,
+          tienLuongCoBan: tienLuongGd1,
+        };
+        payrollBreakdown.gd2 = {
+          from: gd2From,
+          to: gd2To,
+          luongCoBan: transferSalary.newBaseSalary,
+          ngayCong: phase2Converted,
+          tienLuongCoBan: tienLuongGd2,
+        };
+        payrollBreakdown.tienLuongCoBanTong = toVnd(tienLuongGd1 + tienLuongGd2);
+
+        // ✅ LUONGCOBAN hiển thị/đóng BH theo chức vụ mới trong tháng chuyển.
+        computedBaseSalary = transferSalary.newBaseSalary;
+      }
+    }
+    const takeHome = toVnd(salaryByDays + commission - deduction);
 
     return {
       ...row,
+      LUONGCOBAN: computedBaseSalary,
+      // Override khấu trừ theo rule mới
+      BHXH: bhxh,
+      BHYT: bhyt,
+      BHTN: bhtn,
+      KHAUTRU_KHAC: khauTruKhac,
+      KHAUTRU: deduction,
+      // Breakdown tháng chuyển chức vụ (để FE hiển thị đúng GD1/GD2)
+      CHUYEN_CHUCVU: payrollBreakdown.hasTransferSplit ? 1 : 0,
+      NGAY_HIEULUC_CHUCVU: payrollBreakdown.effectiveDate,
+      GD1_TU: payrollBreakdown.gd1?.from ?? null,
+      GD1_DEN: payrollBreakdown.gd1?.to ?? null,
+      LUONGCOBAN_GD1: payrollBreakdown.gd1?.luongCoBan ?? null,
+      NGAYCONG_GD1: payrollBreakdown.gd1?.ngayCong ?? null,
+      TIEN_LUONGCOBAN_GD1: payrollBreakdown.gd1?.tienLuongCoBan ?? null,
+      GD2_TU: payrollBreakdown.gd2?.from ?? null,
+      GD2_DEN: payrollBreakdown.gd2?.to ?? null,
+      LUONGCOBAN_GD2: payrollBreakdown.gd2?.luongCoBan ?? null,
+      NGAYCONG_GD2: payrollBreakdown.gd2?.ngayCong ?? null,
+      TIEN_LUONGCOBAN_GD2: payrollBreakdown.gd2?.tienLuongCoBan ?? null,
+      TIEN_LUONGCOBAN_TONG: payrollBreakdown.tienLuongCoBanTong,
       NGAYCONG: workDaysConverted,
       NGAYCONG_THUCTE: workDaysRaw,
       SO_NGAY_LE_DI_LAM: Number(row.SO_NGAY_LE_DI_LAM || 0),
@@ -587,7 +938,6 @@ async function getPayrollByMonth(month, year) {
       DOANH_SO: revenue,
       HOA_HONG: commission,
       PHUCAP: commission,
-      KHAUTRU: deduction,
       LUONGTHUCLANH: takeHome,
       LUONGTHUCLANH_TINHLAI: takeHome,
       NGAYNGHI_DA_DUNG: leaveUsed,
@@ -600,7 +950,7 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
   const monthNum = Number(month);
   const yearNum = Number(year);
   const monthStart = `${yearNum}-${String(monthNum).padStart(2, "0")}-01`;
-  const monthEnd = new Date(yearNum, monthNum, 0).toISOString().slice(0, 10);
+  const monthEnd = toYmd(new Date(yearNum, monthNum, 0));
 
   const rows = await query(
     `
@@ -680,6 +1030,9 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
     personalRevenueRows,
     annualLeaveRows,
     unpaidLeaveRows,
+    positionTransferSalaryRows,
+    positionTransferWorkSplitRows,
+    positionTransferHolidaySplitRows,
   ] = await Promise.all([
     query(
       `
@@ -723,6 +1076,99 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
       `,
       [Number(mnv), monthEnd, monthStart],
     ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          pick.NGAY_HIEULUC,
+          cv_cu.LUONGCOBAN AS LUONGCOBAN_CU,
+          cv_moi.LUONGCOBAN AS LUONGCOBAN_MOI
+        FROM (
+          SELECT ls1.MNV, ls1.MCV_CU, ls1.MCV_MOI, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV = ?
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN CHUCVU cv_cu ON cv_cu.MCV = pick.MCV_CU
+        LEFT JOIN CHUCVU cv_moi ON cv_moi.MCV = pick.MCV_MOI
+      `,
+      [monthStart, monthEnd, Number(mnv)],
+    ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          COUNT(DISTINCT CASE WHEN p.NGAY < pick.NGAY_HIEULUC THEN p.NGAY END) AS NGAYCONG_GD1,
+          COUNT(DISTINCT CASE WHEN p.NGAY >= pick.NGAY_HIEULUC THEN p.NGAY END) AS NGAYCONG_GD2
+        FROM (
+          SELECT ls1.MNV, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV = ?
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN PHANCALAM p
+          ON p.MNV = pick.MNV
+          AND p.TT = 2
+          AND DAYOFWEEK(p.NGAY) <> 1
+          AND p.NGAY BETWEEN ? AND ?
+        GROUP BY pick.MNV
+      `,
+      [monthStart, monthEnd, Number(mnv), monthStart, monthEnd],
+    ),
+    query(
+      `
+        SELECT
+          pick.MNV,
+          SUM(
+            CASE
+              WHEN hd.NGAY IS NOT NULL AND hd.NGAY < pick.NGAY_HIEULUC
+                THEN GREATEST(COALESCE(hd.HESO_LUONG, 1) - 1, 0)
+              ELSE 0
+            END
+          ) AS NGAYCONG_LE_THEM_GD1,
+          SUM(
+            CASE
+              WHEN hd.NGAY IS NOT NULL AND hd.NGAY >= pick.NGAY_HIEULUC
+                THEN GREATEST(COALESCE(hd.HESO_LUONG, 1) - 1, 0)
+              ELSE 0
+            END
+          ) AS NGAYCONG_LE_THEM_GD2
+        FROM (
+          SELECT ls1.MNV, ls1.NGAY_HIEULUC
+          FROM LICHSUCHUCVU ls1
+          INNER JOIN (
+            SELECT MNV, MAX(NGAY_HIEULUC) AS NGAY_HIEULUC
+            FROM LICHSUCHUCVU
+            WHERE NGAY_HIEULUC BETWEEN ? AND ?
+              AND MNV = ?
+            GROUP BY MNV
+          ) latest
+            ON latest.MNV = ls1.MNV AND latest.NGAY_HIEULUC = ls1.NGAY_HIEULUC
+        ) pick
+        LEFT JOIN (
+          SELECT DISTINCT p.MNV, p.NGAY, nl.HESO_LUONG
+          FROM PHANCALAM p
+          INNER JOIN NGAYLE nl ON nl.NGAY = p.NGAY
+          WHERE p.TT = 2
+            AND DAYOFWEEK(p.NGAY) <> 1
+            AND p.NGAY BETWEEN ? AND ?
+        ) hd ON hd.MNV = pick.MNV
+        GROUP BY pick.MNV
+      `,
+      [monthStart, monthEnd, Number(mnv), monthStart, monthEnd],
+    ),
   ]);
 
   const totalRevenue = Number(totalRevenueRows[0]?.TONG_DOANH_SO || 0);
@@ -731,7 +1177,7 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
     isManagerLikeRole(roleName) || isManagerLikeRole(row.TENNHOMQUYEN);
   const revenue = shouldUseTotalRevenue ? totalRevenue : personalRevenue;
   const commissionRate = Number(row.TY_LE_HOA_HONG || 0);
-  const commission = toMoney(revenue * (commissionRate / 100));
+  const commission = toVnd(revenue * (commissionRate / 100));
   const workDaysRawBeforeLeave = Number(
     row.NGAYCONG_THUCTE ?? row.NGAYCONG_LUU ?? 0,
   );
@@ -763,18 +1209,125 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
     0,
   );
   const leaveRemaining = Math.max(0, 12 - leaveUsed);
-  const deduction =
-    Number(row.BHXH || 0) +
-    Number(row.BHYT || 0) +
-    Number(row.BHTN || 0) +
-    Number(row.KHAUTRU_KHAC || 0);
-  const salaryByDays = toMoney(
-    (Number(row.LUONGCOBAN || 0) / 26) * workDaysConverted,
-  );
-  const takeHome = toMoney(salaryByDays + commission - deduction);
+  const khauTruKhac = Number(row.KHAUTRU_KHAC || 0);
+  const payrollBreakdown = {
+    hasTransferSplit: false,
+    effectiveDate: null,
+    gd1: null,
+    gd2: null,
+    tienLuongCoBanTong: null,
+  };
+
+  const baseSalaryInsurance = Number(row.LUONGCOBAN || 0);
+  let computedBaseSalary = baseSalaryInsurance;
+  let salaryByDays = toVnd((computedBaseSalary / 26) * workDaysConverted);
+
+  const transferSalary = Array.isArray(positionTransferSalaryRows)
+    ? positionTransferSalaryRows[0]
+    : null;
+  // ✅ Khấu trừ BH tính theo lương cơ bản chức vụ mới (nếu có chuyển chức vụ trong tháng)
+  const insuranceBaseForDeduction = Number(transferSalary?.LUONGCOBAN_MOI || 0) > 0
+    ? Number(transferSalary.LUONGCOBAN_MOI || 0)
+    : baseSalaryInsurance;
+  const insurance = computeInsuranceDeduction(insuranceBaseForDeduction);
+  const bhxh = insurance.bhxh;
+  const bhyt = insurance.bhyt;
+  const bhtn = insurance.bhtn;
+  const deduction = toVnd(bhxh + bhyt + bhtn + khauTruKhac);
+
+  if (transferSalary) {
+    const split = Array.isArray(positionTransferWorkSplitRows)
+      ? positionTransferWorkSplitRows[0]
+      : null;
+    const holidaySplit = Array.isArray(positionTransferHolidaySplitRows)
+      ? positionTransferHolidaySplitRows[0]
+      : null;
+
+    const oldBaseSalary = Number(transferSalary.LUONGCOBAN_CU || 0);
+    const newBaseSalary = Number(transferSalary.LUONGCOBAN_MOI || 0);
+    const phase1Raw = Math.max(0, Number(split?.NGAYCONG_GD1 || 0));
+    const phase2Raw = Math.max(0, Number(split?.NGAYCONG_GD2 || 0));
+    const totalRaw = phase1Raw + phase2Raw;
+
+    if (totalRaw > 0 && oldBaseSalary > 0 && newBaseSalary > 0) {
+      const ratio1 = phase1Raw / totalRaw;
+      const unpaid1 = allocateByRatio(unpaidLeaveDays, ratio1);
+      const unpaid2 = Math.max(0, toMoney(unpaidLeaveDays - unpaid1));
+
+      const phase1WorkRaw = Math.max(0, toMoney(phase1Raw - unpaid1));
+      const phase2WorkRaw = Math.max(0, toMoney(phase2Raw - unpaid2));
+
+      const holiday1 = holidaySplit
+        ? Number(holidaySplit.NGAYCONG_LE_THEM_GD1 || 0)
+        : allocateByRatio(holidayExtraDays, ratio1);
+      const holiday2 = holidaySplit
+        ? Number(holidaySplit.NGAYCONG_LE_THEM_GD2 || 0)
+        : Math.max(0, toMoney(holidayExtraDays - holiday1));
+
+      const phase1Converted = toMoney(phase1WorkRaw + holiday1);
+      const phase2Converted = toMoney(phase2WorkRaw + holiday2);
+
+      const eff = toYmd(transferSalary.NGAY_HIEULUC);
+      const gd1From = monthStart;
+      const gd1To = eff
+        ? new Date(new Date(eff).getTime() - 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10)
+        : null;
+      const gd2From = eff;
+      const gd2To = monthEnd;
+
+      const tienLuongGd1 = toMoney((oldBaseSalary / 26) * phase1Converted);
+      const tienLuongGd2 = toMoney((newBaseSalary / 26) * phase2Converted);
+      const tienLuongGd1Vnd = toVnd(tienLuongGd1);
+      const tienLuongGd2Vnd = toVnd(tienLuongGd2);
+      salaryByDays = toVnd(tienLuongGd1Vnd + tienLuongGd2Vnd);
+
+      payrollBreakdown.hasTransferSplit = true;
+      payrollBreakdown.effectiveDate = eff;
+      payrollBreakdown.gd1 = {
+        from: gd1From,
+        to: gd1To,
+        luongCoBan: oldBaseSalary,
+        ngayCong: phase1Converted,
+        tienLuongCoBan: tienLuongGd1Vnd,
+      };
+      payrollBreakdown.gd2 = {
+        from: gd2From,
+        to: gd2To,
+        luongCoBan: newBaseSalary,
+        ngayCong: phase2Converted,
+        tienLuongCoBan: tienLuongGd2Vnd,
+      };
+      payrollBreakdown.tienLuongCoBanTong = toVnd(tienLuongGd1Vnd + tienLuongGd2Vnd);
+
+      // ✅ LUONGCOBAN hiển thị/đóng BH theo chức vụ mới trong tháng chuyển.
+      computedBaseSalary = newBaseSalary;
+    }
+  }
+  const takeHome = toVnd(salaryByDays + commission - deduction);
 
   return {
     ...row,
+    LUONGCOBAN: computedBaseSalary,
+    BHXH: bhxh,
+    BHYT: bhyt,
+    BHTN: bhtn,
+    KHAUTRU_KHAC: khauTruKhac,
+    KHAUTRU: deduction,
+    CHUYEN_CHUCVU: payrollBreakdown.hasTransferSplit ? 1 : 0,
+    NGAY_HIEULUC_CHUCVU: payrollBreakdown.effectiveDate,
+    GD1_TU: payrollBreakdown.gd1?.from ?? null,
+    GD1_DEN: payrollBreakdown.gd1?.to ?? null,
+    LUONGCOBAN_GD1: payrollBreakdown.gd1?.luongCoBan ?? null,
+    NGAYCONG_GD1: payrollBreakdown.gd1?.ngayCong ?? null,
+    TIEN_LUONGCOBAN_GD1: payrollBreakdown.gd1?.tienLuongCoBan ?? null,
+    GD2_TU: payrollBreakdown.gd2?.from ?? null,
+    GD2_DEN: payrollBreakdown.gd2?.to ?? null,
+    LUONGCOBAN_GD2: payrollBreakdown.gd2?.luongCoBan ?? null,
+    NGAYCONG_GD2: payrollBreakdown.gd2?.ngayCong ?? null,
+    TIEN_LUONGCOBAN_GD2: payrollBreakdown.gd2?.tienLuongCoBan ?? null,
+    TIEN_LUONGCOBAN_TONG: payrollBreakdown.tienLuongCoBanTong,
     NGAYCONG: workDaysConverted,
     NGAYCONG_THUCTE: workDaysRaw,
     SO_NGAY_LE_DI_LAM: Number(row.SO_NGAY_LE_DI_LAM || 0),
@@ -784,7 +1337,6 @@ async function getPayrollByMonthAndEmployee(mnv, month, year, roleName) {
     DOANH_SO: revenue,
     HOA_HONG: commission,
     PHUCAP: commission,
-    KHAUTRU: deduction,
     LUONGTHUCLANH: takeHome,
     LUONGTHUCLANH_TINHLAI: takeHome,
     NGAYNGHI_DA_DUNG: leaveUsed,
@@ -1794,7 +2346,7 @@ async function updateSalaryByMbl(mbl, payload) {
 
   // Fetch working days info
   const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
-  const monthEnd = new Date(year, month, 0).toISOString().slice(0, 10);
+  const monthEnd = toYmd(new Date(year, month, 0));
 
   // Get actual working days from PHANCALAM
   const workDaysResult = await query(
@@ -1905,6 +2457,8 @@ module.exports = {
   findById,
   listLeaveRequests,
   listMyLeaveRequests,
+  findMyLeaveRequestById,
+  deleteMyLeaveRequest,
   hasLeaveOverlap,
   getAnnualLeaveBalance,
   createLeaveRequest,

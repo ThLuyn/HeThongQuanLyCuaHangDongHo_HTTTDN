@@ -54,6 +54,14 @@ router.post(
   hrController.uploadLeaveEvidenceMiddleware,
   hrController.createMyLeaveRequest,
 );
+router.delete(
+  "/my-leave-requests/:id",
+  authorizeRolesOrPermissions(
+    ["admin", "manager", "hr", "staff"],
+    [{ mcn: "donxinngh", actions: ["delete", "view"] }],
+  ),
+  hrController.deleteMyLeaveRequest,
+);
 router.patch(
   "/leave-requests/:id",
   authorizeRolesOrPermissions([], []),

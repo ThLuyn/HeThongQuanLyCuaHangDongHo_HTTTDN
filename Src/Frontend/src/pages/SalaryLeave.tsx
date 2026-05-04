@@ -23,6 +23,47 @@ import {
   openPrintWindow,
 } from '../utils/payrollPrintTemplates';
 
+function formatDateDmy(value) {
+  if (!value) {
+    return '';
+  }
+  const text = String(value).slice(0, 10);
+  const isYmd = /^\d{4}-\d{2}-\d{2}$/.test(text);
+  const date = isYmd ? new Date(`${text}T00:00:00`) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function getVietnamYmd(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(date);
+}
+
+function toYmdOrNull(value) {
+  if (!value) {
+    return null;
+  }
+
+  const text = String(value).trim();
+  const head = text.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    return head;
+  }
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return getVietnamYmd(parsed);
+}
+
 const columns = [
   { key: 'id', label: 'Mã NV' },
   { key: 'name', label: 'Họ tên' },
@@ -250,7 +291,51 @@ export function SalaryLeave() {
     id: `NV${String(row.MNV).padStart(3, '0')}`,
     name: row.HOTEN,
     position: row.TENCHUCVU || 'Chưa cập nhật',
-    baseSalary: Number(row.LUONGCOBAN || 0),
+    // Lương cơ bản HIỂN THỊ theo ngày hiệu lực chuyển công tác:
+    // - Chưa tới ngày hiệu lực => hiển thị lương cũ (GD1)
+    // - Tới/qua ngày hiệu lực => hiển thị lương mới (GD2)
+    baseSalary: (() => {
+      const hasTransferSplit = Number(row.CHUYEN_CHUCVU || 0) === 1;
+      if (!hasTransferSplit) {
+        return Number(row.LUONGCOBAN || 0);
+      }
+
+      const todayText = getVietnamYmd();
+      const effectiveText = toYmdOrNull(row.NGAY_HIEULUC_CHUCVU || row.GD2_TU);
+      const oldBaseSalary = Number(row.LUONGCOBAN_GD1 || 0);
+      const newBaseSalary = Number(row.LUONGCOBAN_GD2 || 0);
+      const fallback = Number(row.LUONGCOBAN || 0);
+
+      if (effectiveText && todayText < effectiveText) {
+        return oldBaseSalary > 0 ? oldBaseSalary : fallback;
+      }
+      return newBaseSalary > 0 ? newBaseSalary : fallback;
+    })(),
+    // Lương chính thực nhận theo ngày công (cộng GD1+GD2 nếu có chuyển chức vụ)
+    baseSalaryIncome:
+      row.TIEN_LUONGCOBAN_TONG != null
+        ? Number(row.TIEN_LUONGCOBAN_TONG || 0)
+        : Math.round((Number(row.LUONGCOBAN || 0) / 26) * Number(row.NGAYCONG || 0)),
+    baseSalaryPhases:
+      Number(row.CHUYEN_CHUCVU || 0) === 1
+        ? [
+            {
+              from: row.GD1_TU,
+              to: row.GD1_DEN,
+              baseSalary: Number(row.LUONGCOBAN_GD1 || 0),
+              workingDays: Number(row.NGAYCONG_GD1 || 0),
+              amount: Number(row.TIEN_LUONGCOBAN_GD1 || 0),
+            },
+            {
+              from: row.GD2_TU,
+              to: row.GD2_DEN,
+              baseSalary: Number(row.LUONGCOBAN_GD2 || 0),
+              workingDays: Number(row.NGAYCONG_GD2 || 0),
+              amount: Number(row.TIEN_LUONGCOBAN_GD2 || 0),
+            },
+          ]
+        : [],
+    hasTransferSplit: Number(row.CHUYEN_CHUCVU || 0) === 1,
     allowance: Number(row.PHUCAP || 0),
     takeHome: Math.ceil(Number(row.LUONGTHUCLANH || 0)),
     workingDays: Number(row.NGAYCONG || 0),
@@ -558,7 +643,11 @@ export function SalaryLeave() {
     const totalBaseSalary = tableData.reduce((sum, item) => sum + Number(item.baseSalary || 0), 0);
 
     const totalGross = tableData.reduce((sum, item) => {
-      const salaryByTime = Math.round((Number(item.baseSalary || 0) / 26) * Number(item.workingDays || 0));
+      const salaryByTime = Number(
+        item.baseSalaryIncome != null
+          ? item.baseSalaryIncome
+          : Math.round((Number(item.baseSalary || 0) / 26) * Number(item.workingDays || 0)),
+      );
       return sum + salaryByTime + Number(item.allowance || 0);
     }, 0);
     const totalDeduction = tableData.reduce((sum, item) => sum + Number(item.deduction || 0), 0);
@@ -1009,6 +1098,10 @@ export function SalaryLeave() {
                   <p className="font-semibold">{formatMoney(selectedEmployee.baseSalary)}</p>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
+                  <p className="text-xs text-gray-500">Lương chính (theo ngày công)</p>
+                  <p className="font-semibold">{formatMoney(selectedEmployee.baseSalaryIncome ?? 0)}</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs text-gray-500">Doanh số</p>
                   <p className="font-semibold">{formatMoney(selectedEmployee.revenue)}</p>
                 </div>
@@ -1029,6 +1122,21 @@ export function SalaryLeave() {
                   <p className="text-base font-semibold text-emerald-800">{formatMoney(selectedEmployee.takeHome)}</p>
                 </div>
               </div>
+
+              {selectedEmployee?.hasTransferSplit && Array.isArray(selectedEmployee?.baseSalaryPhases) && selectedEmployee.baseSalaryPhases.length > 0 ? (
+                <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800">Tháng chuyển chức vụ (tính theo 2 giai đoạn)</p>
+                  <div className="space-y-1">
+                    {selectedEmployee.baseSalaryPhases.map((p, idx) => (
+                      <p key={idx}>
+                        GD{idx + 1}{p?.from && p?.to ? ` (${formatDateDmy(p.from)} - ${formatDateDmy(p.to)})` : ''}: ({formatMoney(p?.baseSalary || 0)} / 26 × {Number(p?.workingDays || 0)} ngày) ={' '}
+                        <span className="font-semibold">{formatMoney(p?.amount || 0)}</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-700">Chi tiết khấu trừ</p>
                 <div className="grid grid-cols-1 gap-2 text-sm text-rose-900 sm:grid-cols-2">

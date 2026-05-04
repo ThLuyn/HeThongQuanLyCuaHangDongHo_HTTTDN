@@ -354,7 +354,7 @@ export function POSPage({ onBack }) {
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Tìm tên đồng hồ hoặc mã số..."
+                                placeholder="Tìm kiếm..."
                                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500/20 text-sm transition-all"
                             />
                         </div>

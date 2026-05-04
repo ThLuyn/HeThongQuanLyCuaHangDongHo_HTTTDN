@@ -864,6 +864,12 @@ export async function createMyLeaveRequestApi(
   return response.data
 }
 
+export async function deleteMyLeaveRequestApi(id: number): Promise<void> {
+  await apiRequest<ApiEnvelope<null>>(`/api/hr/my-leave-requests/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function decideLeaveRequestApi(
   id: number,
   payload: { status: 1 | 2; note?: string },

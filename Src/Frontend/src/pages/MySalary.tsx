@@ -13,11 +13,54 @@ const INSURANCE_RATES = {
 };
 
 function formatMoney(value) {
-  return `${VND.format(Number(value || 0))} đ`;
+  const amount = Number(value || 0);
+  const rounded = Number.isFinite(amount) ? Math.ceil(amount) : 0;
+  return `${VND.format(rounded)} đ`;
 }
 
 function monthYearLabel(month, year) {
   return `Tháng ${month}/${year}`;
+}
+
+function formatDateDmy(value) {
+  if (!value) {
+    return '';
+  }
+  const text = String(value).slice(0, 10);
+  const isYmd = /^\d{4}-\d{2}-\d{2}$/.test(text);
+  const date = isYmd ? new Date(`${text}T00:00:00`) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function getVietnamYmd(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(date);
+}
+
+function toYmdOrNull(value) {
+  if (!value) {
+    return null;
+  }
+
+  const text = String(value).trim();
+  const head = text.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    return head;
+  }
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return getVietnamYmd(parsed);
 }
 
 function resolvePayrollStatus(record) {
@@ -42,17 +85,31 @@ function buildPersonalSalary(record, month, year, violationPenaltyTotal = 0) {
     return null;
   }
 
-  const baseSalary = Number(record.LUONGCOBAN || 0);
+  const baseSalaryInsurance = Number(record.LUONGCOBAN || 0);
   const salesRevenue = Number(record.DOANH_SO || 0);
   const commissionRate = Number(record.TY_LE_HOA_HONG || 0);
   const commissionByFormula = Math.round(salesRevenue * (commissionRate / 100));
   const commission = Number(record.HOA_HONG || commissionByFormula || record.PHUCAP || 0);
   const workingDays = Number(record.NGAYCONG || 0);
-  const salaryByWorkDays = Math.round((baseSalary / 26) * workingDays);
+
+  const hasTransferSplit =
+    Number(record.CHUYEN_CHUCVU || 0) === 1 ||
+    record.TIEN_LUONGCOBAN_GD1 != null ||
+    record.TIEN_LUONGCOBAN_GD2 != null;
+  const phase1Money = Number(record.TIEN_LUONGCOBAN_GD1 || 0);
+  const phase2Money = Number(record.TIEN_LUONGCOBAN_GD2 || 0);
+  const salaryByWorkDays = hasTransferSplit
+    ? Math.round(phase1Money + phase2Money)
+    : Math.round((baseSalaryInsurance / 26) * workingDays);
+
   const grossIncome = salaryByWorkDays + commission;
-  const bhxh = Math.round(baseSalary * INSURANCE_RATES.bhxh);
-  const bhyt = Math.round(baseSalary * INSURANCE_RATES.bhyt);
-  const bhtn = Math.round(baseSalary * INSURANCE_RATES.bhtn);
+
+  const bhxhFromDb = Number(record.BHXH || 0);
+  const bhytFromDb = Number(record.BHYT || 0);
+  const bhtnFromDb = Number(record.BHTN || 0);
+  const bhxh = bhxhFromDb > 0 ? bhxhFromDb : Math.round(baseSalaryInsurance * INSURANCE_RATES.bhxh);
+  const bhyt = bhytFromDb > 0 ? bhytFromDb : Math.round(baseSalaryInsurance * INSURANCE_RATES.bhyt);
+  const bhtn = bhtnFromDb > 0 ? bhtnFromDb : Math.round(baseSalaryInsurance * INSURANCE_RATES.bhtn);
 
   // ✅ FIX: Ưu tiên lấy từ violations API (realtime), fallback về DB record
   // violationPenaltyTotal = tổng tiền phạt tính từ VIPHAM (luôn mới nhất)
@@ -72,13 +129,29 @@ function buildPersonalSalary(record, month, year, violationPenaltyTotal = 0) {
     month,
     year,
     label: monthYearLabel(month, year),
+    baseSalaryInsurance,
+    baseSalaryIncome: salaryByWorkDays,
+    hasTransferSplit,
     workingDays,
     leaveRemaining,
     grossIncome,
     netSalary,
     deductionTotal: totalDeduction,
     incomes: [
-      { key: 'baseSalary', label: 'Lương cơ bản', value: baseSalary },
+      ...(hasTransferSplit
+        ? [
+          {
+            key: 'baseSalaryPhase1',
+            label: `LCB giai đoạn 1${record.GD1_TU && record.GD1_DEN ? ` (${formatDateDmy(record.GD1_TU)} - ${formatDateDmy(record.GD1_DEN)})` : ''} (${formatMoney(record.LUONGCOBAN_GD1 || 0)} / 26 × ${Number(record.NGAYCONG_GD1 || 0)} ngày)`,
+            value: phase1Money,
+          },
+          {
+            key: 'baseSalaryPhase2',
+            label: `LCB giai đoạn 2${record.GD2_TU && record.GD2_DEN ? ` (${formatDateDmy(record.GD2_TU)} - ${formatDateDmy(record.GD2_DEN)})` : ''} (${formatMoney(record.LUONGCOBAN_GD2 || 0)} / 26 × ${Number(record.NGAYCONG_GD2 || 0)} ngày)`,
+            value: phase2Money,
+          },
+        ]
+        : [{ key: 'baseSalary', label: 'Lương cơ bản', value: baseSalaryInsurance }]),
       { key: 'commission', label: 'Hoa hồng', value: commission },
     ],
     salesRevenue,
@@ -238,7 +311,48 @@ export function MySalary() {
       id: personalSalary.employeeCode,
       name: String(record?.HOTEN || session?.fullName || session?.username || 'Nhân viên'),
       position: String(record?.TENCHUCVU || 'Nhân viên'),
-      baseSalary: Number(record?.LUONGCOBAN || 0),
+      // Lương cơ bản HIỂN THỊ theo ngày hiệu lực chuyển công tác (nếu có)
+      baseSalary: (() => {
+        const fallback = Number(record?.LUONGCOBAN || 0);
+        const hasTransferSplit =
+          Number(record?.CHUYEN_CHUCVU || 0) === 1 ||
+          record?.TIEN_LUONGCOBAN_GD1 != null ||
+          record?.TIEN_LUONGCOBAN_GD2 != null;
+        if (!hasTransferSplit) {
+          return fallback;
+        }
+
+        const todayText = getVietnamYmd();
+        const effectiveText = toYmdOrNull(record?.NGAY_HIEULUC_CHUCVU || record?.GD2_TU);
+        const oldBaseSalary = Number(record?.LUONGCOBAN_GD1 || 0);
+        const newBaseSalary = Number(record?.LUONGCOBAN_GD2 || 0);
+
+        if (effectiveText && todayText < effectiveText) {
+          return oldBaseSalary > 0 ? oldBaseSalary : fallback;
+        }
+        return newBaseSalary > 0 ? newBaseSalary : fallback;
+      })(),
+      // Lương chính thực nhận theo ngày công (cộng GD1+GD2 nếu có chuyển chức vụ)
+      baseSalaryIncome: Number(personalSalary?.baseSalaryIncome || 0),
+      baseSalaryPhases:
+        Number(record?.CHUYEN_CHUCVU || 0) === 1
+          ? [
+            {
+              from: record?.GD1_TU,
+              to: record?.GD1_DEN,
+              baseSalary: Number(record?.LUONGCOBAN_GD1 || 0),
+              workingDays: Number(record?.NGAYCONG_GD1 || 0),
+              amount: Number(record?.TIEN_LUONGCOBAN_GD1 || 0),
+            },
+            {
+              from: record?.GD2_TU,
+              to: record?.GD2_DEN,
+              baseSalary: Number(record?.LUONGCOBAN_GD2 || 0),
+              workingDays: Number(record?.NGAYCONG_GD2 || 0),
+              amount: Number(record?.TIEN_LUONGCOBAN_GD2 || 0),
+            },
+          ]
+          : [],
       workingDays: Number(personalSalary.workingDays || 0),
       allowance: Number(record?.HOA_HONG || personalSalary.commissionByFormula || record?.PHUCAP || 0),
       revenue: Number(record?.DOANH_SO || personalSalary.salesRevenue || 0),

@@ -42,6 +42,11 @@ export function PositionSalaryManagement() {
   const [effectiveDateRange, setEffectiveDateRange] = useState({ from: '', to: '' });
   const [endDateRange, setEndDateRange] = useState({ from: '', to: '' });
 
+  const todayText = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
+
   useEffect(() => {
     const loadRows = async () => {
       setLoading(true);
@@ -382,6 +387,12 @@ export function PositionSalaryManagement() {
     const targetDate = new Date(`${effectiveDate}T00:00:00`);
     if (Number.isNaN(targetDate.getTime())) {
       setError('Ngày bắt đầu không hợp lệ.');
+      return;
+    }
+
+    const todayStart = new Date(`${todayText}T00:00:00`);
+    if (!Number.isNaN(todayStart.getTime()) && targetDate < todayStart) {
+      setError('Ngày chuyển công tác không được là ngày quá khứ.');
       return;
     }
 
@@ -727,6 +738,7 @@ export function PositionSalaryManagement() {
               type="date"
               value={transferForm.effectiveDate}
               onChange={(e) => setTransferForm((prev) => ({ ...prev, effectiveDate: e.target.value }))}
+              min={todayText}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
             />
           </div>

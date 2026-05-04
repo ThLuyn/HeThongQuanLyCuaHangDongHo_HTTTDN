@@ -1,7 +1,9 @@
 const VND = new Intl.NumberFormat('vi-VN');
 
 export function formatMoney(value: number): string {
-  return `${VND.format(Number(value || 0))} đ`;
+  const amount = Number(value || 0);
+  const rounded = Number.isFinite(amount) ? Math.ceil(amount) : 0;
+  return `${VND.format(rounded)} đ`;
 }
 
 function readTriple(number: number): string {
@@ -101,6 +103,24 @@ export function buildMonthlyPayslipHtml(params: {
   const { employee, selectedMonth, selectedYear } = params;
   const netSalaryText = formatMoney(employee.takeHome);
   const netSalaryWords = numberToVietnameseWords(employee.takeHome);
+  const baseSalaryIncome = Number(employee.baseSalaryIncome ?? employee.baseSalary ?? 0);
+  const baseSalaryPhases = Array.isArray(employee.baseSalaryPhases)
+    ? employee.baseSalaryPhases.filter(Boolean)
+    : [];
+  const hasPhases = baseSalaryPhases.length > 0;
+
+  const formatDateDmy = (value: any): string => {
+    if (!value) {
+      return '';
+    }
+    const text = String(value).slice(0, 10);
+    const isYmd = /^\d{4}-\d{2}-\d{2}$/.test(text);
+    const date = isYmd ? new Date(`${text}T00:00:00`) : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
   return `
     <style>
@@ -221,10 +241,17 @@ export function buildMonthlyPayslipHtml(params: {
           </tr>
         </thead>
         <tbody>
-          <tr><td>Lương chính</td><td class="right">${formatMoney(employee.baseSalary)}</td></tr>
+          ${hasPhases
+            ? baseSalaryPhases
+                .map((p: any, idx: number) => {
+                  const labelRange = p.from && p.to ? ` (${formatDateDmy(p.from)} - ${formatDateDmy(p.to)})` : '';
+                  return `<tr><td>LCB giai đoạn ${idx + 1}${labelRange}: (${formatMoney(p.baseSalary)} / 26 × ${Number(p.workingDays || 0)} ngày)</td><td class="right">${formatMoney(p.amount)}</td></tr>`;
+                })
+                .join('')
+            : `<tr><td>Lương chính</td><td class="right">${formatMoney(baseSalaryIncome)}</td></tr>`}
           <tr><td>Hoa hồng</td><td class="right">${formatMoney(employee.allowance)}</td></tr>
           <tr><td>Doanh số</td><td class="right">${formatMoney(employee.revenue)}</td></tr>
-          <tr><td><strong>Tổng thu nhập</strong></td><td class="right"><strong>${formatMoney(employee.baseSalary + employee.allowance)}</strong></td></tr>
+          <tr><td><strong>Tổng thu nhập</strong></td><td class="right"><strong>${formatMoney(baseSalaryIncome + employee.allowance)}</strong></td></tr>
         </tbody>
       </table>
 
@@ -438,7 +465,10 @@ export function buildAllEmployeesMonthlyHtml(params: {
 
   const rowsHtml = rows
     .map((item, index) => {
-      const salaryByTime = Math.round((Number(item.baseSalary || 0) / 26) * Number(item.workingDays || 0));
+      const salaryByTime =
+        item.baseSalaryIncome != null
+          ? Math.round(Number(item.baseSalaryIncome || 0))
+          : Math.round((Number(item.baseSalary || 0) / 26) * Number(item.workingDays || 0));
       const gross = salaryByTime + Number(item.allowance || 0);
       return `
         <tr>

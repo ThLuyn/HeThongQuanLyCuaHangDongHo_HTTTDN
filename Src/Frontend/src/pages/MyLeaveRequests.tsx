@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { Modal } from '../components/Modal';
-import { createMyLeaveRequestApi, getMyLeaveRequestsApi } from '../utils/backendApi';
+import { createMyLeaveRequestApi, deleteMyLeaveRequestApi, getMyLeaveRequestsApi } from '../utils/backendApi';
 import { resolveImageSource } from '../utils/imageSource';
 
 const LEAVE_TYPE_LABEL = {
@@ -26,14 +27,47 @@ function getStatusBadgeClass(status) {
 
 function isSunday(dateStr) {
   if (!dateStr) return false;
-  return new Date(dateStr).getDay() === 0;
+  return new Date(`${dateStr}T00:00:00`).getDay() === 0;
+}
+
+function getVietnamYmd(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(date);
+}
+
+function maxYmd(a, b) {
+  if (!a) return b || '';
+  if (!b) return a || '';
+  return a > b ? a : b;
+}
+
+function addDays(dateStr, days) {
+  if (!dateStr) return '';
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + Number(days || 0));
+  return getVietnamYmd(date);
+}
+
+function diffDays(startStr, endStr) {
+  if (!startStr || !endStr) return NaN;
+  const start = new Date(`${startStr}T00:00:00`);
+  const end = new Date(`${endStr}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return NaN;
+  const msPerDay = 86400000;
+  return Math.floor((end - start) / msPerDay);
 }
 
 // Đếm số ngày thực tế trong khoảng, trừ Chủ nhật
 function countWorkingDays(startStr, endStr) {
   if (!startStr || !endStr) return 0;
-  const start = new Date(startStr);
-  const end = new Date(endStr);
+  const start = new Date(`${startStr}T00:00:00`);
+  const end = new Date(`${endStr}T00:00:00`);
   if (end < start) return 0;
   let count = 0;
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -44,14 +78,16 @@ function countWorkingDays(startStr, endStr) {
 
 function totalDays(startStr, endStr) {
   if (!startStr || !endStr) return 0;
-  const start = new Date(startStr);
-  const end = new Date(endStr);
+  const start = new Date(`${startStr}T00:00:00`);
+  const end = new Date(`${endStr}T00:00:00`);
   return Math.floor((end - start) / 86400000) + 1;
 }
 
 export function MyLeaveRequests() {
+  const todayText = useMemo(() => getVietnamYmd(), []);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState({ type: 'success', message: '' });
   const showNotice = (message, type = 'success') => {
     if (!message) return;
@@ -62,6 +98,7 @@ export function MyLeaveRequests() {
   const [tableResetSignal, setTableResetSignal] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [evidenceFile, setEvidenceFile] = useState(null);
   const [form, setForm] = useState({
     type: 0,
@@ -155,6 +192,27 @@ export function MyLeaveRequests() {
     setDetailOpen(true);
   };
 
+  const requestDelete = (row) => {
+    setDeleteConfirm({ id: Number(row?.id || 0) });
+  };
+
+  const confirmDelete = async () => {
+    const id = Number(deleteConfirm?.id || 0);
+    if (!id || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteMyLeaveRequestApi(id);
+      setDeleteConfirm(null);
+      await loadMyRequests();
+      showNotice('Đã xóa đơn chờ duyệt', 'success');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Không thể xóa đơn';
+      showNotice(message, 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Tính số ngày hiển thị trên form (trừ Chủ nhật)
   const workingDaysPreview = useMemo(() => {
     const type = Number(form.type);
@@ -165,6 +223,29 @@ export function MyLeaveRequests() {
     const total = totalDays(form.startDate, form.endDate);
     return { working, hasSunday: working < total };
   }, [form.startDate, form.endDate, form.type]);
+
+  const resignationMinDate = useMemo(() => {
+    if (Number(form.type) !== 3) return '';
+    if (!form.startDate) return '';
+    return addDays(form.startDate, 30);
+  }, [form.startDate, form.type]);
+
+  const startDateMin = todayText;
+  const endDateMin = useMemo(
+    () => maxYmd(todayText, String(form.startDate || '').trim()),
+    [todayText, form.startDate],
+  );
+  const resignationDateMin = useMemo(
+    () => maxYmd(todayText, resignationMinDate),
+    [todayText, resignationMinDate],
+  );
+
+  const isResignationTooSoon = useMemo(() => {
+    if (Number(form.type) !== 3) return false;
+    if (!form.startDate || !form.resignationDate) return false;
+    const days = diffDays(form.startDate, form.resignationDate);
+    return Number.isFinite(days) ? days < 30 : false;
+  }, [form.startDate, form.resignationDate, form.type]);
 
   const submitRequest = async () => {
     const type = Number(form.type);
@@ -183,6 +264,11 @@ export function MyLeaveRequests() {
       return;
     }
 
+    if (startDate < todayText) {
+      showNotice('Ngày bắt đầu không được là quá khứ', 'error');
+      return;
+    }
+
     if (isSunday(startDate)) {
       showNotice('Ngày bắt đầu không được là Chủ nhật (cửa hàng không làm việc)', 'error');
       return;
@@ -193,8 +279,24 @@ export function MyLeaveRequests() {
         showNotice('Vui lòng chọn ngày nghỉ việc chính thức', 'error');
         return;
       }
+
+      if (resignationDate < todayText) {
+        showNotice('Ngày nghỉ việc chính thức không được là quá khứ', 'error');
+        return;
+      }
+
       if (isSunday(resignationDate)) {
         showNotice('Ngày nghỉ việc không được là Chủ nhật (cửa hàng không làm việc)', 'error');
+        return;
+      }
+
+      const daysGap = diffDays(startDate, resignationDate);
+      if (!Number.isFinite(daysGap)) {
+        showNotice('Ngày nghỉ việc không hợp lệ', 'error');
+        return;
+      }
+      if (daysGap < 30) {
+        showNotice('Ngày nghỉ việc chính thức phải cách ngày bắt đầu ít nhất 30 ngày', 'error');
         return;
       }
     } else {
@@ -202,6 +304,12 @@ export function MyLeaveRequests() {
         showNotice('Vui lòng chọn ngày kết thúc', 'error');
         return;
       }
+
+      if (endDate < todayText) {
+        showNotice('Ngày kết thúc không được là quá khứ', 'error');
+        return;
+      }
+
       if (isSunday(endDate)) {
         showNotice('Ngày kết thúc không được là Chủ nhật (cửa hàng không làm việc)', 'error');
         return;
@@ -296,6 +404,7 @@ export function MyLeaveRequests() {
                   type="date"
                   value={form.startDate}
                   onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                  min={startDateMin || undefined}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
                 />
                 {isSunday(form.startDate) && (
@@ -310,11 +419,17 @@ export function MyLeaveRequests() {
                     type="date"
                     value={form.resignationDate}
                     onChange={(e) => setForm((prev) => ({ ...prev, resignationDate: e.target.value }))}
+                    min={resignationDateMin || undefined}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
                   />
                   {isSunday(form.resignationDate) && (
                     <p className="mt-1 text-xs text-red-500">Ngày nghỉ việc không được là Chủ nhật</p>
                   )}
+                  {isResignationTooSoon ? (
+                    <p className="mt-1 text-xs text-red-500">Ngày nghỉ việc chính thức phải cách ngày bắt đầu ít nhất 30 ngày</p>
+                  ) : resignationMinDate ? (
+                    <p className="mt-1 text-xs text-gray-500">Ngày sớm nhất: {new Date(resignationMinDate).toLocaleDateString('vi-VN')}</p>
+                  ) : null}
                 </div>
               ) : (
                 <div>
@@ -323,6 +438,7 @@ export function MyLeaveRequests() {
                     type="date"
                     value={form.endDate}
                     onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                    min={endDateMin || undefined}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/50"
                   />
                   {isSunday(form.endDate) ? (
@@ -415,6 +531,14 @@ export function MyLeaveRequests() {
             onClick: openDetail,
             className: 'p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors',
           },
+          {
+            key: 'delete',
+            label: 'Xóa đơn',
+            onClick: requestDelete,
+            hidden: (row) => Number(row?.statusCode) !== 0,
+            disabled: () => deleting,
+            className: 'p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors',
+          },
         ]}
       />
 
@@ -475,6 +599,12 @@ export function MyLeaveRequests() {
           </div>
         ) : null}
       </Modal>
+
+      <DeleteConfirmModal
+        deleteConfirm={deleteConfirm}
+        setDeleteConfirm={setDeleteConfirm}
+        confirmDelete={confirmDelete}
+      />
     </div>
   );
 }

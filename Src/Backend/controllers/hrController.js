@@ -65,6 +65,30 @@ function getVietnamDateString() {
   return formatter.format(new Date());
 }
 
+function toVietnamYmd(value) {
+  if (!value) {
+    return null;
+  }
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const text = String(value).trim();
+  const head = text.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    return head;
+  }
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return formatter.format(parsed);
+}
+
 function resolveAttendanceDate(input) {
   const raw = String(input || "").trim();
   const dateText = raw || getVietnamDateString();
@@ -199,7 +223,16 @@ async function createMyLeaveRequest(req, res, next) {
     const start = new Date(startDate);
     const isValidDate = (value) =>
       value && !Number.isNaN(new Date(value).getTime());
-    const normalize = (value) => new Date(value).toISOString().slice(0, 10);
+    const normalize = (value) => toVietnamYmd(value);
+
+    const todayText = getVietnamDateString();
+    const startDateText = normalize(startDate);
+    if (!startDateText) {
+      return fail(res, "startDate is required and must be a valid date", 400);
+    }
+    if (startDateText < todayText) {
+      return fail(res, "startDate must not be in the past", 400);
+    }
 
     let endDate = "";
     if (type === 3) {
@@ -208,8 +241,20 @@ async function createMyLeaveRequest(req, res, next) {
         return fail(res, "resignationDate must be a valid date", 400);
       }
       endDate = normalize(resignationDate);
+      if (!endDate) {
+        return fail(res, "resignationDate must be a valid date", 400);
+      }
+      if (endDate < todayText) {
+        return fail(res, "resignationDate must not be in the past", 400);
+      }
     } else if (isValidDate(endDateInput)) {
       endDate = normalize(endDateInput);
+      if (!endDate) {
+        return fail(res, "endDate must be a valid date", 400);
+      }
+      if (endDate < todayText) {
+        return fail(res, "endDate must not be in the past", 400);
+      }
     } else if (
       Number.isInteger(daysInput) &&
       daysInput > 0 &&
@@ -217,7 +262,13 @@ async function createMyLeaveRequest(req, res, next) {
     ) {
       const computedEnd = new Date(start);
       computedEnd.setDate(computedEnd.getDate() + daysInput - 1);
-      endDate = computedEnd.toISOString().slice(0, 10);
+      endDate = normalize(computedEnd);
+      if (!endDate) {
+        return fail(res, "endDate is invalid", 400);
+      }
+      if (endDate < todayText) {
+        return fail(res, "endDate must not be in the past", 400);
+      }
     } else {
       return fail(
         res,
@@ -317,6 +368,47 @@ async function createMyLeaveRequest(req, res, next) {
       "Leave request created",
       201,
     );
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function deleteMyLeaveRequest(req, res, next) {
+  try {
+    const currentMnv = Number(req.user?.mnv || 0);
+    const id = Number(req.params.id);
+
+    if (!currentMnv) {
+      return fail(res, "Invalid user", 401);
+    }
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, "Invalid leave request id", 400);
+    }
+
+    const found = await Employee.findMyLeaveRequestById(id, currentMnv);
+    if (!found) {
+      return fail(res, "Leave request not found", 404);
+    }
+
+    if (Number(found.TRANGTHAI) !== 0) {
+      return fail(res, "Only pending leave requests can be deleted", 400);
+    }
+
+    const deleteResult = await Employee.deleteMyLeaveRequest(id, currentMnv);
+    const affected = Number(deleteResult?.affectedRows || 0);
+    if (affected <= 0) {
+      return fail(res, "Unable to delete leave request", 400);
+    }
+
+    const evidencePath = String(found.MINHCHUNG || "").trim();
+    if (evidencePath) {
+      const safeFileName = path.basename(evidencePath);
+      const absolutePath = path.join(leaveEvidenceUploadDir, safeFileName);
+      fs.promises.unlink(absolutePath).catch(() => null);
+    }
+
+    return success(res, null, "Leave request deleted");
   } catch (error) {
     return next(error);
   }
@@ -732,6 +824,12 @@ async function transferEmployeePosition(req, res, next) {
         "effectiveDate is required and must be a valid date",
         400,
       );
+    }
+
+    const todayText = getVietnamDateString();
+    const effectiveDateText = toVietnamYmd(effectiveDate);
+    if (effectiveDateText && effectiveDateText < todayText) {
+      return fail(res, "effectiveDate must not be in the past", 400);
     }
 
     if (!approverId) {
@@ -1337,6 +1435,7 @@ module.exports = {
   getLeaveRequests,
   getMyLeaveRequests,
   createMyLeaveRequest,
+  deleteMyLeaveRequest,
   approveLeave,
   calculateSalary,
   getLatestPayrollPeriod,
